@@ -33,6 +33,7 @@ import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { createCodeProject } from '../code/codeApi';
 import type { KidProject } from '../projects/kidProject';
+import { PLAYABLE_KINDS } from './challengeEligibility';
 import {
   createChallengeSubmission,
   getChallengeSubmissionState,
@@ -43,14 +44,6 @@ import {
   type ChallengeSubmissionState,
 } from './challengeSubmitApi';
 import { dayLabel, kidErrorMessage, pitchUploadMessage, statusCopy } from './challengeSubmitCopy';
-
-/**
- * The project kinds that carry a virtual file system, i.e. the ones somebody can
- * actually play. Same list the backend enforces (`PLAYABLE_PROJECT_KINDS`) — an
- * Art Studio picture cannot be a challenge entry, and offering one here would
- * only produce a refusal the child cannot understand.
- */
-const PLAYABLE_KINDS: ReadonlyArray<KidProject['kind']> = ['game', 'code', 'blocks'];
 
 const schema = z.object({
   project_id: z.string().min(1, 'Pick the project you want to send in.'),
@@ -110,7 +103,12 @@ export function ChallengeSubmitPage() {
 
   const submission = state.data?.submission ?? null;
 
-  const startInteractiveWeb = useMutation({
+  /**
+   * SECONDARY path only (§8.2): a blank Code Studio file, for a child who wants
+   * to write raw HTML. The advertised "interactive web project" is a Website
+   * Studio link (below) — this page no longer creates that project itself.
+   */
+  const startBlankCode = useMutation({
     mutationFn: () =>
       createCodeProject({
         kidId,
@@ -289,22 +287,37 @@ export function ChallengeSubmitPage() {
                 Make an interactive web project
               </h3>
               <p className="mt-2 text-[14px] leading-relaxed text-slate2">
-                Start with a blank project for your own tool, story, simulation or interactive
-                experience.
+                Build a website in the Website Studio — your own tool, story, simulation or
+                anything someone can click around.
               </p>
-              <button
-                type="button"
-                className="btn-pill-primary mt-5"
-                disabled={startInteractiveWeb.isPending}
-                onClick={() => startInteractiveWeb.mutate()}
+              {/* PRD §8.2: the advertised web route opens the WEBSITE STUDIO, which
+                  has the kind-aware guide and the starters. It creates the project
+                  from its own prompt-first flow, so nothing is created here. The
+                  `challenge` param is what the studio persists as this project's
+                  challenge context. */}
+              <Link
+                to={`/learn/playground/new?kind=website&challenge=${encodeURIComponent(slug)}`}
+                className="btn-pill-primary mt-5 inline-block"
                 data-testid="challenge-start-web"
               >
-                {startInteractiveWeb.isPending ? 'Starting…' : 'Start my web project →'}
+                Start my web project →
+              </Link>
+              {/* Secondary, deliberately quieter: raw HTML in the Code Studio. */}
+              <button
+                type="button"
+                className="mt-4 block text-[13px] font-semibold text-slate2 underline disabled:opacity-60"
+                disabled={startBlankCode.isPending}
+                onClick={() => startBlankCode.mutate()}
+                data-testid="challenge-start-blank-code"
+              >
+                {startBlankCode.isPending
+                  ? 'Starting…'
+                  : 'Or start from a blank HTML file instead'}
               </button>
             </div>
           </div>
 
-          {startInteractiveWeb.isError && (
+          {startBlankCode.isError && (
             <p className="field-error mt-4" role="alert">
               We could not start the project. Try again in a moment.
             </p>
@@ -393,8 +406,8 @@ export function ChallengeSubmitPage() {
             )}
             {!projects.isLoading && !projects.isError && eligible.length === 0 && (
               <span className="mt-2 block text-[13px] text-slate2" data-testid="no-projects">
-                You do not have a project someone can play yet. Make a game or a code project
-                first, then come back.
+                You do not have a project someone can play yet. Make a game, a website or a code
+                project first, then come back.
               </span>
             )}
           </label>

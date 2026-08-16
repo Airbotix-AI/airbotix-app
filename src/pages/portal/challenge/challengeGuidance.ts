@@ -29,8 +29,10 @@ export const CHALLENGE_PROJECT_TYPES: ChallengeProjectType[] = [
   },
   {
     id: 'interactive-web',
+    // Where it is built is a FACT a parent needs (entrant-onboarding-prd §8.2):
+    // the advertised web route opens the Website Studio, not a blank code file.
     name: 'An Interactive Web Project',
-    body: 'Something that responds to whoever is using it — a tool, a toy, a story, a simulation.',
+    body: 'Something that responds to whoever is using it — a tool, a toy, a story, a simulation. Your child builds this in the Website Studio, inside Creative Code Studio.',
   },
 ]
 

@@ -1,5 +1,62 @@
 # Changelog
 
+## 2026-08-14 (feat: Creative Code Challenge entrant onboarding — the app half)
+
+Execution plan `creative-code-challenge-entrant-onboarding-execution-plan.md`
+PRs 1 (app half), 2, 3, 5 and 8. PRD §8–§10.
+
+### Added
+
+- **A website is an eligible challenge entry** (`challengeEligibility.ts`, new):
+  the eligible-kind rule now lives in its own module as the stated principle —
+  *a project is eligible when a judge can open it and use it in a browser* — with
+  `website` admitted alongside `game`, `code` and `blocks` (D-CCE-1). A test pins
+  the literal set, so the next `ProjectKind` that ships without being classified
+  fails a test instead of being silently unenterable, which is exactly how
+  `website` was refused for the whole first edition while the landing page sold it.
+- **The challenge-aware studio strip** (`ChallengeStrip.tsx` +
+  `useChallengeContext.ts`, new): a compact bar naming the edition, its submission
+  window, whether this project is the designated entry (with the control that
+  makes it so, `PUT …/designated-project`) and one link back to the challenge
+  page. Every value comes from the entry record — no date, rule or requirement is
+  authored in the studio. It renders nothing when there is no entry, including on
+  a failed read: an error card over a child's game is worse than no strip.
+  The full exclusion set (class work, teacher prep, read-only live view,
+  `/try/playground`, ordinary personal projects) is one pure predicate,
+  `challengeStripApplies`, rather than more branches in `PlaygroundApp`.
+- **A challenge tile on the kid home** (`HomePage.tsx`, testid `home-my-challenge`)
+  behind `GET /challenges/mine`, so a child can reach their challenge without a
+  parent opening a link for them. Hand-written in the home grid on purpose, NOT in
+  `createTools.ts` — that registry is shared with the Create hub, the class create
+  sheet and the parent-facing Creative Spaces panel, and every entry in it must be
+  a project-creating studio with a project kind and a Stars cost. Walk-in
+  (`is_ephemeral`) kids are never asked; `retry: false` keeps a failure from
+  retry-storming on every home render.
+- `challengesMineApi.ts` (new) — the one statement of the kid-scoped entries
+  contract, shared by the home tile and the studio strip.
+
+### Changed
+
+- **"Make an interactive web project" now opens the Website Studio**
+  (`ChallengeSubmitPage.tsx`): it was creating a blank Code Studio file and
+  navigating to `/learn/code/:id`, which is not the studio the competition brief
+  describes. It is now a plain navigation to
+  `/learn/playground/new?kind=website&challenge=<slug>` and creates nothing —
+  the studio's own prompt-first flow owns creation. Starting from a blank HTML
+  file stays available as a clearly secondary choice.
+- **Challenge context is persisted, not carried in the URL** (`PlaygroundApp.tsx`,
+  `playgroundApi.ts`): the studio `replaceState`s to `/learn/playground/<newId>`
+  the moment a project is created, discarding every query param — `?class=` only
+  appears to survive because the class is written to the database. The challenge
+  slug now rides the create call (`challenge_slug`), the backend stores
+  `Project.challenge_edition_id`, and a resumed session reads it back off the
+  project.
+- **Eligibility copy names websites** in the child's refusal message
+  (`challengeSubmitCopy.ts`), the "no playable project yet" hint, and the parent's
+  project-type guidance (`challengeGuidance.ts`, which now says where an
+  interactive web project is built). The landing page, the in-app copy and the
+  server rule state one thing.
+
 ## 2026-08-13 (fix: website projects open with the Website window visible)
 
 ### Fixed

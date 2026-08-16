@@ -1,13 +1,34 @@
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { SHOW_LESSONS_CATALOG } from '@/lib/features';
+import {
+  MY_CHALLENGES_QUERY_KEY,
+  listMyChallenges,
+  type MyChallengeEntry,
+} from './challenge/challengesMineApi';
 import { LIVE_CREATE_TOOLS } from './create/createTools';
 import { WelcomeModal } from './WelcomeModal';
 
 export function HomePage() {
   const me = useMe();
   const nickname = me.data?.kind === 'kid' ? me.data.nickname : 'friend';
+  // Walk-in kids DO get an ephemeral family and wallet, so "no family" is not the
+  // discriminator — `is_ephemeral` is, consistent with `WALK_IN_NAV_ITEMS`. A
+  // walk-in cannot have a paid entry, so they never ask.
+  const isEnterableKid = me.data?.kind === 'kid' && me.data.is_ephemeral !== true;
+  // The child's own entries (entrant-onboarding-prd §10 / execution plan PR 8).
+  // `retry: false` because this runs on EVERY home render: one bad edition must
+  // not turn the kid home into a retry storm. A failure renders nothing at all —
+  // never a spinner and never an error card on a child's home screen.
+  const challenges = useQuery<MyChallengeEntry[]>({
+    queryKey: MY_CHALLENGES_QUERY_KEY,
+    queryFn: listMyChallenges,
+    enabled: isEnterableKid,
+    retry: false,
+  });
+  const challenge: MyChallengeEntry | null = challenges.data?.[0] ?? null;
 
   return (
     <div>
@@ -58,6 +79,37 @@ export function HomePage() {
       </section>
 
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
+        {/* Creative Code Challenge (entrant-onboarding-prd §10): the child's own
+            way back into their challenge. Deliberately hand-written HERE and NOT
+            in `createTools.ts` — that registry is shared with the Create hub, the
+            class create sheet and the parent-facing Creative Spaces panel, and
+            every entry in it must be a project-creating studio with a project
+            kind and a Stars cost. A challenge is neither. */}
+        {challenge && (
+          <Link
+            to={`/learn/challenge/${encodeURIComponent(challenge.slug)}/submit`}
+            className="pack-card sunshine block"
+            data-testid="home-my-challenge"
+          >
+            <span className="pack-blob" />
+            <div className="relative">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
+                Creative Code Challenge
+              </div>
+              {/* The edition's OWN name — no challenge name is authored here. */}
+              <div className="mt-4 text-[24px] font-bold leading-tight">
+                🏆 {challenge.name}
+              </div>
+              <div className="mt-2 text-[14px] opacity-90">
+                You are entered. Keep building, then send your project in from here.
+              </div>
+              <div className="mt-6 inline-block rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
+                Open my challenge →
+              </div>
+            </div>
+          </Link>
+        )}
+
         {SHOW_LESSONS_CATALOG && (
           <Link
             to="/learn/missions"

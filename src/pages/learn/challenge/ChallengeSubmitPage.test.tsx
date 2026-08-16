@@ -41,6 +41,7 @@ vi.mock('@/lib/api', () => ({ api, ApiError: MockApiError }));
 vi.mock('@/auth/useAuth', () => ({ useMe: () => me }));
 
 import { ChallengeSubmitPage } from './ChallengeSubmitPage';
+import { PLAYABLE_KINDS } from './challengeEligibility';
 
 const SLUG = 'creative-code-challenge-2026-junior';
 const STATE_PATH = `/challenges/by-slug/${SLUG}/submission`;
@@ -142,7 +143,7 @@ function renderPage() {
       <MemoryRouter initialEntries={[`/learn/challenge/${SLUG}/submit`]}>
         <Routes>
           <Route path="/learn/challenge/:slug/submit" element={<ChallengeSubmitPage />} />
-          <Route path="/learn/code/:projectId" element={<div data-testid="challenge-web-studio" />} />
+          <Route path="/learn/code/:projectId" element={<div data-testid="challenge-code-studio" />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -196,7 +197,7 @@ describe('ChallengeSubmitPage — only the child’s own projects are offered', 
     wireApi({
       [`GET ${PROJECTS_PATH}`]: [
         project(),
-        project({ id: 'prj_code', title: 'My Website', kind: 'code' }),
+        project({ id: 'prj_code', title: 'My Code', kind: 'code' }),
         project({ id: 'prj_blocks', title: 'Monkey King', kind: 'blocks' }),
         // Not playable — an Art Studio picture cannot be a challenge entry, and
         // the backend would refuse it (PROJECT_NOT_PLAYABLE).
@@ -214,11 +215,42 @@ describe('ChallengeSubmitPage — only the child’s own projects are offered', 
     expect(api).toHaveBeenCalledWith(PROJECTS_PATH);
   });
 
+  // D-CCE-1 / entrant-onboarding-prd §8.1: a Website Studio site IS an eligible
+  // entry. The competition advertises "browser game or interactive website" and
+  // took money for it, so a website that cannot be picked here is a refusal of
+  // something already sold.
+  it('offers a website project — the advertised second format', async () => {
+    wireApi({
+      [`GET ${PROJECTS_PATH}`]: [
+        project({ id: 'prj_site', title: 'My Pet Shop', kind: 'website' }),
+        project({ id: 'prj_art', title: 'My Drawing', kind: 'creative' }),
+      ],
+    });
+    renderPage();
+
+    const picker = (await screen.findByTestId('challenge-project')) as HTMLSelectElement;
+    expect([...picker.options].map((o) => o.value)).toEqual(['', 'prj_site']);
+    expect(screen.getByText('My Pet Shop')).toBeInTheDocument();
+  });
+
+  // The rule ("a judge can open it and use it in a browser") lives in two repos
+  // that cannot import each other, so each side PINS its literal set. A new
+  // `ProjectKind` shipped without re-deriving this list fails HERE rather than
+  // silently narrowing what a child is allowed to enter — which is exactly how
+  // `website` was unenterable for the whole first edition.
+  it('pins the eligible set literally (entrant-onboarding-prd §8.1)', () => {
+    expect([...PLAYABLE_KINDS]).toEqual(['game', 'code', 'blocks', 'website']);
+    // `creative` is the one deliberate exclusion: nothing to operate.
+    expect(PLAYABLE_KINDS).not.toContain('creative');
+  });
+
   it('says what to do when the child has no playable project yet', async () => {
     wireApi({ [`GET ${PROJECTS_PATH}`]: [project({ id: 'prj_art', kind: 'creative' })] });
     renderPage();
+    // Names websites in the same breath as games (§8.2) — the copy a child reads
+    // must agree with the set the server accepts.
     expect(await screen.findByTestId('no-projects')).toHaveTextContent(
-      /Make a game or a code project first/i,
+      /Make a game, a website or a code project first/i,
     );
   });
 });
@@ -429,10 +461,7 @@ describe('ChallengeSubmitPage — the deadline', () => {
 
   it('before submissions open, starts a competition project without the generic template lobby', async () => {
     vi.setSystemTime(new Date('2026-08-01T00:00:00.000Z'));
-    wireApi({
-      [`GET ${STATE_PATH}`]: stateView({ window_open: false }),
-      'POST /projects': { id: 'challenge-web-1' },
-    });
+    wireApi({ [`GET ${STATE_PATH}`]: stateView({ window_open: false }) });
     renderPage();
 
     const build = await screen.findByTestId('challenge-build-now');
@@ -445,8 +474,37 @@ describe('ChallengeSubmitPage — the deadline', () => {
     expect(screen.getByTestId('challenge-my-projects')).toHaveAttribute('href', '/learn/projects');
     expect(screen.queryByText('My Pet Website')).not.toBeInTheDocument();
     expect(screen.queryByText('Beat Box')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-form')).not.toBeInTheDocument();
+    expect(screen.queryByText('Not open yet')).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByTestId('challenge-start-web'));
+  // PR 2 (entrant-onboarding-prd §8.2): the ADVERTISED "interactive web project"
+  // opened a BLANK CODE FILE — the studio the brief describes (kind-aware guide,
+  // starters) already existed and was not what the button pointed at. It is now a
+  // plain navigation: the Website Studio's own prompt-first flow creates the
+  // project, so this page duplicates no creation logic.
+  it('the primary web button goes to the Website Studio, creating nothing here', async () => {
+    vi.setSystemTime(new Date('2026-08-01T00:00:00.000Z'));
+    wireApi({ [`GET ${STATE_PATH}`]: stateView({ window_open: false }) });
+    renderPage();
+
+    const web = await screen.findByTestId('challenge-start-web');
+    // BOTH params: `kind=website` arms the studio, `challenge` is the context the
+    // studio persists onto the created project.
+    expect(web).toHaveAttribute('href', `/learn/playground/new?kind=website&challenge=${SLUG}`);
+    // Nothing is created by pressing it — no project POST at all.
+    expect(api).not.toHaveBeenCalledWith('/projects', expect.anything());
+  });
+
+  it('the SECONDARY raw-HTML path still creates a blank code project', async () => {
+    vi.setSystemTime(new Date('2026-08-01T00:00:00.000Z'));
+    wireApi({
+      [`GET ${STATE_PATH}`]: stateView({ window_open: false }),
+      'POST /projects': { id: 'challenge-code-1' },
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByTestId('challenge-start-blank-code'));
     await waitFor(() =>
       expect(api).toHaveBeenCalledWith('/projects', {
         method: 'POST',
@@ -459,9 +517,7 @@ describe('ChallengeSubmitPage — the deadline', () => {
         },
       }),
     );
-    expect(await screen.findByTestId('challenge-web-studio')).toBeInTheDocument();
-    expect(screen.queryByTestId('challenge-form')).not.toBeInTheDocument();
-    expect(screen.queryByText('Not open yet')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('challenge-code-studio')).toBeInTheDocument();
   });
 
   it('inside the window an existing entry can still be changed', async () => {
