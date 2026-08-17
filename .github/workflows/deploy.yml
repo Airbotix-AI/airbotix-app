@@ -9,6 +9,11 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Serialise deploys — queue, never cancel a rollout mid-flight.
+concurrency:
+  group: deploy-airbotix-app
+  cancel-in-progress: false
+
 permissions:
   id-token: write
   contents: read
