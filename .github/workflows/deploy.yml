@@ -22,13 +22,6 @@ env:
   AWS_REGION: ap-southeast-2
   S3_BUCKET: airbotix-app-prod
   CF_DISTRIBUTION_ID: E1CN0CC163N595
-  VITE_API_BASE_URL: https://api.airbotix.ai
-  VITE_WS_URL: wss://api.airbotix.ai/ws
-  # Music Stage sample library on OUR origin (music-stage-prd §6.1 / OQ-3). Unset
-  # → soundfont.ts keeps the smplr path closed and plays the Tone.js fallback
-  # voices rather than calling a third-party CDN from a kid's browser. Populated
-  # by the `Publish soundfonts` workflow; must match its PUBLIC_BASE.
-  VITE_SOUNDFONT_BASE_URL: https://app.airbotix.ai/soundfonts
 
 jobs:
   deploy:
@@ -45,12 +38,26 @@ jobs:
       # the two workflows don't block each other, so a red test suite still shipped.
       # Running it here makes the gate match the one CLAUDE.md describes (lint →
       # typecheck → test → build) and lets `ci` stop duplicating it on main.
+      #
+      # The VITE_* build values are declared on the build step below, NOT at
+      # workflow level, so this step runs with them unset exactly as `ci` and a
+      # laptop do. They used to sit in the workflow `env:` block, which reaches
+      # every step, so the suite ran against production config here and nowhere
+      # else — five soundfont tests failed only on a deploy. (Blanking them to ''
+      # is not the same thing: `''` defeats a `?? default`, which breaks 26 other
+      # tests. Unset is the condition to reproduce.)
       - run: npm test --if-present
       - run: npm run build
         env:
-          VITE_API_BASE_URL: ${{ env.VITE_API_BASE_URL }}
-          VITE_WS_URL: ${{ env.VITE_WS_URL }}
-          VITE_SOUNDFONT_BASE_URL: ${{ env.VITE_SOUNDFONT_BASE_URL }}
+          VITE_API_BASE_URL: https://api.airbotix.ai
+          VITE_WS_URL: wss://api.airbotix.ai/ws
+          # Music Stage sample library on OUR origin (music-stage-prd §6.1 / OQ-3).
+          # Unset → soundfont.ts keeps the smplr path closed and plays the Tone.js
+          # fallback voices rather than calling a third-party CDN from a kid's
+          # browser. Populated by the `Publish soundfonts` workflow; must match its
+          # PUBLIC_BASE. Declared HERE rather than at workflow level so it reaches
+          # the build and nothing else.
+          VITE_SOUNDFONT_BASE_URL: https://app.airbotix.ai/soundfonts
           # GA4 data stream for the PARENT PORTAL. Empty until the repo secret
           # exists → analytics completely inert (no fallback measurement id).
           #

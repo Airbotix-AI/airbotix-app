@@ -1,5 +1,29 @@
 # Changelog
 
+## 2026-08-17 (fixed: the deploy gate ran the tests against production build config)
+
+### Fixed
+
+- **`Deploy airbotix-app` went red on the first push that actually ran its new test
+  step**, taking production deploys down with it. `deploy.yml` declared the `VITE_*`
+  build values in the **workflow-level** `env:` block, which reaches *every* step — so
+  `npm test` ran with `VITE_SOUNDFONT_BASE_URL` pointing at the production sample origin,
+  while `ci` and every laptop ran it unset. Five `soundfont.test.ts` cases assert the
+  unset behaviour (external gleitz default in dev, smplr path closed in production) and
+  failed only there. The step was added by the previous deploy-gate fix, which merged with
+  `[skip ci]` and so never ran itself; the fault was latent until the next real push.
+
+  Fixed on both sides:
+  - The `VITE_*` values moved out of the workflow `env:` block onto the `build` step that
+    needs them, so the test step runs unset exactly as `ci` and a laptop do. Verified the
+    built bundle still carries the production soundfont origin. Blanking them to `''`
+    instead is **not** equivalent — `''` defeats a `?? default` and breaks 26 other tests.
+  - `soundfont.test.ts` now stubs `VITE_SOUNDFONT_BASE_URL` to `''` in its `beforeEach`
+    rather than inheriting an ambient absence, so a suite that asserts "not configured"
+    states that condition instead of depending on where it happens to run. Confirmed by
+    running the file both with and without the production value set.
+
+
 ## 2026-08-17 (perf: split the Blocks Studio suite so seasons run in parallel)
 
 ### Changed
