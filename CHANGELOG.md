@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-08-17 (fixed: the deploy gate wasn't running the tests)
+
+### Fixed
+
+- **`deploy.yml` now runs `npm test` before shipping.** It ran lint, typecheck and build but
+  *not* the test suite. `ci` ran the tests on the same push, but the two workflows don't block
+  each other — so a red test suite could not stop a deploy, and production could ship on code
+  whose tests were failing. The gate now matches the one CLAUDE.md describes (lint → typecheck →
+  test → build). Verified against `main`: 304 test files, 2759 passed, 0 failed.
+
+### CI
+
+- **`ci` no longer runs on pushes to `main`.** A merge fired `ci` *and* `deploy.yml`, and
+  `deploy.yml` already repeats the identical lint/typecheck/test/build gate before it ships —
+  so every merge paid for the same checks twice. Dropping the `push` trigger weakens nothing:
+  a direct push to `main` is still gated, by `deploy.yml`, which refuses to ship if the gate
+  fails. PRs are unaffected. Part of clawing back the Actions free tier, which the org
+  exhausted on 17 August.
+
 ## 2026-08-17 (ci: stop superseded runs from burning Actions minutes)
 
 ### CI
