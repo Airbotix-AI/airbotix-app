@@ -81,6 +81,15 @@ beforeEach(() => {
   h.instance = null;
   h.soundfontOpts = null;
   h.drumOpts = null;
+  // Most cases here assert the UNSET-base behaviour (external gleitz default in
+  // dev, smplr closed in production). They used to get that by inheriting an
+  // ambient env that happened to have no VITE_SOUNDFONT_BASE_URL — true locally
+  // and in `ci`, but NOT in `deploy.yml`, which exports the real value at job
+  // level so every step sees it. Five tests then failed only on a deploy. Assert
+  // the precondition instead of inheriting it; '' is falsy, so `configuredBaseUrl`
+  // reads it exactly as "not configured". Cases that want a base still stub their
+  // own value over this.
+  vi.stubEnv('VITE_SOUNDFONT_BASE_URL', '');
   resetSmplrGateForTests();
 });
 
