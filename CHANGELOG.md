@@ -19,6 +19,16 @@
   actually uses. The mission tests had drifted into a `describe` named for the embedded
   back-link seam; they now sit under describes named for the seasons they test.
 
+- **Editing a test no longer forces a full production rebuild of the harness image.**
+  `.dockerignore` now excludes `**/*.{test,spec}.{ts,tsx}`, `e2e/`, `playwright.config.ts`
+  and markdown. The Dockerfile's `COPY . .` sits in the layer directly before
+  `npm run build`, so all 310 test files were part of the cache key even though
+  `tsc -b && vite build` never reads one: touching a single spec rebuilt the whole Vite
+  bundle — the slowest step in bringing the harness stack up, and a cold `type=gha` layer
+  in `cross-repo-verify.yml`. Measured: a rebuild after a test edit goes from 61s to 0.6s
+  (fully cached), while a rebuild after a real source edit still invalidates and rebuilds,
+  so nothing stale can ship.
+
 ## 2026-08-17 (fixed: the deploy gate wasn't running the tests)
 
 ### Fixed

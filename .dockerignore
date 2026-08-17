@@ -5,3 +5,18 @@ e2e/__screenshots__
 .claude
 .codex-worktrees
 .env.local
+
+# The Dockerfile's `COPY . .` lands in the layer just before `npm run build`, so
+# anything in the build context invalidates that layer — and the Vite build is the
+# slowest step in bringing the harness stack up. None of the following is read by
+# `tsc -b && vite build`, so keeping them out means editing a test (310 of them
+# live under src/) no longer forces a full production rebuild here or a cold
+# `type=gha` layer in cross-repo-verify.yml.
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+e2e
+playwright.config.ts
+CHANGELOG.md
+*.md
