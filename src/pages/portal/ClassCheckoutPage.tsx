@@ -144,6 +144,15 @@ export function ClassCheckoutPage() {
   const me = useMe();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
 
+  // Handed over by the marketing site, which lives on a different origin and
+  // therefore cannot pass these in storage (airbotix `withAttributionHandoff`).
+  // `ref` prefills the code box so the parent sees what they arrived with
+  // rather than having to remember and retype it; `ms` links this purchase back
+  // to the browsing session that brought them.
+  const handoff = new URLSearchParams(location.search);
+  const handoffRef = handoff.get('ref')?.trim() || '';
+  const handoffSession = handoff.get('ms')?.trim() || undefined;
+
   const queryClient = useQueryClient();
   const [phase, setPhase] = useState<Phase>('idle');
   // Checked on blur, not on every keystroke: the public endpoint is
@@ -181,7 +190,13 @@ export function ClassCheckoutPage() {
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { kid_id: '' } });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    // Prefilled so a parent who arrived on a partner's link can SEE the code
+    // that will be applied — and edit or clear it, which a hidden value would
+    // not let them do.
+    defaultValues: { kid_id: '', referral_code: handoffRef },
+  });
   const selectedKidId = watch('kid_id');
 
   // Returned from the hosted page? Poll the order until the webhook lands.
@@ -388,14 +403,23 @@ export function ClassCheckoutPage() {
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
-      const referral = values.referral_code?.trim() || undefined;
+      // A code typed into the box beats the one carried in the URL: it is the
+      // parent's stated intent, and it is the only way to correct a link that
+      // arrived with the wrong code attached.
+      const referral = values.referral_code?.trim() || handoffRef || undefined;
       const body = values.kid_id
-        ? { class_id: classId, kid_id: values.kid_id, referral_code: referral }
+        ? {
+            class_id: classId,
+            kid_id: values.kid_id,
+            referral_code: referral,
+            marketing_session_id: handoffSession,
+          }
         : {
             class_id: classId,
             kid_nickname: values.kid_nickname?.trim(),
             kid_age: Number(values.kid_age),
             referral_code: referral,
+            marketing_session_id: handoffSession,
           };
       const res = await api<CheckoutResponse>('/class-seats/checkout', { method: 'POST', body });
       const nickname = values.kid_id

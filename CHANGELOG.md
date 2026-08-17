@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-18 (added: read the attribution handed over by the marketing site)
+
+### Added
+
+- Checkout reads `?ref=` and `?ms=` from the URL — the parameters `airbotix`'s
+  `withAttributionHandoff` writes when a visitor crosses from airbotix.ai to app.airbotix.ai.
+  The two are different origins, so storage does not follow the visitor; without this the
+  partner's link works right up to the click that decides whether anybody gets paid.
+- The carried code **prefills the visible box** rather than riding along hidden, so a parent can
+  see what will be applied and clear a code that came attached to a link they did not intend.
+  A typed code overrides the URL's — it is the parent's stated intent, and the only way to correct
+  a bad link.
+
 ## 2026-08-18 (added: tuition credit and referrals in the Portal)
 
 ### Changed

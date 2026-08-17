@@ -78,11 +78,11 @@ function wireApi(handlers: Record<string, unknown> = {}) {
   });
 }
 
-function renderPage() {
+function renderPage(search = '') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/portal/checkout/class/class-1']}>
+      <MemoryRouter initialEntries={[`/portal/checkout/class/class-1${search}`]}>
         <Routes>
           <Route path="/portal/checkout/class/:classId" element={<ClassCheckoutPage />} />
           <Route path="/portal/register" element={<div>REGISTER PAGE</div>} />
@@ -408,6 +408,76 @@ describe('ClassCheckoutPage', () => {
           '/class-seats/checkout',
           expect.objectContaining({
             body: expect.objectContaining({ referral_code: 'bcdf2345' }),
+          }),
+        );
+      });
+    });
+  });
+
+  describe('handoff from the marketing site (airbotix withAttributionHandoff)', () => {
+    it('prefills a code carried in the URL so the parent can see and edit it', async () => {
+      wireApi({ '/affiliate/codes/BCDF2345/validate': { valid: true, discount_aud_cents: 2500 } });
+      renderPage('?ref=BCDF2345');
+      const input = (await screen.findByPlaceholderText(/Friend's code/)) as HTMLInputElement;
+      // Visible and editable, not a hidden field — a parent must be able to
+      // clear a code that arrived attached to a link they did not intend.
+      expect(input.value).toBe('BCDF2345');
+    });
+
+    it('sends the handed-over session with the order', async () => {
+      wireApi({
+        '/class-seats/checkout': {
+          kind: 'payment_required',
+          booking_id: 'bk_1',
+          payment_intent_id: 'int_1',
+          checkout_url: 'https://checkout.airwallex.local/int_1',
+          course_total_aud_cents: 39900,
+          credit_applied_aud_cents: 0,
+          amount_due_aud_cents: 39900,
+        },
+      });
+      renderPage('?ref=BCDF2345&ms=sess-9');
+      fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'kid-1' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Pay A\$399 & lock the seat/ }));
+      });
+      await waitFor(() => {
+        expect(api).toHaveBeenCalledWith(
+          '/class-seats/checkout',
+          expect.objectContaining({
+            body: expect.objectContaining({
+              referral_code: 'BCDF2345',
+              marketing_session_id: 'sess-9',
+            }),
+          }),
+        );
+      });
+    });
+
+    it('lets a typed code override the one in the URL', async () => {
+      wireApi({
+        '/class-seats/checkout': {
+          kind: 'payment_required',
+          booking_id: 'bk_1',
+          payment_intent_id: 'int_1',
+          checkout_url: 'https://checkout.airwallex.local/int_1',
+          course_total_aud_cents: 39900,
+          credit_applied_aud_cents: 0,
+          amount_due_aud_cents: 39900,
+        },
+      });
+      renderPage('?ref=BCDF2345');
+      const input = await screen.findByPlaceholderText(/Friend's code/);
+      fireEvent.change(input, { target: { value: 'XYZW6789' } });
+      fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'kid-1' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Pay A\$399 & lock the seat/ }));
+      });
+      await waitFor(() => {
+        expect(api).toHaveBeenCalledWith(
+          '/class-seats/checkout',
+          expect.objectContaining({
+            body: expect.objectContaining({ referral_code: 'XYZW6789' }),
           }),
         );
       });
