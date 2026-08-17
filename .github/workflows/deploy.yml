@@ -41,6 +41,11 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      # The deploy gate was missing this: `ci` ran the tests on the same push, but
+      # the two workflows don't block each other, so a red test suite still shipped.
+      # Running it here makes the gate match the one CLAUDE.md describes (lint →
+      # typecheck → test → build) and lets `ci` stop duplicating it on main.
+      - run: npm test --if-present
       - run: npm run build
         env:
           VITE_API_BASE_URL: ${{ env.VITE_API_BASE_URL }}

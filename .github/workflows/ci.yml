@@ -1,12 +1,14 @@
-# CI checks — runs on PRs, main pushes, and manual dispatch.
+# CI checks — runs on PRs and manual dispatch.
 # Lint / typecheck / unit test / build. No deploy, no AWS credentials.
 # Production deploy lives in deploy.yml.
 
 name: ci
 
+# A merge to main used to run this AND deploy.yml, which repeats the identical
+# lint/typecheck/test/build gate before shipping. Dropping the `push` trigger
+# removes the duplicate without weakening anything: a direct push to main is
+# still gated, by deploy.yml, which refuses to ship if the gate fails.
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 
