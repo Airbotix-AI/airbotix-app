@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-08-17 (perf: split the Blocks Studio suite so seasons run in parallel)
+
+### Changed
+
+- **`npm test` runs in 20.8s instead of 55.6s.** `BlocksStudioPage.test.tsx` had grown to
+  47 tests over 2,094 lines, and Vitest cannot split one file across workers — so its 53.3s
+  ran strictly serially while the other 14 workers idled, setting a hard floor nobody could
+  get under. It is now six files split along the seasons the tests already cover, following
+  the naming the repo had already started with `BlocksStudioPage.jtwC2P6.test.tsx`:
+  `.seasonA1A2`, `.jtwC1P6`, `.seasonA3A4`, `.seasonA5`, `.seasonA6`, and the original file
+  keeping the studio chrome (zone labels, read-only viewer, embedded seam, autosave). The
+  slowest is now 15.1s, which sits under the 20.4s the rest of the suite takes anyway, so
+  this file no longer bounds the run at all.
+  No test body changed — the split is line surgery, and the same 47 tests pass, alongside
+  the full suite's 2,762. Each file carries its own copy of the three `vi.mock` blocks
+  (Vitest hoists `vi.mock` per file, so they cannot be shared) and only the imports it
+  actually uses. The mission tests had drifted into a `describe` named for the embedded
+  back-link seam; they now sit under describes named for the seasons they test.
+
 ## 2026-08-17 (fixed: the deploy gate wasn't running the tests)
 
 ### Fixed
