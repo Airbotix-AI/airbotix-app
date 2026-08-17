@@ -183,7 +183,7 @@ describe('ChallengeHubPage — the guidance a first-time family needs', () => {
       await screen.findByRole('heading', { name: /Creative Code Challenge — 2026 Junior/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/online creative coding competition for ages 8–12/i),
+      screen.getByText(/online creative coding competition for ages 8–14/i),
     ).toBeInTheDocument();
   });
 

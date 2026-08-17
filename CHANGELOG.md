@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-17 (changed: Creative Code Challenge is now ages 8–14)
+
+### Changed
+
+- The parent Challenge Hub introduces the competition as "for ages 8–14" (was 8–12), matching
+  `airbotix.ai/creative-code-challenge` and the signed Competition Terms. The kid submission
+  screen's reading-level notes moved with it.
+
 ## 2026-08-17 (fixed: the deploy gate ran the tests against production build config)
 
 ### Fixed

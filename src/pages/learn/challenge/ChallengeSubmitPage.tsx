@@ -2,7 +2,7 @@
 // (`/learn/challenge/:slug/submit`; creative-code-challenge-prd.md §5 flow 4,
 // §6 "airbotix-app — Learn" row).
 //
-// This is an 8–12 year-old's screen, so the whole page is built around four
+// This is an 8–14 year-old's screen, so the whole page is built around four
 // promises, in order of how much damage breaking one would do:
 //
 //   1. **A failed upload never looks like a successful entry.** The pitch video

@@ -1,4 +1,4 @@
-// Every sentence an 8–12 year-old reads on `/learn/challenge/:slug/submit`.
+// Every sentence an 8–14 year-old reads on `/learn/challenge/:slug/submit`.
 //
 // Three rules govern everything in this file, in order:
 //   1. **Nothing may imply the child failed.** The subject of a failure sentence

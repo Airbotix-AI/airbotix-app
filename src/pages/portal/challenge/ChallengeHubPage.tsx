@@ -253,7 +253,7 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
                 {edition?.name ?? 'Creative Code Challenge'}
               </h1>
               <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-white/80 sm:text-[18px]">
-                An online creative coding competition for ages 8–12. Your child turns an original
+                An online creative coding competition for ages 8–14. Your child turns an original
                 idea into a playable browser project, explains how they made it, and is judged
                 fairly against a published 100-point guide.
               </p>
