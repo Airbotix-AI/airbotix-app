@@ -86,12 +86,29 @@ jobs:
         # published by the separate `Publish soundfonts` workflow and are not in
         # dist/, so without this `--delete` would wipe the sample library on every
         # app deploy (and the Stage would silently drop to fallback voices).
+        #
+        # `challenge-media/*` is excluded for the SAME reason: it holds the
+        # Creative Code Challenge orientation video (~19MB), uploaded out of band
+        # and pointed at by `ChallengeEdition.orientation_video_url` so ops can
+        # swap it without a deploy. It is deliberately not committed to this repo,
+        # so it is not in dist/ — without this exclude the next unrelated deploy
+        # would delete it and every surface playing it would 404. Objects there
+        # are versioned by FILENAME (…-v1.mp4), because this step stamps a
+        # one-year `immutable` header and the invalidation below only covers
+        # index.html: a recut ships as -v2 and is repointed in super-admin, never
+        # overwritten in place.
+        #
+        # ⚠️ It is its OWN top-level prefix, like soundfonts/, and deliberately
+        # NOT a subdirectory of `media/` — `public/media/` is 24 COMMITTED files
+        # (course cards, art-tutor sprites), so excluding `media/*` here would
+        # silently stop every one of them from ever being deployed.
         run: |
           aws s3 sync dist/ s3://${{ env.S3_BUCKET }}/ \
             --delete \
             --cache-control "public,max-age=31536000,immutable" \
             --exclude "index.html" \
-            --exclude "soundfonts/*"
+            --exclude "soundfonts/*" \
+            --exclude "challenge-media/*"
 
       - name: Upload index.html (no-cache)
         run: |

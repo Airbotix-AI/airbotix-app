@@ -33,6 +33,44 @@
   `airbotix.ai/creative-code-challenge` and the signed Competition Terms. The kid submission
   screen's reading-level notes moved with it.
 
+## 2026-08-17 (feat: the Creative Code Challenge orientation video)
+
+Entrant-onboarding PRD §13.1 (D-CCE-2).
+
+### Added
+
+- **`ChallengeOrientationVideo`** — the shared player. Native `<video controls>`, never autoplay,
+  never muted decoration, `preload="metadata"` so the ~19MB file is not fetched until a parent
+  asks for it. Renders NOTHING when the edition has no video. `full` plays inline; `compact` is a
+  click-to-expand row. URL and poster come from the edition row, never from the bundle, so ops can
+  swap the video without a deploy.
+- **`ChallengeOrientationCard`** on the Portal dashboard — shown on EVERY login for as long as a
+  paid child's `progress_state` is still `entered`, and gone the moment they start. Gated on
+  progress rather than on a dismissal on purpose: showing a walkthrough on every login regardless
+  of state trains a parent to scroll past it, and showing it once loses the family who skimmed it
+  at the checkout. There is no "seen" flag to clear — the card's own subject removes it.
+- **`useChallengeFamilyEntries`** — one hook, therefore ONE query key, shared by the dashboard card
+  and the hub so the two can never disagree about whether a child has started.
+
+### Changed
+
+- **The post-payment confirmation no longer dead-ends at the wallet.** It plays the walkthrough and
+  leads with *Open <child>'s challenge →*; `View wallet` survives as the secondary action. The card
+  previously reported the entry and the 500 Stars and offered nothing else — a family had paid and
+  been told nothing about what their child now does.
+- The challenge hub carries the same walkthrough above "what happens next": inline while anyone has
+  yet to start, collapsed to one line once someone is building, so a family mid-build can still find
+  it without being re-explained to.
+- `deploy.yml` excludes `challenge-media/*` from the `--delete` sync. That prefix holds the video,
+  uploaded out of band and not committed here; without the exclude the next unrelated deploy would
+  delete it. It is its OWN top-level prefix (like `soundfonts/`) rather than a subdirectory of
+  `media/`, because `public/media/` is 24 COMMITTED files — excluding `media/*` would have silently
+  stopped every course card and art-tutor sprite from ever deploying.
+
+### Notes
+
+- **No captions yet.** A `<track kind="captions">` belongs on the player and is blocked on a
+  transcript of the recorded narration; it ships with the `.vtt`, never before it.
 ## 2026-08-17 (fixed: the deploy gate ran the tests against production build config)
 
 ### Fixed

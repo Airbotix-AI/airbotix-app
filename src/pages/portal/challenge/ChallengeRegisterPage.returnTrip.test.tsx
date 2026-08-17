@@ -66,6 +66,53 @@ describe('ChallengeRegisterPage — the confirmation reports server truth', () =
     await waitFor(() => expect(sessionStorage.getItem(PENDING_KEY)).toBeNull());
   });
 
+  // The confirmation used to dead-end: "your Stars landed" and a link to the
+  // wallet, which told a family nothing about what their child now does
+  // (entrant-onboarding-prd §13).
+  it('shows the walkthrough on the confirmation, at the moment it is needed', async () => {
+    sessionStorage.setItem(PENDING_KEY, 'kid-1');
+    wireApi({
+      [`GET ${REG_PATH}?kid_id=kid-1`]: { edition: EDITION, kid_id: 'kid-1', entry: entryRow() },
+    });
+    renderPage();
+
+    expect(await screen.findByTestId('challenge-registered')).toBeInTheDocument();
+    const video = screen.getByTestId('challenge-orientation-video');
+    expect(video.querySelector('source')).toHaveAttribute('src', EDITION.orientation_video_url);
+  });
+
+  it('sends the family onward to the CHALLENGE, keeping the wallet as secondary', async () => {
+    sessionStorage.setItem(PENDING_KEY, 'kid-1');
+    wireApi({
+      [`GET ${REG_PATH}?kid_id=kid-1`]: { edition: EDITION, kid_id: 'kid-1', entry: entryRow() },
+    });
+    renderPage();
+
+    expect(await screen.findByTestId('challenge-registered')).toBeInTheDocument();
+    // Named for the child who was just entered, so it reads as their next step.
+    const onward = screen.getByRole('link', { name: /open mia’s challenge/i });
+    expect(onward).toHaveAttribute('href', `/portal/challenge/${SLUG}`);
+    // The wallet survives — it is just no longer the only thing offered.
+    expect(screen.getByRole('link', { name: /view wallet/i })).toBeInTheDocument();
+  });
+
+  it('renders no player when the edition carries no video', async () => {
+    sessionStorage.setItem(PENDING_KEY, 'kid-1');
+    wireApi({
+      [`GET ${REG_PATH}?kid_id=kid-1`]: {
+        edition: { ...EDITION, orientation_video_url: null },
+        kid_id: 'kid-1',
+        entry: entryRow(),
+      },
+    });
+    renderPage();
+
+    expect(await screen.findByTestId('challenge-registered')).toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-orientation-video')).not.toBeInTheDocument();
+    // The onward link is not conditional on the video existing.
+    expect(screen.getByRole('link', { name: /open mia’s challenge/i })).toBeInTheDocument();
+  });
+
   it('does NOT claim the Stars landed when the server says they have not', async () => {
     sessionStorage.setItem(PENDING_KEY, 'kid-1');
     wireApi({

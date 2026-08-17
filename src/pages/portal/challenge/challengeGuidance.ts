@@ -127,6 +127,24 @@ export const CHALLENGE_NEXT_STEPS: ChallengeNextStep[] = [
 ]
 
 /**
+ * The framing around the orientation video (entrant-onboarding-prd §13).
+ *
+ * COPY ONLY — no URL, no poster and deliberately NO DURATION. The URL and poster
+ * come from the `ChallengeEdition` row so ops can swap the video without a
+ * deploy, and the player reports its own length, so a duration written down here
+ * would be wrong the first time the video is recut.
+ *
+ * Like everything else in this file it describes what is already true and
+ * promises nothing new: watching is never a requirement, a deadline or a
+ * judged step.
+ */
+export const CHALLENGE_ORIENTATION_VIDEO = {
+  eyebrow: 'Start here',
+  title: 'How the Creative Code Challenge works',
+  body: 'A short walkthrough of what your child builds, where they build it, and what gets sent in. Most families are doing this for the first time.',
+} as const
+
+/**
  * What the judges actually score. Quoted at this altitude so a family knows the
  * work is judged on the child's thinking, and so the English-fairness rule is
  * visible to the people it protects rather than only to judges.

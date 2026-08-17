@@ -130,6 +130,14 @@ export interface ChallengeRegistrationEdition {
   submission_open: string;
   submission_close: string;
   results_at: string;
+  /**
+   * The edition's "how it works" walkthrough, or null when it has none
+   * (entrant-onboarding-prd §13). A public CDN URL — deliberately NOT an
+   * artifact presign, because this is one asset served identically to every
+   * family rather than a child's own media.
+   */
+  orientation_video_url: string | null;
+  orientation_video_poster: string | null;
 }
 
 export interface ChallengeRegistrationEntry {
@@ -217,6 +225,50 @@ export function getChallengeRegistration(
   const query = kidId ? `?kid_id=${encodeURIComponent(kidId)}` : '';
   return api<ChallengeRegistrationView>(
     `/challenges/by-slug/${encodeURIComponent(slug)}/registration${query}`,
+  );
+}
+
+/** Where an entrant is in the lifecycle (entrant-onboarding-prd §6). */
+export type ChallengeProgressState = 'entered' | 'oriented' | 'building' | 'submitted';
+
+/** One child's standing, as their own parent sees it. Never logged. */
+export interface ChallengeFamilyEntry {
+  kid_id: string;
+  kid_nickname: string;
+  entry_id: string;
+  status: ChallengeEntryStatus;
+  /** Never null — the server reads a stored null as `entered`. */
+  progress_state: ChallengeProgressState;
+  designated_project_id: string | null;
+  at_risk: boolean;
+}
+
+export interface ChallengeFamilyEntriesView {
+  edition: {
+    id: string;
+    slug: string;
+    name: string;
+    status: ChallengeEditionStatus;
+    submission_open: string;
+    submission_close: string;
+    orientation_video_url: string | null;
+    orientation_video_poster: string | null;
+  };
+  entries: ChallengeFamilyEntry[];
+}
+
+/**
+ * Every entry this FAMILY has in one edition, in a single request.
+ *
+ * The dashboard's orientation card and the hub both ask a question about the
+ * family rather than about a named child, and neither holds a kid id. Without
+ * this they would each issue one registration read plus one progress read PER
+ * CHILD on every page load. The family comes from the token — there is no id to
+ * pass, which is exactly why there is no cross-family read to get wrong.
+ */
+export function getChallengeFamilyEntries(slug: string): Promise<ChallengeFamilyEntriesView> {
+  return api<ChallengeFamilyEntriesView>(
+    `/challenges/by-slug/${encodeURIComponent(slug)}/family-entries`,
   );
 }
 
