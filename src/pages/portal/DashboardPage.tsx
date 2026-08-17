@@ -7,6 +7,7 @@ import { useWsEvent } from '@/lib/useWsEvent';
 import { FamilyGuidesRecommendation } from './guides/FamilyGuidesRecommendation';
 import { CreativeSpacesPanel } from './CreativeSpacesPanel';
 import { DashboardKidsPanel } from './DashboardKidsPanel';
+import { ReferralCard } from './ReferralCard';
 import { NowEnrollingPanel } from './NowEnrollingPanel';
 import { GettingStartedCard } from './onboarding/GettingStartedCard';
 import { WelcomeWizard } from './onboarding/WelcomeWizard';
@@ -94,6 +95,9 @@ export function DashboardPage() {
           <WelcomeWizard />
           <div className="mb-8">
             <DashboardKidsPanel familyId={familyId} />
+          </div>
+          <div className="mb-8">
+            <ReferralCard />
           </div>
           <div
             className="grid items-start gap-x-6 gap-y-8 lg:grid-cols-[minmax(0,1fr)_17rem]"

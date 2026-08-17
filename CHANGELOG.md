@@ -1,5 +1,37 @@
 # Changelog
 
+## 2026-08-18 (added: tuition credit and referrals in the Portal)
+
+### Changed
+
+- **`ClassCheckoutPage` handles the new checkout union.** The backend now answers either
+  `payment_required` or `settled_with_credit`; this page read `checkout_url` unconditionally, so
+  it would have broken outright on merge. A credit-covered order skips Airwallex entirely — a $0
+  charge cannot be sent to a payment provider — and goes straight to "Seat locked", because the
+  backend enrolled inside the same transaction that spent the credit. Nothing is stored to poll,
+  since no webhook is coming.
+- The price breakdown (class total, credit, amount due) renders only when credit actually applies,
+  and the pay button says "Lock the seat with your credit" rather than promising a payment page it
+  will never open.
+
+### Added
+
+- **Referral code entry at checkout** (`affiliate-partner-program-prd.md` §7.2 rule 1), checked on
+  blur against the public validate endpoint. A wrong code is **said out loud**: the backend
+  deliberately ignores an unusable code so a typo can never fail a purchase, which also means a
+  parent would otherwise pay full price and never learn why their friend's code did nothing. On
+  blur rather than per keystroke — that endpoint is rate-limited precisely because a yes/no on an
+  arbitrary string is the primitive for enumerating codes.
+- **`ReferralCard`** on the Portal dashboard: the family's own code, share link, invited/joined
+  counts and tuition-credit balance. A family that has not booked yet is told **why** it has no
+  code rather than being shown a blank panel. A failed read hides the card instead of rendering a
+  broken one — it is a nice-to-have on a dashboard that has to keep working.
+- Copy puts the **share link** on the clipboard, not the bare code, and a blocked clipboard (it is
+  permission-gated, and refused outright in some embedded browsers) fails quietly with the link
+  still on screen.
+- Portal only. Kids Learn carries no referral or reward surface at all (D-AFF-11), and a grep over
+  `src/pages/learn/` for these symbols returns nothing.
+
 ## 2026-08-17 (changed: Creative Code Challenge is now ages 8–14)
 
 ### Changed
