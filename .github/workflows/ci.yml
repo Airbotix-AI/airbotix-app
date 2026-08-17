@@ -10,6 +10,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+# One CI run per PR at a time — superseded pushes are cancelled instead of
+# burning a full run each.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 

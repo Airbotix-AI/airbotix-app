@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-17 (ci: stop superseded runs from burning Actions minutes)
+
+### CI
+
+- **`concurrency` groups on `ci` and `deploy`.** Neither workflow had one, so pushing three
+  times to a PR left three full CI runs going in parallel when only the newest mattered —
+  part of why the org hit its 2000-minute Actions free tier on 17 August. `ci` now cancels
+  superseded runs per PR; `deploy` serialises instead of cancelling, so a rollout is never
+  killed mid-flight.
+
 ## 2026-08-14 (feat: Creative Code Challenge entrant onboarding — the app half)
 
 Execution plan `creative-code-challenge-entrant-onboarding-execution-plan.md`
