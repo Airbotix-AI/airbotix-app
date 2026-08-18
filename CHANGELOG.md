@@ -61,11 +61,14 @@ Entrant-onboarding PRD §13.1 (D-CCE-2).
 - The challenge hub carries the same walkthrough above "what happens next": inline while anyone has
   yet to start, collapsed to one line once someone is building, so a family mid-build can still find
   it without being re-explained to.
-- `deploy.yml` excludes `challenge-media/*` from the `--delete` sync. That prefix holds the video,
-  uploaded out of band and not committed here; without the exclude the next unrelated deploy would
-  delete it. It is its OWN top-level prefix (like `soundfonts/`) rather than a subdirectory of
-  `media/`, because `public/media/` is 24 COMMITTED files — excluding `media/*` would have silently
-  stopped every course card and art-tutor sprite from ever deploying.
+- The video itself is **committed** at `public/challenge-media/creative-challenge-how-it-works-v1.mp4`
+  (18.6 MB), so the ordinary `aws s3 sync dist/` deploy publishes it — no out-of-band upload, no
+  second workflow, and no window in which the marketing site links at a file that does not exist yet.
+  This matches how `airbotix` already ships 35 committed mp4s. `deploy.yml` therefore must NOT
+  exclude `challenge-media/*`: the file IS in `dist/`, so an exclude would stop it uploading at all.
+  It is still its OWN top-level prefix (not under `media/`) so the URL is stable and no future
+  exclude can catch it by accident, and it is still versioned by filename because the sync stamps a
+  one-year `immutable` header — a recut ships as `-v2`, never an overwrite.
 
 ### Notes
 

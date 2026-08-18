@@ -51,10 +51,3 @@ coverage
 .claude/worktrees/
 .codex-worktrees/
 *.local-wip.bak
-
-# The Creative Code Challenge orientation video is uploaded OUT OF BAND to
-# s3://airbotix-app-prod/challenge-media/ (~19MB, versioned by filename) and is
-# pointed at by ChallengeEdition.orientation_video_url. Keep a local copy here to
-# serve it in dev; it must never be committed. deploy.yml excludes the same
-# prefix from its --delete sync so a routine deploy cannot reap it.
-public/challenge-media/
