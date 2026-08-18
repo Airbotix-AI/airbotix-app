@@ -36,6 +36,8 @@ const EDITION = {
   submission_open: '2026-08-24T00:00:00.000Z',
   submission_close: '2026-08-31T23:59:59.000Z',
   results_at: '2026-09-14T10:00:00.000Z',
+  orientation_video_url: 'https://app.airbotix.ai/challenge-media/creative-challenge-how-it-works-v1.mp4',
+  orientation_video_poster: null,
 };
 
 const KIDS = [
@@ -66,10 +68,22 @@ const RUBRIC = {
   ],
 };
 
-function wire({ failKid, failRubric }: { failKid?: string; failRubric?: boolean } = {}) {
+function wire({
+  failKid,
+  failRubric,
+  familyEntries,
+}: {
+  failKid?: string;
+  failRubric?: boolean;
+  /** Progress rows behind the walkthrough's prominence. Default: none. */
+  familyEntries?: Record<string, unknown>[];
+} = {}) {
   apiMock.mockImplementation((path: string) => {
     if (path === '/challenges/rubric') {
       return failRubric ? Promise.reject(new Error('boom')) : Promise.resolve(RUBRIC);
+    }
+    if (path.includes('/family-entries')) {
+      return Promise.resolve({ edition: EDITION, entries: familyEntries ?? [] });
     }
     if (path === '/families/fam-1/kids') return Promise.resolve(KIDS);
     const match = /kid_id=([^&]+)/.exec(path);
@@ -335,6 +349,76 @@ describe('ChallengeHubPage — the links a family needs', () => {
     expect(await screen.findByTestId('challenge-hub-submit-note')).toHaveTextContent(
       /signs that child in and opens challenge.*submit in a new tab/i,
     );
+  });
+});
+
+describe('ChallengeHubPage — the walkthrough is always reachable (§13)', () => {
+  const notStarted = {
+    kid_id: 'kid-1',
+    kid_nickname: 'Mia',
+    entry_id: 'e1',
+    status: 'registration_confirmed',
+    progress_state: 'entered',
+    designated_project_id: null,
+    at_risk: false,
+  };
+
+  it('plays inline while a child still has not started', async () => {
+    wire({ familyEntries: [notStarted] });
+    renderHub();
+
+    expect(
+      await screen.findByTestId('challenge-orientation-video', undefined, { timeout: 5_000 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-orientation-video-expand')).not.toBeInTheDocument();
+  });
+
+  it('collapses to a one-line row once everyone is building', async () => {
+    // A family mid-build does not need re-explaining — but must still be able
+    // to find it, so it collapses rather than disappearing.
+    wire({ familyEntries: [{ ...notStarted, progress_state: 'building' }] });
+    renderHub();
+
+    expect(
+      await screen.findByTestId('challenge-orientation-video-expand', undefined, {
+        timeout: 5_000,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-orientation-video')).not.toBeInTheDocument();
+  });
+
+  it('expands the collapsed row back into the real player on click', async () => {
+    wire({ familyEntries: [{ ...notStarted, progress_state: 'submitted' }] });
+    renderHub();
+
+    fireEvent.click(await screen.findByTestId('challenge-orientation-video-expand'));
+    expect(screen.getByTestId('challenge-orientation-video')).toBeInTheDocument();
+  });
+
+  it('renders no player at all when the edition carries no video', async () => {
+    wire({ familyEntries: [notStarted] });
+    apiMock.mockImplementation((path: string) => {
+      if (path === '/challenges/rubric') return Promise.resolve(RUBRIC);
+      if (path.includes('/family-entries')) {
+        return Promise.resolve({
+          edition: { ...EDITION, orientation_video_url: null },
+          entries: [notStarted],
+        });
+      }
+      if (path === '/families/fam-1/kids') return Promise.resolve(KIDS);
+      const match = /kid_id=([^&]+)/.exec(path);
+      const kidId = match ? decodeURIComponent(match[1]) : null;
+      return Promise.resolve({
+        edition: { ...EDITION, orientation_video_url: null },
+        kid_id: kidId,
+        entry: null,
+      });
+    });
+    renderHub();
+
+    expect(await screen.findByTestId('challenge-hub-steps')).toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-orientation-video')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-orientation-video-expand')).not.toBeInTheDocument();
   });
 });
 

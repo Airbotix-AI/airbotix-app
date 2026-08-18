@@ -59,6 +59,47 @@
   `airbotix.ai/creative-code-challenge` and the signed Competition Terms. The kid submission
   screen's reading-level notes moved with it.
 
+## 2026-08-17 (feat: the Creative Code Challenge orientation video)
+
+Entrant-onboarding PRD §13.1 (D-CCE-2).
+
+### Added
+
+- **`ChallengeOrientationVideo`** — the shared player. Native `<video controls>`, never autoplay,
+  never muted decoration, `preload="metadata"` so the ~19MB file is not fetched until a parent
+  asks for it. Renders NOTHING when the edition has no video. `full` plays inline; `compact` is a
+  click-to-expand row. URL and poster come from the edition row, never from the bundle, so ops can
+  swap the video without a deploy.
+- **`ChallengeOrientationCard`** on the Portal dashboard — shown on EVERY login for as long as a
+  paid child's `progress_state` is still `entered`, and gone the moment they start. Gated on
+  progress rather than on a dismissal on purpose: showing a walkthrough on every login regardless
+  of state trains a parent to scroll past it, and showing it once loses the family who skimmed it
+  at the checkout. There is no "seen" flag to clear — the card's own subject removes it.
+- **`useChallengeFamilyEntries`** — one hook, therefore ONE query key, shared by the dashboard card
+  and the hub so the two can never disagree about whether a child has started.
+
+### Changed
+
+- **The post-payment confirmation no longer dead-ends at the wallet.** It plays the walkthrough and
+  leads with *Open <child>'s challenge →*; `View wallet` survives as the secondary action. The card
+  previously reported the entry and the 500 Stars and offered nothing else — a family had paid and
+  been told nothing about what their child now does.
+- The challenge hub carries the same walkthrough above "what happens next": inline while anyone has
+  yet to start, collapsed to one line once someone is building, so a family mid-build can still find
+  it without being re-explained to.
+- The video itself is **committed** at `public/challenge-media/creative-challenge-how-it-works-v1.mp4`
+  (18.6 MB), so the ordinary `aws s3 sync dist/` deploy publishes it — no out-of-band upload, no
+  second workflow, and no window in which the marketing site links at a file that does not exist yet.
+  This matches how `airbotix` already ships 35 committed mp4s. `deploy.yml` therefore must NOT
+  exclude `challenge-media/*`: the file IS in `dist/`, so an exclude would stop it uploading at all.
+  It is still its OWN top-level prefix (not under `media/`) so the URL is stable and no future
+  exclude can catch it by accident, and it is still versioned by filename because the sync stamps a
+  one-year `immutable` header — a recut ships as `-v2`, never an overwrite.
+
+### Notes
+
+- **No captions yet.** A `<track kind="captions">` belongs on the player and is blocked on a
+  transcript of the recorded narration; it ships with the `.vtt`, never before it.
 ## 2026-08-17 (fixed: the deploy gate ran the tests against production build config)
 
 ### Fixed

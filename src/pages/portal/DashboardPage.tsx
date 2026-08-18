@@ -5,6 +5,7 @@ import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { FamilyGuidesRecommendation } from './guides/FamilyGuidesRecommendation';
+import { ChallengeOrientationCard } from './challenge/ChallengeOrientationCard';
 import { CreativeSpacesPanel } from './CreativeSpacesPanel';
 import { DashboardKidsPanel } from './DashboardKidsPanel';
 import { NowEnrollingPanel } from './NowEnrollingPanel';
@@ -92,6 +93,12 @@ export function DashboardPage() {
       ) : (
         <>
           <WelcomeWizard />
+          {/*
+            Above the stat tiles, and self-gating: it renders only for a family
+            with a PAID challenge entry whose child has not started building
+            (entrant-onboarding-prd §13). Every other family sees nothing here.
+          */}
+          <ChallengeOrientationCard />
           <div className="mb-8">
             <DashboardKidsPanel familyId={familyId} />
           </div>
