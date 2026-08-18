@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-08-18 (fixed: the challenge start buttons vanished the moment the window opened)
+
+### Fixed
+
+- **`/learn/challenge/:slug/submit` gave a child no way to start building during the submission
+  window.** The "Build your competition entry" card — the *Start my game*, *Start my web project*
+  and *Continue one of my projects* controls — was gated on `phase === 'before'`, and `phaseOf()`
+  flips to `'open'` as soon as `window_open` is true. So for the whole competition week (the first
+  edition: 24–31 Aug), the only period most children actually visit, a child who had not started
+  yet arrived at a lone *"Which project are you sending in?"* dropdown with nothing in it and no
+  way to make anything. The **web route the landing page advertises twice** was unreachable from
+  the challenge page for that entire window. The card now renders whenever the edition is not
+  closed and nothing has been sent in yet, and its deadline sentence follows the phase instead of
+  always reading *"unlocks on …"*.
+
+### Tests
+
+- `ChallengeSubmitPage.test.tsx` gains the open-window cases. **This is the gap that let it ship:**
+  every existing assertion on those buttons passed `window_open: false`, so the card was only ever
+  proven in the phase it was accidentally restricted to. Two of the four new tests fail against the
+  old gate; the other two pin the card's *absence* once something is sent in and after close, so the
+  fix cannot over-correct into showing "start building" to a child who already entered.
+- Found by the `kid-website-challenge-entry` harness journey on its first ever execution — it had
+  been authored and never run (`COVERAGE.md` marked it `L3 ⏳`). It opens the submission window
+  because it goes on to submit, which is exactly the state no unit test covered.
+
 ## 2026-08-18 (changed: registration explains why a mobile number is required)
 
 ### Changed

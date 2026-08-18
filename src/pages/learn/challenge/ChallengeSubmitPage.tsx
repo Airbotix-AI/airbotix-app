@@ -251,13 +251,24 @@ export function ChallengeSubmitPage() {
 
       {submission && <StatusCard submission={submission} />}
 
-      {phase === 'before' && (
+      {/* HOW TO START, for as long as there is nothing sent in yet.
+          This was gated on `phase === 'before'`, which meant the game button, the
+          web button and "Continue one of my projects" ALL disappeared the moment
+          the submission window opened — i.e. for the whole competition week, the
+          only time most children actually visit. A child who had not started yet
+          arrived at a lone "Which project are you sending in?" dropdown with
+          nothing in it and no way to make anything, and the web route the landing
+          page advertises was unreachable from the challenge page.
+          `kid-website-challenge-entry` is the journey that caught it. */}
+      {phase !== 'after' && !submission && (
         <div className="card-base mt-6" data-testid="challenge-build-now">
           <span className="sticker-mint">You’re in</span>
           <h2 className="section-heading mt-4">Build your competition entry</h2>
           <p className="lead-text mt-3">
-            Choose one competition format and start with your own idea. Sending the finished entry
-            to the judges unlocks on {dayLabel(data.submission_open)}.
+            Choose one competition format and start with your own idea.{' '}
+            {phase === 'before'
+              ? `Sending the finished entry to the judges unlocks on ${dayLabel(data.submission_open)}.`
+              : `You can send it in any time until ${dayLabel(data.submission_close)}.`}
           </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2" data-testid="challenge-project-paths">
