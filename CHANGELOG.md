@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-18 (changed: registration explains why a mobile number is required)
+
+### Changed
+
+- `/portal/register` now labels the parent mobile number as required and explains that Airbotix
+  uses it for class and account notifications or support. The copy keeps operational contact
+  separate from optional marketing permission.
+
+### Tests
+
+- `RegisterPage.test.tsx` pins the required field and its notification-purpose disclosure.
+
 ## 2026-08-18 (fixed: parent registration has a visible entry point)
 
 ### Fixed
