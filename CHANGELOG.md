@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-08-18 (added: when your tuition credit expires)
+
+### Added
+
+- The referral card names the **soonest** expiry among the grants still holding credit — the date
+  a parent actually has to act on. Showing the furthest one, or a list of all of them, buries the
+  deadline that is about to pass.
+- Spent entries and grants that already lapsed are excluded, so a redemption dated next week does
+  not masquerade as a deadline.
+- The statement is only fetched once there is a balance: a second request that can only ever
+  answer "nothing" is not worth making.
+
 ## 2026-08-18 (added: read the attribution handed over by the marketing site)
 
 ### Added

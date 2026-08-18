@@ -142,4 +142,62 @@ describe('ReferralCard', () => {
     await screen.findByText('BCDF2345');
     expect(screen.queryByText(/comes off automatically/i)).not.toBeInTheDocument();
   });
+
+  describe('credit expiry', () => {
+    const inDays = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString();
+
+    it('names the SOONEST deadline, not the furthest', async () => {
+      // Showing the latest date buries the one that is about to pass.
+      api.mockImplementation((path: string) => {
+        if (path === '/me/tuition-credit') {
+          return Promise.resolve({
+            balance_aud_cents: 5000,
+            entries: [
+              { id: 'a', type: 'referral_grant', delta_aud_cents: 5000, expires_at: inDays(300) },
+              { id: 'b', type: 'referee_discount', delta_aud_cents: 2500, expires_at: inDays(30) },
+            ],
+          });
+        }
+        return Promise.resolve(ELIGIBLE_WITH_CODE);
+      });
+      renderCard();
+      const soon = new Date(inDays(30)).toLocaleDateString('en-AU', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+      expect(await screen.findByText(new RegExp(`Use it by ${soon}`))).toBeInTheDocument();
+    });
+
+    it('ignores spends and already-lapsed grants', async () => {
+      api.mockImplementation((path: string) => {
+        if (path === '/me/tuition-credit') {
+          return Promise.resolve({
+            balance_aud_cents: 5000,
+            entries: [
+              { id: 'a', type: 'redeem', delta_aud_cents: -2500, expires_at: inDays(10) },
+              { id: 'b', type: 'referral_grant', delta_aud_cents: 5000, expires_at: inDays(-5) },
+            ],
+          });
+        }
+        return Promise.resolve(ELIGIBLE_WITH_CODE);
+      });
+      renderCard();
+      await screen.findByText('BCDF2345');
+      await waitFor(() => {
+        expect(screen.queryByText(/Use it by/)).not.toBeInTheDocument();
+      });
+    });
+
+    it('does not ask for a statement when there is no credit', async () => {
+      // A second request that can only ever say "nothing" is a request not
+      // worth making.
+      api.mockResolvedValue({ ...ELIGIBLE_WITH_CODE, credit_balance_aud_cents: 0 });
+      renderCard();
+      await screen.findByText('BCDF2345');
+      await waitFor(() => {
+        expect(api).not.toHaveBeenCalledWith('/me/tuition-credit');
+      });
+    });
+  });
 });

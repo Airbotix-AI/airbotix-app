@@ -10,6 +10,16 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { formatAud } from '@/lib/money';
 
+interface CreditStatement {
+  balance_aud_cents: number;
+  entries: Array<{
+    id: string;
+    type: string;
+    delta_aud_cents: number;
+    expires_at: string | null;
+  }>;
+}
+
 interface MyReferral {
   eligible: boolean;
   reason?: 'no_purchase_yet';
@@ -27,6 +37,14 @@ export function ReferralCard() {
   const referral = useQuery<MyReferral>({
     queryKey: ['me-referral'],
     queryFn: () => api<MyReferral>('/me/referral'),
+  });
+
+  // Only fetched once there is a balance worth expiring. The statement is a
+  // second request, and a family with no credit has nothing for it to say.
+  const statement = useQuery<CreditStatement>({
+    queryKey: ['tuition-credit'],
+    queryFn: () => api<CreditStatement>('/me/tuition-credit'),
+    enabled: (referral.data?.credit_balance_aud_cents ?? 0) > 0,
   });
 
   const issue = useMutation({
@@ -65,6 +83,20 @@ export function ReferralCard() {
       </div>
     );
   }
+
+  // The SOONEST expiry among grants that still have credit behind them — that
+  // is the date the parent actually needs to act on. Showing the latest, or a
+  // list, buries the deadline that is about to pass.
+  const nextExpiry = (() => {
+    const dates = (statement.data?.entries ?? [])
+      .filter((e) => e.delta_aud_cents > 0 && e.expires_at)
+      .map((e) => new Date(e.expires_at as string))
+      .filter((dt) => dt.getTime() > Date.now())
+      .sort((a, b) => a.getTime() - b.getTime());
+    return dates.length
+      ? dates[0].toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+      : null;
+  })();
 
   const copy = async () => {
     if (!d.share_url) return;
@@ -116,6 +148,7 @@ export function ReferralCard() {
           {d.credit_balance_aud_cents > 0 && (
             <p className="mt-4 text-[12px] leading-relaxed text-slate2">
               Your credit comes off automatically at your next class checkout.
+              {nextExpiry && ` Use it by ${nextExpiry} or it expires.`}
             </p>
           )}
         </>
