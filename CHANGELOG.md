@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-18 (fixed: parent registration has a visible entry point)
+
+### Fixed
+
+- `/portal/login` now shows an explicit **Create account** button on first view. It opens the
+  existing email-code flow, which verifies the parent before sending a new account to family and
+  first-kid setup; first-time visitors no longer have to infer that the **Email code** login tab is
+  also registration.
+
+### Tests
+
+- `LoginIdentity.test.tsx` pins the visible action and its handoff to the selected Email code form.
+
 ## 2026-08-17 (changed: Creative Code Challenge is now ages 8–14)
 
 ### Changed

@@ -61,6 +61,7 @@ describe('shared login identity gateway', () => {
     expect(screen.getByTestId('auth-role-kid')).not.toHaveAttribute('aria-current');
     expect(screen.getByRole('heading', { name: /Parent login or sign up/ })).toBeVisible();
     expect(screen.getByText('New to Airbotix?')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Create account' })).toBeVisible();
     // The parent is offered an explicit choice of sign-in method (§4.8): both a
     // Password tab and an Email code tab, side by side.
     expect(screen.getByRole('tab', { name: 'Password' })).toBeVisible();
@@ -68,6 +69,20 @@ describe('shared login identity gateway', () => {
     // Password is the default tab — its form (and the "Log in" button) shows first.
     expect(screen.getByLabelText('Password')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Log in' })).toBeVisible();
+  });
+
+  it('opens the email-code registration path from an explicit create-account button', () => {
+    renderLogin('/portal/login');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create account' }));
+
+    expect(screen.getByRole('tab', { name: 'Email code' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Send code & continue' })).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Create account' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
   });
 
   it('lets the parent choose between the password and email-code sign-in methods', () => {
