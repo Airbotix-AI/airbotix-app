@@ -71,15 +71,18 @@ function wireApi(handlers: Record<string, unknown> = {}) {
     if (path in handlers) return Promise.resolve(handlers[path]);
     if (path === '/class-seats/classes/class-1') return Promise.resolve(CLASS);
     if (path === '/families/fam-1/kids') return Promise.resolve(KIDS);
+    // Default: the family holds no tuition credit, so every pre-existing test
+    // below exercises the unchanged full-price card path.
+    if (path === '/me/tuition-credit') return Promise.resolve({ balance_aud_cents: 0 });
     return Promise.resolve(undefined);
   });
 }
 
-function renderPage() {
+function renderPage(search = '') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={['/portal/checkout/class/class-1']}>
+      <MemoryRouter initialEntries={[`/portal/checkout/class/class-1${search}`]}>
         <Routes>
           <Route path="/portal/checkout/class/:classId" element={<ClassCheckoutPage />} />
           <Route path="/portal/register" element={<div>REGISTER PAGE</div>} />
@@ -263,5 +266,221 @@ describe('ClassCheckoutPage', () => {
     expect(
       await screen.findByRole('link', { name: 'View details for Robotics 101' }),
     ).toHaveAttribute('href', '/portal/courses/robotics-101');
+  });
+
+  describe('tuition credit (affiliate-partner-program-prd.md §8.5)', () => {
+    it('shows the breakdown and charges only the remainder', async () => {
+      wireApi({ '/me/tuition-credit': { balance_aud_cents: 15000 } });
+      renderPage();
+      await screen.findByPlaceholderText(/Friend's code/);
+      // 399 total − 150 credit = 249 due.
+      await screen.findByText((_t, el) => el?.textContent === '−A$150');
+      expect(screen.getByRole('button', { name: /Pay A\$249 & lock the seat/ })).toBeInTheDocument();
+    });
+
+    it('offers to lock the seat with credit alone when it covers the price', async () => {
+      wireApi({ '/me/tuition-credit': { balance_aud_cents: 50000 } });
+      renderPage();
+      await screen.findByPlaceholderText(/Friend's code/);
+      // A $0 order cannot be sent to a payment provider, so the button must not
+      // promise a payment page.
+      expect(
+        await screen.findByRole('button', { name: /Lock the seat with your credit/ }),
+      ).toBeInTheDocument();
+      // Both the button and the footnote say it; the point is that neither
+      // promises a payment page.
+      expect(screen.getAllByText(/nothing to pay/i).length).toBeGreaterThan(0);
+    });
+
+    it('goes straight to Seat locked for a credit-covered order, with no Airwallex hop', async () => {
+      wireApi({
+        '/me/tuition-credit': { balance_aud_cents: 50000 },
+        '/class-seats/checkout': {
+          kind: 'settled_with_credit',
+          booking_id: 'bk_1',
+          payment_id: 'credit_abc',
+          course_total_aud_cents: 39900,
+          credit_applied_aud_cents: 39900,
+          amount_due_aud_cents: 0,
+          enrolled: true,
+        },
+      });
+      renderPage();
+      // Pick the seeded kid — the new-kid branch would fail validation before
+      // the request is ever made.
+      fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'kid-1' } });
+      const pay = await screen.findByRole('button', { name: /Lock the seat with your credit/ });
+      await act(async () => {
+        fireEvent.click(pay);
+      });
+      await screen.findByText(/Seat locked for Mia/);
+      // No intent was stored: there is nothing to poll, because the backend
+      // enrolled inside the same transaction that spent the credit.
+      expect(sessionStorage.getItem('class_seat:class-1')).toBeNull();
+    });
+
+    it('shows no breakdown at all for a family with no credit', async () => {
+      wireApi();
+      renderPage();
+      await screen.findByPlaceholderText(/Friend's code/);
+      expect(screen.queryByText(/Tuition credit/)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Pay A\$399 & lock the seat/ })).toBeInTheDocument();
+    });
+  });
+
+  describe('referral code entry (§7.2 rule 1)', () => {
+    it('confirms a good code and names the discount', async () => {
+      wireApi({
+        '/affiliate/codes/BCDF2345/validate': { valid: true, discount_aud_cents: 2500 },
+      });
+      renderPage();
+      const input = await screen.findByPlaceholderText(/Friend's code/);
+      fireEvent.change(input, { target: { value: 'BCDF2345' } });
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+      await screen.findByText(/Code accepted/);
+      // The span holds "Code accepted" and the amount as separate nodes, so
+      // assert on the one element that owns the whole sentence.
+      const note = await screen.findByText(/Code accepted/);
+      expect(note.textContent).toContain('A$25 credit will be added');
+    });
+
+    it('says a bad code is unrecognised instead of silently ignoring it', async () => {
+      // The backend ignores an unusable code so a typo can never fail a
+      // purchase — which also means the parent would pay full price and never
+      // learn why their friend's code did nothing.
+      wireApi({
+        '/affiliate/codes/NOPE2345/validate': { valid: false, discount_aud_cents: 0 },
+      });
+      renderPage();
+      const input = await screen.findByPlaceholderText(/Friend's code/);
+      fireEvent.change(input, { target: { value: 'NOPE2345' } });
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+      await screen.findByText(/don't recognise that code/i);
+      // Still bookable without it.
+      expect(screen.getByRole('button', { name: /Pay A\$399 & lock the seat/ })).toBeInTheDocument();
+    });
+
+    it('stays quiet when the check itself fails, rather than calling a good code bad', async () => {
+      api.mockImplementation((path: string) => {
+        if (path.startsWith('/affiliate/codes/')) return Promise.reject(new Error('429'));
+        if (path === '/class-seats/classes/class-1') return Promise.resolve(CLASS);
+        if (path === '/families/fam-1/kids') return Promise.resolve(KIDS);
+        if (path === '/me/tuition-credit') return Promise.resolve({ balance_aud_cents: 0 });
+        return Promise.resolve(undefined);
+      });
+      renderPage();
+      const input = await screen.findByPlaceholderText(/Friend's code/);
+      fireEvent.change(input, { target: { value: 'BCDF2345' } });
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+      await waitFor(() => {
+        expect(screen.queryByText(/don't recognise/i)).not.toBeInTheDocument();
+      });
+    });
+
+    it('sends the typed code with the checkout request', async () => {
+      wireApi({
+        '/class-seats/checkout': {
+          kind: 'payment_required',
+          booking_id: 'bk_1',
+          payment_intent_id: 'int_1',
+          checkout_url: 'https://checkout.airwallex.local/int_1',
+          course_total_aud_cents: 39900,
+          credit_applied_aud_cents: 0,
+          amount_due_aud_cents: 39900,
+        },
+      });
+      renderPage();
+      const input = await screen.findByPlaceholderText(/Friend's code/);
+      fireEvent.change(input, { target: { value: 'bcdf2345' } });
+      fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'kid-1' } });
+      const pay = await screen.findByRole('button', { name: /Pay A\$399 & lock the seat/ });
+      await act(async () => {
+        fireEvent.click(pay);
+      });
+      await waitFor(() => {
+        expect(api).toHaveBeenCalledWith(
+          '/class-seats/checkout',
+          expect.objectContaining({
+            body: expect.objectContaining({ referral_code: 'bcdf2345' }),
+          }),
+        );
+      });
+    });
+  });
+
+  describe('handoff from the marketing site (airbotix withAttributionHandoff)', () => {
+    it('prefills a code carried in the URL so the parent can see and edit it', async () => {
+      wireApi({ '/affiliate/codes/BCDF2345/validate': { valid: true, discount_aud_cents: 2500 } });
+      renderPage('?ref=BCDF2345');
+      const input = (await screen.findByPlaceholderText(/Friend's code/)) as HTMLInputElement;
+      // Visible and editable, not a hidden field — a parent must be able to
+      // clear a code that arrived attached to a link they did not intend.
+      expect(input.value).toBe('BCDF2345');
+    });
+
+    it('sends the handed-over session with the order', async () => {
+      wireApi({
+        '/class-seats/checkout': {
+          kind: 'payment_required',
+          booking_id: 'bk_1',
+          payment_intent_id: 'int_1',
+          checkout_url: 'https://checkout.airwallex.local/int_1',
+          course_total_aud_cents: 39900,
+          credit_applied_aud_cents: 0,
+          amount_due_aud_cents: 39900,
+        },
+      });
+      renderPage('?ref=BCDF2345&ms=sess-9');
+      fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'kid-1' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Pay A\$399 & lock the seat/ }));
+      });
+      await waitFor(() => {
+        expect(api).toHaveBeenCalledWith(
+          '/class-seats/checkout',
+          expect.objectContaining({
+            body: expect.objectContaining({
+              referral_code: 'BCDF2345',
+              marketing_session_id: 'sess-9',
+            }),
+          }),
+        );
+      });
+    });
+
+    it('lets a typed code override the one in the URL', async () => {
+      wireApi({
+        '/class-seats/checkout': {
+          kind: 'payment_required',
+          booking_id: 'bk_1',
+          payment_intent_id: 'int_1',
+          checkout_url: 'https://checkout.airwallex.local/int_1',
+          course_total_aud_cents: 39900,
+          credit_applied_aud_cents: 0,
+          amount_due_aud_cents: 39900,
+        },
+      });
+      renderPage('?ref=BCDF2345');
+      const input = await screen.findByPlaceholderText(/Friend's code/);
+      fireEvent.change(input, { target: { value: 'XYZW6789' } });
+      fireEvent.change(await screen.findByRole('combobox'), { target: { value: 'kid-1' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Pay A\$399 & lock the seat/ }));
+      });
+      await waitFor(() => {
+        expect(api).toHaveBeenCalledWith(
+          '/class-seats/checkout',
+          expect.objectContaining({
+            body: expect.objectContaining({ referral_code: 'XYZW6789' }),
+          }),
+        );
+      });
+    });
   });
 });

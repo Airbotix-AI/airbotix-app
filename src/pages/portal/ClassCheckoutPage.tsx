@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 
 import { useMe } from '@/auth/useAuth';
@@ -52,11 +52,42 @@ interface Kid {
   age: number;
 }
 
-interface CheckoutResponse {
-  booking_id: string;
-  payment_intent_id: string;
-  client_secret?: string;
-  checkout_url: string;
+/**
+ * Two shapes, because tuition credit can cover the whole price
+ * (affiliate-partner-program-prd.md §8.5). A union rather than one shape with a
+ * blank `checkout_url`: nothing here may hand an empty URL to a payment sheet
+ * and find out at runtime.
+ */
+type CheckoutResponse =
+  | {
+      kind: 'payment_required';
+      booking_id: string;
+      payment_intent_id: string;
+      client_secret?: string;
+      checkout_url: string;
+      course_total_aud_cents: number;
+      credit_applied_aud_cents: number;
+      amount_due_aud_cents: number;
+    }
+  | {
+      // Credit covered it. No Airwallex intent exists, no webhook is coming,
+      // and the seat is already enrolled — so there is nothing to poll.
+      kind: 'settled_with_credit';
+      booking_id: string;
+      payment_id: string;
+      course_total_aud_cents: number;
+      credit_applied_aud_cents: number;
+      amount_due_aud_cents: 0;
+      enrolled: true;
+    };
+
+interface TuitionCredit {
+  balance_aud_cents: number;
+}
+
+interface CodeCheck {
+  valid: boolean;
+  discount_aud_cents: number;
 }
 
 interface OrderStatus {
@@ -89,6 +120,7 @@ const schema = z
     kid_id: z.string(),
     kid_nickname: z.string().max(40).optional(),
     kid_age: z.string().optional(),
+    referral_code: z.string().max(40).optional(),
   })
   .superRefine((v, ctx) => {
     if (v.kid_id) return;
@@ -112,9 +144,33 @@ export function ClassCheckoutPage() {
   const me = useMe();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
 
+  // Handed over by the marketing site, which lives on a different origin and
+  // therefore cannot pass these in storage (airbotix `withAttributionHandoff`).
+  // `ref` prefills the code box so the parent sees what they arrived with
+  // rather than having to remember and retype it; `ms` links this purchase back
+  // to the browsing session that brought them.
+  const handoff = new URLSearchParams(location.search);
+  const handoffRef = handoff.get('ref')?.trim() || '';
+  const handoffSession = handoff.get('ms')?.trim() || undefined;
+
+  const queryClient = useQueryClient();
   const [phase, setPhase] = useState<Phase>('idle');
+  // Checked on blur, not on every keystroke: the public endpoint is
+  // rate-limited precisely because a yes/no on an arbitrary string is the
+  // primitive for enumerating codes, and per-character checks would burn a
+  // parent's budget on a code they are still typing.
+  const [codeCheck, setCodeCheck] = useState<CodeCheck | null>(null);
   const [pollNonce, setPollNonce] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // What this family holds. Read only to SHOW the discount — the backend
+  // recomputes and is the authority, so a stale balance here can mislead the
+  // preview but can never mis-charge.
+  const credit = useQuery<TuitionCredit>({
+    queryKey: ['tuition-credit'],
+    queryFn: () => api<TuitionCredit>('/me/tuition-credit'),
+    enabled: !!familyId,
+  });
 
   const cls = useQuery<CheckoutClass>({
     queryKey: ['class-seats', 'class', classId],
@@ -134,7 +190,13 @@ export function ClassCheckoutPage() {
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { kid_id: '' } });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    // Prefilled so a parent who arrived on a partner's link can SEE the code
+    // that will be applied — and edit or clear it, which a hidden value would
+    // not let them do.
+    defaultValues: { kid_id: '', referral_code: handoffRef },
+  });
   const selectedKidId = watch('kid_id');
 
   // Returned from the hosted page? Poll the order until the webhook lands.
@@ -313,22 +375,71 @@ export function ClassCheckoutPage() {
     );
   }
 
+  // Preview figures. The backend recomputes both and is the authority; these
+  // exist so the parent is not surprised at the payment page. `course_total`
+  // being null means the class is not purchasable, which the branch below
+  // already refuses, so treating it as 0 here changes nothing a parent sees.
+  const courseTotal = c.course_total_aud_cents ?? 0;
+  const creditApplied = Math.min(credit.data?.balance_aud_cents ?? 0, courseTotal);
+  const amountDue = courseTotal - creditApplied;
+
+  const checkCode = async (raw: string) => {
+    const code = raw.trim();
+    if (!code) {
+      setCodeCheck(null);
+      return;
+    }
+    try {
+      setCodeCheck(
+        await api<CodeCheck>(`/affiliate/codes/${encodeURIComponent(code)}/validate`),
+      );
+    } catch {
+      // Rate-limited or offline. Say nothing rather than calling a good code
+      // bad — the backend resolves it for real at checkout either way.
+      setCodeCheck(null);
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
+      // A code typed into the box beats the one carried in the URL: it is the
+      // parent's stated intent, and it is the only way to correct a link that
+      // arrived with the wrong code attached.
+      const referral = values.referral_code?.trim() || handoffRef || undefined;
       const body = values.kid_id
-        ? { class_id: classId, kid_id: values.kid_id }
+        ? {
+            class_id: classId,
+            kid_id: values.kid_id,
+            referral_code: referral,
+            marketing_session_id: handoffSession,
+          }
         : {
             class_id: classId,
             kid_nickname: values.kid_nickname?.trim(),
             kid_age: Number(values.kid_age),
+            referral_code: referral,
+            marketing_session_id: handoffSession,
           };
       const res = await api<CheckoutResponse>('/class-seats/checkout', { method: 'POST', body });
       const nickname = values.kid_id
         ? (kids.data ?? []).find((k) => k.id === values.kid_id)?.nickname
         : values.kid_nickname?.trim();
-      sessionStorage.setItem(intentKey(classId), res.payment_intent_id);
       if (nickname) sessionStorage.setItem(kidNameKey(classId), nickname);
+
+      if (res.kind === 'settled_with_credit') {
+        // Nothing was charged and the seat is already enrolled, so there is no
+        // intent to poll and no hosted page to visit. Skipping straight to
+        // 'locked' is not an optimistic guess — the backend enrolled inside the
+        // same transaction that spent the credit, so by the time this response
+        // exists the seat is taken.
+        sessionStorage.removeItem(intentKey(classId));
+        await queryClient.invalidateQueries({ queryKey: ['tuition-credit'] });
+        setPhase('locked');
+        return;
+      }
+
+      sessionStorage.setItem(intentKey(classId), res.payment_intent_id);
       await startHostedCheckout(res);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not start checkout.');
@@ -390,6 +501,55 @@ export function ClassCheckoutPage() {
             </div>
           )}
 
+          <label className="block">
+            <span className="label-k12">Referral code (optional)</span>
+            <input
+              className="input-k12 uppercase"
+              placeholder="Friend's code"
+              autoComplete="off"
+              spellCheck={false}
+              {...register('referral_code', { onBlur: (e) => void checkCode(e.target.value) })}
+            />
+            {codeCheck?.valid ? (
+              <span className="mt-1 block text-[12px] font-medium text-brand-mint">
+                Code accepted{' '}
+                {codeCheck.discount_aud_cents > 0
+                  ? `— ${formatAud(codeCheck.discount_aud_cents)} credit will be added to this order`
+                  : ''}
+              </span>
+            ) : codeCheck ? (
+              // Said out loud rather than swallowed. The backend ignores an
+              // unusable code so a typo can never fail a purchase — which also
+              // means a parent would otherwise pay full price and never learn
+              // why their friend's code did nothing.
+              <span className="mt-1 block text-[12px] font-medium text-brand-coral">
+                We don't recognise that code. Check it with your friend — you can still book
+                without it.
+              </span>
+            ) : (
+              <span className="mt-1 block text-[12px] text-slate2">
+                Got a code from a friend? Enter it here and your discount is applied to this order.
+              </span>
+            )}
+          </label>
+
+          {creditApplied > 0 && (
+            <div className="rounded-2xl bg-wash-mint border border-brand-mint/30 px-4 py-3 text-[13px] text-ink">
+              <div className="flex justify-between">
+                <span>Class total</span>
+                <span>{formatAud(courseTotal)}</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>Tuition credit</span>
+                <span>−{formatAud(creditApplied)}</span>
+              </div>
+              <div className="mt-1 flex justify-between border-t border-brand-mint/30 pt-1 font-bold">
+                <span>{amountDue === 0 ? 'Nothing to pay' : 'To pay now'}</span>
+                <span>{formatAud(amountDue)}</span>
+              </div>
+            </div>
+          )}
+
           {phase === 'failed' && (
             <div className="rounded-2xl bg-wash-coral border border-brand-coral/30 px-4 py-3 text-[13px] font-medium text-ink">
               That payment didn't go through — nothing was charged. Try again below.
@@ -403,12 +563,17 @@ export function ClassCheckoutPage() {
 
           <button type="submit" disabled={isSubmitting} className="btn-pill-primary w-full">
             {isSubmitting
-              ? 'Starting checkout…'
-              : `Pay ${c.course_total_aud_cents != null ? formatAud(c.course_total_aud_cents) : ''} & lock the seat`}
+              ? amountDue === 0
+                ? 'Locking the seat…'
+                : 'Starting checkout…'
+              : amountDue === 0
+                ? 'Lock the seat with your credit'
+                : `Pay ${formatAud(amountDue)} & lock the seat`}
           </button>
           <p className="text-[12px] leading-relaxed text-slate2">
-            You'll pay securely on our payment page (Airwallex). The seat is locked the moment
-            payment succeeds.
+            {amountDue === 0
+              ? 'Your tuition credit covers this class in full, so there is nothing to pay. The seat is locked straight away.'
+              : "You'll pay securely on our payment page (Airwallex). The seat is locked the moment payment succeeds."}
           </p>
         </form>
       )}
