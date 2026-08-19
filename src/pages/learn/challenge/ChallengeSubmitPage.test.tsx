@@ -520,6 +520,56 @@ describe('ChallengeSubmitPage — the deadline', () => {
     expect(await screen.findByTestId('challenge-code-studio')).toBeInTheDocument();
   });
 
+  // THE REGRESSION. Every test above pins the start buttons with
+  // `window_open: false`, so the whole "how do I start?" card was only ever
+  // proven in the BEFORE phase — and it was gated on exactly that. The moment
+  // submissions opened it vanished, taking the advertised web route with it, for
+  // the entire competition week. Caught by `kid-website-challenge-entry`, which
+  // opens the window because it goes on to submit.
+  it('INSIDE the window a child who has not started still gets both start buttons', async () => {
+    wireApi({ [`GET ${STATE_PATH}`]: stateView({ window_open: true, submission: null }) });
+    renderPage();
+
+    const build = await screen.findByTestId('challenge-build-now');
+    expect(build).toHaveTextContent(/Build your competition entry/i);
+    expect(screen.getByTestId('challenge-start-web')).toHaveAttribute(
+      'href',
+      `/learn/playground/new?kind=website&challenge=${SLUG}`,
+    );
+    expect(screen.getByTestId('challenge-start-game')).toHaveAttribute(
+      'href',
+      `/learn/playground/new?challenge=${SLUG}`,
+    );
+    // ...and the way back to something already started.
+    expect(screen.getByTestId('challenge-my-projects')).toHaveAttribute('href', '/learn/projects');
+  });
+
+  it('the deadline copy follows the phase — no "unlocks on" once it is open', async () => {
+    wireApi({ [`GET ${STATE_PATH}`]: stateView({ window_open: true, submission: null }) });
+    renderPage();
+
+    const build = await screen.findByTestId('challenge-build-now');
+    expect(build).toHaveTextContent(/send it in any time until 31 Aug 2026/i);
+    expect(build).not.toHaveTextContent(/unlocks on/i);
+  });
+
+  it('once something IS sent in, the start card steps aside for the entry itself', async () => {
+    wireApi({ [`GET ${STATE_PATH}`]: stateView({ submission: submissionRow() }) });
+    renderPage();
+
+    expect(await screen.findByTestId('challenge-edit')).toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-build-now')).not.toBeInTheDocument();
+  });
+
+  it('after the close date the start card is gone — building for this edition is over', async () => {
+    vi.setSystemTime(new Date('2026-09-05T00:00:00.000Z'));
+    wireApi({ [`GET ${STATE_PATH}`]: stateView({ window_open: false }) });
+    renderPage();
+
+    expect(await screen.findByTestId('challenge-missed')).toBeInTheDocument();
+    expect(screen.queryByTestId('challenge-build-now')).not.toBeInTheDocument();
+  });
+
   it('inside the window an existing entry can still be changed', async () => {
     stubFetch(true);
     const patched: unknown[] = [];

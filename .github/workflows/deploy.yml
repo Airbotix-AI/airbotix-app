@@ -86,6 +86,20 @@ jobs:
         # published by the separate `Publish soundfonts` workflow and are not in
         # dist/, so without this `--delete` would wipe the sample library on every
         # app deploy (and the Stage would silently drop to fallback voices).
+        #
+        # `challenge-media/` is the OPPOSITE case and must NOT be excluded. The
+        # Creative Code Challenge orientation video is COMMITTED at
+        # `public/challenge-media/…-v1.mp4`, so Vite copies it into dist/ and this
+        # sync is what publishes it — an `--exclude "challenge-media/*"` here would
+        # mean the file never uploads at all and every surface playing it 404s.
+        # Objects there are versioned by FILENAME (…-v1.mp4) because this step
+        # stamps a one-year `immutable` header and the invalidation below only
+        # covers index.html: a recut ships as -v2, never overwritten in place.
+        #
+        # ⚠️ It is its OWN top-level prefix rather than a subdirectory of `media/`,
+        # so the URL is stable and greppable and a future exclude can never catch
+        # it by accident — `public/media/` is 24 COMMITTED files (course cards,
+        # art-tutor sprites) that must keep deploying.
         run: |
           aws s3 sync dist/ s3://${{ env.S3_BUCKET }}/ \
             --delete \

@@ -331,16 +331,18 @@ export function RegisterPage() {
                 {...register('your_name')}
               />
             </Field>
-            <Field label="Mobile number" error={errors.phone?.message}>
+            <Field label="Mobile number (required)" error={errors.phone?.message}>
               <input
                 className="input-k12"
                 inputMode="tel"
                 autoComplete="tel"
                 placeholder="0400 000 000"
+                required
                 {...register('phone')}
               />
               <span className="mt-1 block text-[12px] font-medium text-slate2">
-                Used for class updates and support. We won&apos;t send a verification code yet.
+                We use this for class and account notifications or support. Marketing messages
+                still require your permission.
               </span>
             </Field>
             <Field label="Family name" error={errors.family_name?.message}>

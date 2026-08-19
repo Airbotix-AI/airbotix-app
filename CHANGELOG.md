@@ -57,6 +57,57 @@
 - Portal only. Kids Learn carries no referral or reward surface at all (D-AFF-11), and a grep over
   `src/pages/learn/` for these symbols returns nothing.
 
+## 2026-08-18 (fixed: the challenge start buttons vanished the moment the window opened)
+
+### Fixed
+
+- **`/learn/challenge/:slug/submit` gave a child no way to start building during the submission
+  window.** The "Build your competition entry" card — the *Start my game*, *Start my web project*
+  and *Continue one of my projects* controls — was gated on `phase === 'before'`, and `phaseOf()`
+  flips to `'open'` as soon as `window_open` is true. So for the whole competition week (the first
+  edition: 24–31 Aug), the only period most children actually visit, a child who had not started
+  yet arrived at a lone *"Which project are you sending in?"* dropdown with nothing in it and no
+  way to make anything. The **web route the landing page advertises twice** was unreachable from
+  the challenge page for that entire window. The card now renders whenever the edition is not
+  closed and nothing has been sent in yet, and its deadline sentence follows the phase instead of
+  always reading *"unlocks on …"*.
+
+### Tests
+
+- `ChallengeSubmitPage.test.tsx` gains the open-window cases. **This is the gap that let it ship:**
+  every existing assertion on those buttons passed `window_open: false`, so the card was only ever
+  proven in the phase it was accidentally restricted to. Two of the four new tests fail against the
+  old gate; the other two pin the card's *absence* once something is sent in and after close, so the
+  fix cannot over-correct into showing "start building" to a child who already entered.
+- Found by the `kid-website-challenge-entry` harness journey on its first ever execution — it had
+  been authored and never run (`COVERAGE.md` marked it `L3 ⏳`). It opens the submission window
+  because it goes on to submit, which is exactly the state no unit test covered.
+
+## 2026-08-18 (changed: registration explains why a mobile number is required)
+
+### Changed
+
+- `/portal/register` now labels the parent mobile number as required and explains that Airbotix
+  uses it for class and account notifications or support. The copy keeps operational contact
+  separate from optional marketing permission.
+
+### Tests
+
+- `RegisterPage.test.tsx` pins the required field and its notification-purpose disclosure.
+
+## 2026-08-18 (fixed: parent registration has a visible entry point)
+
+### Fixed
+
+- `/portal/login` now shows an explicit **Create account** button on first view. It opens the
+  existing email-code flow, which verifies the parent before sending a new account to family and
+  first-kid setup; first-time visitors no longer have to infer that the **Email code** login tab is
+  also registration.
+
+### Tests
+
+- `LoginIdentity.test.tsx` pins the visible action and its handoff to the selected Email code form.
+
 ## 2026-08-17 (changed: Creative Code Challenge is now ages 8–14)
 
 ### Changed
@@ -65,6 +116,47 @@
   `airbotix.ai/creative-code-challenge` and the signed Competition Terms. The kid submission
   screen's reading-level notes moved with it.
 
+## 2026-08-17 (feat: the Creative Code Challenge orientation video)
+
+Entrant-onboarding PRD §13.1 (D-CCE-2).
+
+### Added
+
+- **`ChallengeOrientationVideo`** — the shared player. Native `<video controls>`, never autoplay,
+  never muted decoration, `preload="metadata"` so the ~19MB file is not fetched until a parent
+  asks for it. Renders NOTHING when the edition has no video. `full` plays inline; `compact` is a
+  click-to-expand row. URL and poster come from the edition row, never from the bundle, so ops can
+  swap the video without a deploy.
+- **`ChallengeOrientationCard`** on the Portal dashboard — shown on EVERY login for as long as a
+  paid child's `progress_state` is still `entered`, and gone the moment they start. Gated on
+  progress rather than on a dismissal on purpose: showing a walkthrough on every login regardless
+  of state trains a parent to scroll past it, and showing it once loses the family who skimmed it
+  at the checkout. There is no "seen" flag to clear — the card's own subject removes it.
+- **`useChallengeFamilyEntries`** — one hook, therefore ONE query key, shared by the dashboard card
+  and the hub so the two can never disagree about whether a child has started.
+
+### Changed
+
+- **The post-payment confirmation no longer dead-ends at the wallet.** It plays the walkthrough and
+  leads with *Open <child>'s challenge →*; `View wallet` survives as the secondary action. The card
+  previously reported the entry and the 500 Stars and offered nothing else — a family had paid and
+  been told nothing about what their child now does.
+- The challenge hub carries the same walkthrough above "what happens next": inline while anyone has
+  yet to start, collapsed to one line once someone is building, so a family mid-build can still find
+  it without being re-explained to.
+- The video itself is **committed** at `public/challenge-media/creative-challenge-how-it-works-v1.mp4`
+  (18.6 MB), so the ordinary `aws s3 sync dist/` deploy publishes it — no out-of-band upload, no
+  second workflow, and no window in which the marketing site links at a file that does not exist yet.
+  This matches how `airbotix` already ships 35 committed mp4s. `deploy.yml` therefore must NOT
+  exclude `challenge-media/*`: the file IS in `dist/`, so an exclude would stop it uploading at all.
+  It is still its OWN top-level prefix (not under `media/`) so the URL is stable and no future
+  exclude can catch it by accident, and it is still versioned by filename because the sync stamps a
+  one-year `immutable` header — a recut ships as `-v2`, never an overwrite.
+
+### Notes
+
+- **No captions yet.** A `<track kind="captions">` belongs on the player and is blocked on a
+  transcript of the recorded narration; it ships with the `.vtt`, never before it.
 ## 2026-08-17 (fixed: the deploy gate ran the tests against production build config)
 
 ### Fixed

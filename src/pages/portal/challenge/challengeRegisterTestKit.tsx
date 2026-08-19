@@ -35,6 +35,8 @@ export const EDITION = {
   submission_open: '2026-08-24T00:00:00.000Z',
   submission_close: '2026-08-31T00:00:00.000Z',
   results_at: '2026-09-14T00:00:00.000Z',
+  orientation_video_url: 'https://app.airbotix.ai/challenge-media/creative-challenge-how-it-works-v1.mp4',
+  orientation_video_poster: null,
 };
 
 /** The same edition with registration shut — every sign is a backend refusal. */

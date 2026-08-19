@@ -114,6 +114,17 @@ afterEach(() => {
 });
 
 describe('RegisterPage', () => {
+  it('makes the required mobile and its notification purpose explicit', () => {
+    wireApi();
+    renderPage();
+
+    expect(screen.getByLabelText(/Mobile number \(required\)/)).toBeRequired();
+    expect(
+      screen.getByText(/We use this for class and account notifications or support/),
+    ).toBeVisible();
+    expect(screen.getByText(/Marketing messages still require your permission/)).toBeVisible();
+  });
+
   it('blocks submission until the legal-consent box is ticked, then sends accept_terms', async () => {
     wireApi();
     renderPage();

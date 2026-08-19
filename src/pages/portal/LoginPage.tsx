@@ -224,9 +224,20 @@ export function LoginPage() {
         </form>
       )}
 
-      <div className="mt-6 rounded-2xl border border-brand-mint/30 bg-wash-mint px-4 py-3 text-[13px] leading-relaxed text-ink-soft">
-        <strong className="text-ink">New to Airbotix?</strong> Choose <em>Email code</em> — after
-        the code, we'll help you set up your family and your first kid profile.
+      <div className="mt-6 rounded-2xl border border-brand-mint/30 bg-wash-mint px-4 py-4">
+        <p className="text-[13px] leading-relaxed text-ink-soft">
+          <strong className="text-ink">New to Airbotix?</strong> Create a parent account with your
+          email. After the code, we'll help you set up your family and your first kid profile.
+        </p>
+        {mode === 'password' && (
+          <button
+            type="button"
+            onClick={() => switchMode('otp')}
+            className="btn-pill-secondary mt-3 w-full"
+          >
+            Create account
+          </button>
+        )}
       </div>
     </AuthIdentityLayout>
   );

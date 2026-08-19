@@ -30,7 +30,9 @@ import {
   type ChallengeRegistrationView,
   type ChallengeRubric,
 } from './challengeApi';
+import { ChallengeOrientationVideo } from './ChallengeOrientationVideo';
 import { challengeDayLabelLong } from './challengeDates';
+import { hasNotStarted, useChallengeFamilyEntries } from './useChallengeFamilyEntries';
 import {
   CHALLENGE_JUDGING_NOTES,
   CHALLENGE_NEXT_STEPS,
@@ -228,6 +230,14 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
   const edition = registrations.find((r) => r.data)?.data?.edition ?? editionQuery.data?.edition;
 
   const anyEntered = registrations.some((r) => r.data?.entry?.status === 'registration_confirmed');
+
+  // How loudly to show the walkthrough. Shares ONE query key with the dashboard
+  // card (see `useChallengeFamilyEntries`), so the two surfaces can never
+  // disagree about whether a child has started. A family with no entries — or
+  // an errored read — leaves this false, which merely collapses the video
+  // rather than hiding it.
+  const familyEntries = useChallengeFamilyEntries(slug);
+  const anyoneNotStarted = (familyEntries.data?.entries ?? []).some(hasNotStarted);
   const statusCopy = edition ? challengeStatusCopy(edition.status, anyEntered) : null;
   const timeline = edition ? timelineFor(edition) : [];
   const currentRank = edition ? STATUS_ORDER[edition.status] : 0;
@@ -549,6 +559,22 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
         <p className="lead-text mt-3">
           Most families are doing this for the first time. Here is the whole thing, start to finish.
         </p>
+
+        {/*
+          The same walkthrough the confirmation card shows, kept permanently
+          reachable here (entrant-onboarding-prd §13). Prominent while a child
+          still has not started; once anyone is building it collapses to a
+          one-line row, because a family mid-build does not need re-explaining
+          — but must still be able to find it.
+        */}
+        {edition && (
+          <ChallengeOrientationVideo
+            url={edition.orientation_video_url}
+            poster={edition.orientation_video_poster}
+            variant={anyoneNotStarted ? 'full' : 'compact'}
+            className="mt-5"
+          />
+        )}
 
         <ol className="mt-5 space-y-4" data-testid="challenge-hub-steps">
           {CHALLENGE_NEXT_STEPS.map((step, index) => (

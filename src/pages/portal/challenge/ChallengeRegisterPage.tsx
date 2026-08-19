@@ -21,8 +21,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
+import { CHALLENGE_PORTAL_PATH } from '@/lib/challenge';
 import { api } from '@/lib/api';
 import { formatAud } from '@/lib/money';
+import { ChallengeOrientationVideo } from './ChallengeOrientationVideo';
 
 import { startHostedCheckout } from '../airwallex';
 import {
@@ -337,9 +339,30 @@ export function ChallengeRegisterPage() {
             Submissions open {dayLabel(edition.submission_open)} and close{' '}
             {dayLabel(edition.submission_close)}.
           </p>
-          <Link to="/portal/wallet" className="btn-pill-secondary mt-6 inline-block">
-            View wallet →
-          </Link>
+          {/*
+            The moment a family most needs to know what they just bought. This
+            card used to dead-end at the wallet: "your Stars landed" told a
+            parent nothing about what their child now does (entrant-onboarding-prd
+            §13). Renders nothing when the edition carries no video.
+          */}
+          <ChallengeOrientationVideo
+            url={edition.orientation_video_url}
+            poster={edition.orientation_video_poster}
+            className="mt-6"
+          />
+          <div className="mt-6 flex flex-wrap gap-3">
+            {/*
+              The onward action is the CHALLENGE, not the wallet. The hub is
+              where the per-child handoff into the studio lives; the wallet is a
+              balance a parent can check any time and was never the next step.
+            */}
+            <Link to={CHALLENGE_PORTAL_PATH} className="btn-pill-primary inline-block">
+              {kidName ? `Open ${kidName}’s challenge →` : 'Open the challenge →'}
+            </Link>
+            <Link to="/portal/wallet" className="btn-pill-secondary inline-block">
+              View wallet →
+            </Link>
+          </div>
         </div>
       </div>
     );
