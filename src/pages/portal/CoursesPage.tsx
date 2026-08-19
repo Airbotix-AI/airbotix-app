@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
@@ -7,9 +8,10 @@ import { MyClassesPanel } from './MyClassesPanel';
 import type { CoursePack, Kid, MarketingCourseCard } from './courseComparison';
 
 export function CoursesPage() {
+  const [searchParams] = useSearchParams();
+  const reserveCourseSlug = searchParams.get('reserve');
   const me = useMe();
   const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
-  const contactEmail = me.data?.kind === 'user' ? me.data.email : undefined;
 
   // `bookable=true` = taught AND put on sale by owner. Without it this list also showed
   // content-ready drafts nobody has priced: the parent got a "Request a seat" button on a
@@ -69,8 +71,8 @@ export function CoursesPage() {
           catalog={comparisonCatalog.data ?? []}
           kids={kids.data ?? []}
           familyId={familyId}
-          contactEmail={contactEmail}
           comparisonUnavailable={comparisonCatalog.isError}
+          initialReserveSlug={reserveCourseSlug}
         />
       )}
     </div>

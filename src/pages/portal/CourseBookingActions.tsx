@@ -22,7 +22,7 @@ interface CourseBookingActionsProps {
   kids: Kid[];
   suggestedKidId: string;
   familyId: string | null;
-  contactEmail?: string;
+  autoOpenRequest?: boolean;
 }
 
 const classDateLabel = (iso: string) =>
@@ -38,7 +38,7 @@ export function CourseBookingActions({
   kids,
   suggestedKidId,
   familyId,
-  contactEmail,
+  autoOpenRequest = false,
 }: CourseBookingActionsProps) {
   const [requestOpen, setRequestOpen] = useState(false);
   const [showTimes, setShowTimes] = useState(false);
@@ -49,6 +49,10 @@ export function CourseBookingActions({
   useEffect(() => {
     if (!requestOpen) setKidId(suggestedKidId);
   }, [requestOpen, suggestedKidId]);
+
+  useEffect(() => {
+    if (autoOpenRequest) setRequestOpen(true);
+  }, [autoOpenRequest]);
 
   const classes = useQuery<MarketingClass[]>({
     queryKey: ['courses', pack.slug, 'classes'],
@@ -61,15 +65,11 @@ export function CourseBookingActions({
 
   const enroll = useMutation({
     mutationFn: () =>
-      api('/bookings', {
+      api('/bookings/seat-requests', {
         method: 'POST',
         body: {
-          source: 'parent_portal',
-          type: 'course_enrollment',
-          family_id: familyId,
-          kid_id: kidId || undefined,
+          kid_id: kidId,
           course_pack_id: pack.id,
-          contact_email: contactEmail,
           notes: notes || undefined,
         },
       }),
@@ -103,7 +103,10 @@ export function CourseBookingActions({
 
       {enroll.isSuccess && (
         <div className="mt-4 rounded-2xl bg-brand-mint/15 px-4 py-3 text-[13px] font-semibold text-ink">
-          ✓ Request sent — we’ll confirm a seat by email.
+          <p>✓ Request received — your seat is not confirmed yet.</p>
+          <p className="mt-1 font-medium text-ink-soft">
+            We’ll contact you within 1 business day. You can track this request in My Classes.
+          </p>
         </div>
       )}
 
@@ -141,11 +144,16 @@ export function CourseBookingActions({
             <button
               type="button"
               onClick={() => enroll.mutate()}
-              disabled={enroll.isPending}
+              disabled={enroll.isPending || !kidId || !familyId}
               className="btn-pill-primary"
             >
               {enroll.isPending ? 'Sending…' : 'Send request'}
             </button>
+            {!kidId && (
+              <p className="mt-2 text-[12px] font-medium text-ink-soft">
+                Choose a child so this request is saved to the right family record.
+              </p>
+            )}
           </div>
         </div>
       )}
