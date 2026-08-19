@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-19 (fixed: reserve-seat requests require a verified parent account)
+
+### Fixed
+
+- Marketing reserve links can now return a parent through email-code sign-in and first-family
+  setup to the exact course they selected. The course opens its request panel automatically.
+- Seat requests use the authenticated `/bookings/seat-requests` endpoint and never send a
+  browser-supplied family id. A child must be selected, and success now says **Request received —
+  your seat is not confirmed yet** with a linkable status in My Classes.
+
 ## 2026-08-18 (fixed: the challenge start buttons vanished the moment the window opened)
 
 ### Fixed

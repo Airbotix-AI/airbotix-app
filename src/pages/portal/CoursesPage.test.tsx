@@ -109,11 +109,11 @@ function wireApi({
   });
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/portal/courses') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <CoursesPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -250,5 +250,39 @@ describe('CoursesPage pay-now CTA', () => {
       await screen.findByText(/No classes are open for online purchase yet/),
     ).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Pay now & lock a seat/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('CoursesPage verified reserve flow', () => {
+  it('opens the selected course from a marketing deep link and creates an account-owned request', async () => {
+    wireApi({ kids: [{ id: 'kid-1', nickname: 'Mia', age: 10 }] });
+    renderPage('/portal/courses?reserve=robotics-101');
+
+    const send = await screen.findByRole('button', { name: 'Send request' });
+    expect(screen.getByLabelText('Which kid?')).toHaveValue('kid-1');
+    fireEvent.click(send);
+
+    await screen.findByText('✓ Request received — your seat is not confirmed yet.');
+    expect(screen.getByText(/track this request in My Classes/)).toBeInTheDocument();
+    expect(api).toHaveBeenCalledWith('/bookings/seat-requests', {
+      method: 'POST',
+      body: {
+        kid_id: 'kid-1',
+        course_pack_id: 'pack-1',
+        notes: undefined,
+      },
+    });
+    const requestCall = api.mock.calls.find(([path]) => path === '/bookings/seat-requests');
+    expect(requestCall?.[1]?.body).not.toHaveProperty('family_id');
+    expect(requestCall?.[1]?.body).not.toHaveProperty('contact_email');
+  });
+
+  it('does not allow a seat request until a child is selected', async () => {
+    wireApi({ kids: [] });
+    renderPage('/portal/courses?reserve=robotics-101');
+
+    const send = await screen.findByRole('button', { name: 'Send request' });
+    expect(send).toBeDisabled();
+    expect(screen.getByText(/Choose a child so this request is saved/)).toBeInTheDocument();
   });
 });

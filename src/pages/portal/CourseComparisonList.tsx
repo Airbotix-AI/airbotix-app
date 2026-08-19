@@ -111,16 +111,16 @@ function CourseRow({
   kids,
   selectedKid,
   familyId,
-  contactEmail,
   expanded,
+  autoOpenRequest,
   onToggle,
 }: {
   row: CourseComparisonRow;
   kids: Kid[];
   selectedKid: Kid | null;
   familyId: string | null;
-  contactEmail?: string;
   expanded: boolean;
+  autoOpenRequest: boolean;
   onToggle: () => void;
 }) {
   const isRecommended = selectedKid ? matchesKid(row, selectedKid) : false;
@@ -201,7 +201,7 @@ function CourseRow({
             kids={kids}
             suggestedKidId={isRecommended ? (selectedKid?.id ?? '') : ''}
             familyId={familyId}
-            contactEmail={contactEmail}
+            autoOpenRequest={autoOpenRequest}
           />
         </div>
       )}
@@ -214,15 +214,15 @@ export function CourseComparisonList({
   catalog,
   kids,
   familyId,
-  contactEmail,
   comparisonUnavailable,
+  initialReserveSlug,
 }: {
   packs: CoursePack[];
   catalog: MarketingCourseCard[];
   kids: Kid[];
   familyId: string | null;
-  contactEmail?: string;
   comparisonUnavailable: boolean;
+  initialReserveSlug?: string | null;
 }) {
   const [kidId, setKidId] = useState<string | null>(null);
   const [series, setSeries] = useState(ALL);
@@ -269,6 +269,15 @@ export function CourseComparisonList({
     setCommitment('any');
     setExpandedPackId(row.pack.id);
   };
+
+  useEffect(() => {
+    if (!initialReserveSlug) return;
+    const requested = rows.find((row) => row.pack.slug === initialReserveSlug);
+    if (!requested) return;
+    setSeries(ALL);
+    setCommitment('any');
+    setExpandedPackId(requested.pack.id);
+  }, [initialReserveSlug, rows]);
 
   useEffect(() => {
     if (!expandedPackId) return;
@@ -376,8 +385,10 @@ export function CourseComparisonList({
                 kids={kids}
                 selectedKid={selectedKid}
                 familyId={familyId}
-                contactEmail={contactEmail}
                 expanded={expandedPackId === row.pack.id}
+                autoOpenRequest={
+                  initialReserveSlug === row.pack.slug && expandedPackId === row.pack.id
+                }
                 onToggle={() =>
                   setExpandedPackId((current) => (current === row.pack.id ? null : row.pack.id))
                 }
