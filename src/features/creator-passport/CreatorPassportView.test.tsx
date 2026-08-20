@@ -58,8 +58,14 @@ describe('CreatorPassportView', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: /Mia's creator journey/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Mia's Creator Passport/i })).toBeInTheDocument();
     expect(screen.getAllByText('Idea Builder')).toHaveLength(2);
+    expect(screen.getAllByTestId('creator-passport-stamp')).toHaveLength(5);
+    expect(screen.getByRole('link', { name: /Idea Builder earned/i })).toHaveAttribute(
+      'href',
+      '#passport-evidence-evidence-1',
+    );
+    expect(screen.getAllByText('Next quest')).toHaveLength(4);
     expect(screen.getByText(/I changed the goal/)).toBeInTheDocument();
     expect(screen.getByText(/Mia explained the change clearly/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open “Ocean Helper”/ })).toHaveAttribute(
@@ -85,7 +91,7 @@ describe('CreatorPassportView', () => {
     const ideaCard = within(capabilitySection)
       .getByRole('heading', { name: 'Idea Builder' })
       .closest('article');
-    expect(ideaCard).toHaveTextContent('Still growing');
+    expect(ideaCard).toHaveTextContent('Next quest');
     expect(screen.getByText('Stamp revoked')).toBeInTheDocument();
   });
 
@@ -106,8 +112,10 @@ describe('CreatorPassportView', () => {
         />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/Eligible for a Showcase Day invitation/)).toBeInTheDocument();
+    expect(screen.getByText(/You unlocked an invitation/)).toBeInTheDocument();
     expect(screen.getByText(/parent still confirms participation/i)).toBeInTheDocument();
     expect(screen.getByText(/media use needs separate permission/i)).toBeInTheDocument();
+    expect(screen.getByText('4/4')).toBeInTheDocument();
+    expect(screen.getAllByText('2/2')).toHaveLength(2);
   });
 });

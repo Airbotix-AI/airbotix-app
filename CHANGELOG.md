@@ -83,6 +83,13 @@
   than silently disappearing. Component tests cover verified evidence, revocation and the consent
   boundary.
 
+### Changed
+
+- Redesigned the shared child and parent Passport as a collectible creator artefact: a dark
+  passport-style cover, five distinct illustrated capability seals, earned and next-quest states,
+  evidence-linked stamps, and a four-part Showcase trail. The brighter surface still keeps the
+  learning proof one tap away and never treats attendance as achievement.
+
 ## 2026-08-18 (fixed: the challenge start buttons vanished the moment the window opened)
 
 ### Fixed
