@@ -1,20 +1,15 @@
 // How a challenge date is shown to a family.
 //
-// ⚠️ RENDERED IN UTC ON PURPOSE. The edition's windows are stored as the
-// competition's own calendar days (creative-code-challenge-prd.md §1 locks them
-// in Australia/Brisbane) — `submission_close` is `2026-08-31T23:59:59Z`, i.e.
-// "the end of 31 August". Formatting that with the viewer's local timezone
-// pushes it to 1 September for anyone at UTC+n, so an Australian parent was
-// shown a deadline one day LATER than the real one, on the single date where
-// being wrong costs a child their entry.
-//
-// Using UTC makes the displayed day equal the stored day everywhere, and match
-// the "24–31 August 2026" the public landing page states.
+// Challenge windows are real instants authored in Australia/Brisbane. Prisma
+// serialises `2026-08-24T00:00:00+10:00` as `2026-08-23T14:00:00Z`; formatting
+// that UTC value in UTC incorrectly shows 23 August. Always render the instant
+// back in the competition timezone so every family sees the locked 24–31
+// August window regardless of their device timezone.
 const DAY_FORMAT: Intl.DateTimeFormatOptions = {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
-  timeZone: 'UTC',
+  timeZone: 'Australia/Brisbane',
 };
 
 /** A challenge window date as a family should read it. Falls back to the raw

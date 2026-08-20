@@ -32,8 +32,8 @@ const EDITION: {
   slug: 'creative-code-challenge-2026-junior',
   name: 'Creative Code Challenge — 2026 Junior',
   status: 'registration_open',
-  submission_open: '2026-08-24T00:00:00.000Z',
-  submission_close: '2026-08-31T23:59:59.000Z',
+  submission_open: '2026-08-23T14:00:00.000Z',
+  submission_close: '2026-08-31T13:59:59.000Z',
   orientation_video_url: VIDEO,
   orientation_video_poster: null,
 };
@@ -175,9 +175,6 @@ describe('ChallengeOrientationCard — who still needs the walkthrough (§13)', 
     renderCard();
 
     const link = await screen.findByRole('link', { name: /open the challenge/i });
-    expect(link).toHaveAttribute(
-      'href',
-      '/portal/challenge/creative-code-challenge-2026-junior',
-    );
+    expect(link).toHaveAttribute('href', '/portal/challenge/creative-code-challenge-2026-junior');
   });
 });

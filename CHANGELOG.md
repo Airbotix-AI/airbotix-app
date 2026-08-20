@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-08-20 (fixed: challenge dates render in the competition timezone)
+
+### Fixed
+
+- Challenge dates now render in `Australia/Brisbane`, matching the timezone used to author the
+  edition. The production `24 Aug 00:00 +10:00` instant is serialised by the API as `23 Aug
+  14:00Z`; formatting it in UTC made the registration page falsely advertise 23 August. The page
+  now shows the locked 24–31 August submission window on every device.
+- The family challenge hub now treats the backend's deadline-derived `registration_open` flag as
+  authoritative. It shows “Registration open” and the current registration timeline step even
+  while the separate ops workflow status is still `draft`, instead of contradicting the live form
+  with “Coming soon”.
+
 ## 2026-08-18 (added: when your tuition credit expires)
 
 ### Added
