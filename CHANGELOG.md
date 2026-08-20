@@ -70,6 +70,19 @@
 - Portal only. Kids Learn carries no referral or reward surface at all (D-AFF-11), and a grep over
   `src/pages/learn/` for these symbols returns nothing.
 
+## 2026-08-20 (added: child and parent Creator Passport)
+
+### Added
+
+- Added `/learn/passport` for a child to review five capability stamps, open the evidence Project,
+  see supportive teacher feedback and submit a Workshop-bound reflection for review.
+- Added `/portal/family/:kidId/passport` as a family-scoped read-only view reached from the child's
+  growth page. Showcase readiness explicitly remains an invitation eligibility signal, not
+  registration or media consent.
+- Active stamps require a non-revoked award; revoked history stays visible and is labelled rather
+  than silently disappearing. Component tests cover verified evidence, revocation and the consent
+  boundary.
+
 ## 2026-08-18 (fixed: the challenge start buttons vanished the moment the window opened)
 
 ### Fixed

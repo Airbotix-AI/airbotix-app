@@ -24,6 +24,7 @@ export const NAV_ITEMS = [
   { to: '/learn/workspace', label: '✨ AI Studio' },
   { to: '/learn', label: 'Home', end: true },
   { to: '/learn/projects', label: 'Projects' },
+  { to: '/learn/passport', label: 'Passport' },
   { to: '/learn/create', label: 'Create' },
   { to: '/learn/missions', label: 'Lessons' },
   { to: '/learn/classroom', label: 'My Classes' },
@@ -43,6 +44,7 @@ export const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter(
 // eslint-disable-next-line react-refresh/only-export-components
 export const WALK_IN_NAV_ITEMS = [
   { to: '/learn/classroom', label: 'My Classes', end: undefined as boolean | undefined },
+  { to: '/learn/passport', label: 'Passport', end: undefined as boolean | undefined },
   { to: '/learn/profile', label: '🎟️ My code', end: undefined as boolean | undefined },
 ];
 
@@ -76,7 +78,9 @@ export function LearnTopBar() {
       data-theme={themed ? themeValue : undefined}
       className={clsx(
         'sticky top-0 z-20 border-b backdrop-blur px-6 py-4 md:px-10',
-        themed ? 'border-pg-border bg-pg-surface/95 text-pg-text' : 'border-hairline bg-canvas-pure/95',
+        themed
+          ? 'border-pg-border bg-pg-surface/95 text-pg-text'
+          : 'border-hairline bg-canvas-pure/95',
       )}
     >
       <div className={clsx('flex items-center justify-between', !fluid && 'mx-auto max-w-5xl')}>
@@ -95,7 +99,10 @@ export function LearnTopBar() {
                 Airbotix
               </div>
               <div
-                className={clsx('text-[15px] font-bold leading-tight', themed ? 'text-pg-text' : 'text-ink')}
+                className={clsx(
+                  'text-[15px] font-bold leading-tight',
+                  themed ? 'text-pg-text' : 'text-ink',
+                )}
               >
                 Learn
               </div>
@@ -116,7 +123,9 @@ export function LearnTopBar() {
               <KidAvatar avatarId={avatarId} nickname={nickname} size="sm" />
               <div className={clsx('text-[14px]', themed ? 'text-pg-text-dim' : 'text-ink-soft')}>
                 I'm{' '}
-                <span className={clsx('font-bold', themed ? 'text-pg-text' : 'text-ink')}>{nickname}</span>
+                <span className={clsx('font-bold', themed ? 'text-pg-text' : 'text-ink')}>
+                  {nickname}
+                </span>
               </div>
             </div>
           )}
