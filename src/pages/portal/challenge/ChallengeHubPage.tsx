@@ -111,15 +111,19 @@ interface TimelineStage {
   rank: number;
 }
 
-function challengeStatusCopy(status: keyof typeof STATUS_ORDER, anyEntered: boolean) {
-  if (status === 'draft') {
+function challengeStatusCopy(
+  status: keyof typeof STATUS_ORDER,
+  anyEntered: boolean,
+  registrationOpen: boolean,
+) {
+  if (status === 'draft' && !registrationOpen) {
     return {
       label: 'Coming soon',
       title: 'This competition is being prepared',
       body: 'You can learn how it works now. Registration will appear here when it opens.',
     };
   }
-  if (status === 'registration_open') {
+  if (status === 'registration_open' || registrationOpen) {
     return anyEntered
       ? {
           label: 'Your family is in',
@@ -238,9 +242,13 @@ export function ChallengeHubPage({ slug }: { slug: string }) {
   // rather than hiding it.
   const familyEntries = useChallengeFamilyEntries(slug);
   const anyoneNotStarted = (familyEntries.data?.entries ?? []).some(hasNotStarted);
-  const statusCopy = edition ? challengeStatusCopy(edition.status, anyEntered) : null;
+  const statusCopy = edition
+    ? challengeStatusCopy(edition.status, anyEntered, edition.registration_open)
+    : null;
   const timeline = edition ? timelineFor(edition) : [];
-  const currentRank = edition ? STATUS_ORDER[edition.status] : 0;
+  const currentRank = edition
+    ? Math.max(STATUS_ORDER[edition.status], edition.registration_open ? 1 : 0)
+    : 0;
 
   // Published criteria, served by the backend so this page cannot state a
   // weighting the judges are not actually using.

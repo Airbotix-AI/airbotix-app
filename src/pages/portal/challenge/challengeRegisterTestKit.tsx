@@ -32,10 +32,11 @@ export const EDITION = {
   entry_fee_cents: 900,
   status: 'registration_open',
   registration_open: true,
-  submission_open: '2026-08-24T00:00:00.000Z',
-  submission_close: '2026-08-31T00:00:00.000Z',
+  submission_open: '2026-08-23T14:00:00.000Z',
+  submission_close: '2026-08-31T13:59:59.000Z',
   results_at: '2026-09-14T00:00:00.000Z',
-  orientation_video_url: 'https://app.airbotix.ai/challenge-media/creative-challenge-how-it-works-v1.mp4',
+  orientation_video_url:
+    'https://app.airbotix.ai/challenge-media/creative-challenge-how-it-works-v1.mp4',
   orientation_video_poster: null,
 };
 

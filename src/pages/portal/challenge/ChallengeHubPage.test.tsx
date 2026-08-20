@@ -33,10 +33,11 @@ const EDITION = {
   entry_fee_cents: 900,
   status: 'registration_open',
   registration_open: true,
-  submission_open: '2026-08-24T00:00:00.000Z',
-  submission_close: '2026-08-31T23:59:59.000Z',
+  submission_open: '2026-08-23T14:00:00.000Z',
+  submission_close: '2026-08-31T13:59:59.000Z',
   results_at: '2026-09-14T10:00:00.000Z',
-  orientation_video_url: 'https://app.airbotix.ai/challenge-media/creative-challenge-how-it-works-v1.mp4',
+  orientation_video_url:
+    'https://app.airbotix.ai/challenge-media/creative-challenge-how-it-works-v1.mp4',
   orientation_video_poster: null,
 };
 
@@ -118,6 +119,28 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe('ChallengeHubPage — who in the family is entered', () => {
+  it('shows registration open when the deadline flag is open even if ops status is still draft', async () => {
+    wire();
+    apiMock.mockImplementation(async (path: string) => {
+      if (path === '/challenges/rubric') return RUBRIC;
+      if (path.includes('/family-entries')) {
+        return { edition: { ...EDITION, status: 'draft' }, entries: [] };
+      }
+      if (path === '/families/fam-1/kids') return KIDS;
+      return { edition: { ...EDITION, status: 'draft' }, kid_id: null, entry: null };
+    });
+    renderHub();
+
+    const current = await screen.findByTestId('challenge-hub-current-stage');
+    expect(current).toHaveTextContent('Registration open');
+    expect(current).not.toHaveTextContent('Coming soon');
+    expect(screen.getByTestId('challenge-timeline-register')).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    expect(screen.queryByTestId('challenge-hub-closed')).not.toBeInTheDocument();
+  });
+
   it('shows every child with their own standing, without the parent selecting anyone', async () => {
     // The whole reason this page exists: the register page opened on ONE child
     // chosen from a picker, so a family's standing could only be discovered by
