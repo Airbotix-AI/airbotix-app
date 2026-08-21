@@ -1,4 +1,4 @@
-import { Check, ShieldCheck, Sparkles, Star } from 'lucide-react';
+import { Check, ShieldCheck, Sparkles } from 'lucide-react';
 
 export function CreatorPassportCover({
   nickname,
@@ -17,14 +17,7 @@ export function CreatorPassportCover({
         className="absolute -bottom-24 left-1/4 h-64 w-64 rounded-full bg-brand-bubblegum/25 blur-2xl"
         aria-hidden="true"
       />
-      <Star
-        className="absolute right-8 top-8 hidden rotate-12 text-brand-sunshine sm:block"
-        size={40}
-        strokeWidth={2.5}
-        aria-hidden="true"
-      />
-
-      <div className="relative grid gap-8 sm:grid-cols-[1fr_auto] sm:items-center">
+      <div className="relative grid gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(420px,1.15fr)] lg:items-center">
         <div>
           <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-brand-sunshine">
             Airbotix · Creator edition
@@ -46,12 +39,22 @@ export function CreatorPassportCover({
           </div>
         </div>
 
-        <div className="relative mx-auto grid h-40 w-40 shrink-0 place-items-center rounded-full border-2 border-dashed border-brand-sunshine bg-canvas/10 sm:h-48 sm:w-48">
-          <div className="grid h-32 w-32 place-items-center rounded-full bg-brand-sunshine text-center text-ink shadow-brand-sunshine sm:h-40 sm:w-40">
+        <div className="relative mx-auto w-full max-w-[620px]">
+          <img
+            src="/media/creator-passport/creator-passport-hero-v1.webp"
+            alt="Open illustrated passport displaying five colourful creator skill stamps"
+            width={1200}
+            height={800}
+            className="h-auto w-full rounded-[28px] object-contain"
+            decoding="async"
+          />
+          <div className="absolute bottom-2 right-2 grid h-24 w-24 place-items-center rounded-full border-2 border-dashed border-ink bg-brand-sunshine text-center text-ink shadow-brand-sunshine sm:bottom-5 sm:right-5 sm:h-28 sm:w-28">
             <div>
-              <Check className="mx-auto mb-1" size={28} strokeWidth={3} aria-hidden="true" />
-              <div className="text-4xl font-extrabold leading-none">{verifiedCount}/5</div>
-              <div className="mt-2 text-[10px] font-extrabold uppercase tracking-[0.14em]">
+              <Check className="mx-auto mb-1" size={22} strokeWidth={3} aria-hidden="true" />
+              <div className="text-2xl font-extrabold leading-none sm:text-3xl">
+                {verifiedCount}/5
+              </div>
+              <div className="mt-1 text-[8px] font-extrabold uppercase tracking-[0.12em] sm:text-[9px]">
                 stamps earned
               </div>
             </div>

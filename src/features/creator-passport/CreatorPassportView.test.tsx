@@ -59,6 +59,9 @@ describe('CreatorPassportView', () => {
     );
 
     expect(screen.getByRole('heading', { name: /Mia's Creator Passport/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: /open illustrated passport displaying five/i }),
+    ).toHaveAttribute('src', '/media/creator-passport/creator-passport-hero-v1.webp');
     expect(screen.getAllByText('Idea Builder')).toHaveLength(2);
     expect(screen.getAllByTestId('creator-passport-stamp')).toHaveLength(5);
     expect(screen.getByRole('link', { name: /Idea Builder earned/i })).toHaveAttribute(

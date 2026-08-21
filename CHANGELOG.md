@@ -89,6 +89,9 @@
   passport-style cover, five distinct illustrated capability seals, earned and next-quest states,
   evidence-linked stamps, and a four-part Showcase trail. The brighter surface still keeps the
   learning proof one tap away and never treats attendance as achievement.
+- Added an original image-model-produced open-passport hero illustration with five tactile skill
+  emblems, delivered as an optimised 1200×800 WebP rather than making children download the
+  2.1 MB production source.
 
 ## 2026-08-18 (fixed: the challenge start buttons vanished the moment the window opened)
 
