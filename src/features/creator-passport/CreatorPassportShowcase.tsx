@@ -51,7 +51,7 @@ export function CreatorPassportShowcase({ passport }: { passport: CreatorPasspor
           </h2>
           <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-ink-soft">
             {ready
-              ? 'You have the evidence for an invitation. A parent still confirms participation, and public display or media use needs separate permission.'
+              ? 'You have the evidence for an invitation, not automatic registration. A parent still confirms participation, and public display or media use needs separate permission.'
               : 'Collect different skills across real projects and Workshops. Repeating a skill still shows growth, but breadth unlocks the invitation.'}
           </p>
         </div>

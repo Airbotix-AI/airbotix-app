@@ -116,6 +116,7 @@ describe('CreatorPassportView', () => {
       </MemoryRouter>,
     );
     expect(screen.getByText(/You unlocked an invitation/)).toBeInTheDocument();
+    expect(screen.getByText(/not automatic registration/i)).toBeInTheDocument();
     expect(screen.getByText(/parent still confirms participation/i)).toBeInTheDocument();
     expect(screen.getByText(/media use needs separate permission/i)).toBeInTheDocument();
     expect(screen.getByText('4/4')).toBeInTheDocument();

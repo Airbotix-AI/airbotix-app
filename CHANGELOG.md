@@ -88,7 +88,8 @@
 - Redesigned the shared child and parent Passport as a collectible creator artefact: a dark
   passport-style cover, five distinct illustrated capability seals, earned and next-quest states,
   evidence-linked stamps, and a four-part Showcase trail. The brighter surface still keeps the
-  learning proof one tap away and never treats attendance as achievement.
+  learning proof one tap away, never treats attendance as achievement, and explicitly says that
+  Showcase eligibility is not automatic registration.
 - Added an original image-model-produced open-passport hero illustration with five tactile skill
   emblems, delivered as an optimised 1200×800 WebP rather than making children download the
   2.1 MB production source.
