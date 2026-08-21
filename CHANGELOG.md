@@ -10,6 +10,14 @@
   clear navigation grid, while immersive studio routes retain their intentional full-bleed
   layout.
 
+## 2026-08-22 (changed: cleaner Family kid-profile cards)
+
+### Changed
+
+- Reworked populated kid-profile cards into calmer parent-facing records: a tinted identity header,
+  compact status, contained growth snapshot, one clear kid-page action and three lightweight tools
+  replace the previous heavy coloured shadow and four competing pill buttons.
+
 ## 2026-08-20 (fixed: challenge dates render in the competition timezone)
 
 ### Fixed
