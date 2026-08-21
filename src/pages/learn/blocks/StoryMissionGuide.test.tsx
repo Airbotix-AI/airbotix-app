@@ -19,10 +19,30 @@ const bellHookMission = storyMissionFor('tsv-s1-a6-h')!;
 const bellBuildMission = storyMissionFor('tsv-s1-a6-b')!;
 const bellFixMission = storyMissionFor('tsv-s1-a6-d')!;
 const bellFinaleMission = storyMissionFor('tsv-s1-a6-s')!;
+const journeyWestS2EventFixMission = storyMissionFor('jtw-s2-c2-p6')!;
 
 afterEach(cleanup);
 
 describe('StoryMissionGuide', () => {
+  it('lets the child return to the workspace after an observed manual event fix', () => {
+    const onClose = vi.fn();
+    render(
+      <StoryMissionGuide
+        mission={journeyWestS2EventFixMission}
+        hasRun
+        completed={false}
+        answerId="wukong-too-early"
+        onAnswer={vi.fn()}
+        onApplyFix={vi.fn()}
+        onClose={onClose}
+      />,
+    );
+
+    expect(screen.getByTestId('story-fix-task')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep building ▶' }));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it('tells the child to change only the breakfast cart number', () => {
     render(
       <StoryMissionGuide mission={breakfastBuildMission} hasRun={false} completed={false} answerId={null} onAnswer={vi.fn()} onApplyFix={vi.fn()} onClose={vi.fn()} />,
