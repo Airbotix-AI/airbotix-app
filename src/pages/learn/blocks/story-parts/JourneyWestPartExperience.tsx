@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { isMuted, setMuted, sfx } from '../sounds'
 import { speakStory, stopStorySpeech } from '../storyAudio'
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1'
+import { JTW_S2_STORY_LINE_ID } from './journeyWestSeason2'
 import { fetchStoryLineProgress } from './storyPartsApi'
 
 const ASSET_ROOT = '/story-blocks/journey-to-the-west'
@@ -61,6 +62,7 @@ function chapterNumber(partId: string): number {
 }
 
 function presentationFor(partId: string): ChapterPresentation | null {
+  if (partId.startsWith('jtw-s2-')) return null
   const chapter = chapterNumber(partId)
   const base = PRESENTATIONS[chapter]
   if (!base || chapter !== 6) return base ?? null
@@ -88,9 +90,10 @@ function narrationFrom(root: HTMLDivElement | null): string {
 
 export function JourneyWestPartExperience({ partId, children }: { partId: string; children: ReactNode }) {
   const contentRef = useRef<HTMLDivElement>(null)
+  const storyLineId = partId.startsWith('jtw-s2-') ? JTW_S2_STORY_LINE_ID : JTW_S1_STORY_LINE_ID
   const progress = useQuery({
-    queryKey: ['story-parts', JTW_S1_STORY_LINE_ID],
-    queryFn: () => fetchStoryLineProgress(JTW_S1_STORY_LINE_ID),
+    queryKey: ['story-parts', storyLineId],
+    queryFn: () => fetchStoryLineProgress(storyLineId),
   })
   const [muted, setMuteState] = useState(() => isMuted())
   const [audioStatus, setAudioStatus] = useState<'idle' | 'narrating' | 'cue'>('idle')

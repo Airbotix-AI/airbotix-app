@@ -182,6 +182,22 @@ export class BlocksRunner {
     }
   }
 
+  /** Remember pairs already overlapping at Go so an unrelated later animation
+   * does not manufacture a second bump. A bump begins only after a new contact. */
+  private seedExistingContacts(): void {
+    for (let index = 0; index < this.page.characters.length; index += 1) {
+      const left = this.page.characters[index]
+      const leftState = this.states.get(left.id)
+      if (!leftState) continue
+      for (const right of this.page.characters.slice(index + 1)) {
+        const rightState = this.states.get(right.id)
+        if (rightState && spritesBump(leftState, rightState)) {
+          this.touching.add([left.id, right.id].sort().join('|'))
+        }
+      }
+    }
+  }
+
   private isTouching(charId: string, targetId: string | undefined): boolean {
     if (!targetId || targetId === charId) return false;
     const a = this.states.get(charId);
@@ -204,6 +220,7 @@ export class BlocksRunner {
     this.stopped = false;
     this.stoppedChars.clear();
     this.touching.clear();
+    this.seedExistingContacts();
     this.launched = 0;
     this.pending = [];
     await Promise.all(

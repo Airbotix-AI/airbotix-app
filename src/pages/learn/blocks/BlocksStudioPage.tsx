@@ -28,6 +28,17 @@ import {
   JTW_C4_P7_LESSON_ID,
   JTW_C4_WUKONG_ID,
 } from './jtwC4DualBuild';
+import {
+  isJtwS2C2P5TapCompletion,
+  isJtwS2C2P6TapCompletion,
+  isJtwS2C2P7TapCompletion,
+  JTW_S2_C2_P5_LESSON_ID,
+  JTW_S2_C2_P6_LESSON_ID,
+  JTW_S2_C2_P7_LESSON_ID,
+  JTW_S2_C3_P6_LESSON_ID,
+  JTW_S2_C4_WUKONG_ID,
+  JTW_S2_C5_WUKONG_ID,
+} from './jtwS2Builds';
 import { StoryMissionGuide } from './StoryMissionGuide';
 import {
   storyMissionProgramMatches,
@@ -108,6 +119,7 @@ export function BlocksStudioPage({
   const [missionHasRun, setMissionHasRun] = useState(false);
   const [missionTapObserved, setMissionTapObserved] = useState(false);
   const [missionWrongRunObserved, setMissionWrongRunObserved] = useState(false);
+  const [missionFixedGoObserved, setMissionFixedGoObserved] = useState(false);
   const [missionVoicesOverlapped, setMissionVoicesOverlapped] = useState(false);
   const voicesOverlappedRef = useRef(false);
   const greetingTookTurnsRef = useRef(false);
@@ -160,6 +172,14 @@ export function BlocksStudioPage({
     project, pageId, charId, missionAnswer, missionCompleted, missionCorrectRunFinished,
     missionFixApplied, running, storyCoachCue,
   });
+  const isJtwS2C2P5 = storyMission?.lessonId === JTW_S2_C2_P5_LESSON_ID;
+  const isJtwS2C2P6 = storyMission?.lessonId === JTW_S2_C2_P6_LESSON_ID;
+  const isJtwS2C2P7 = storyMission?.lessonId === JTW_S2_C2_P7_LESSON_ID;
+  const isJtwS2C3P6 = storyMission?.lessonId === JTW_S2_C3_P6_LESSON_ID;
+  const isJtwS2MessageMission = storyMission?.lessonId !== undefined && [
+    'jtw-s2-c4-p4', 'jtw-s2-c4-p5', 'jtw-s2-c4-p6', 'jtw-s2-c4-p7',
+    'jtw-s2-c5-p4', 'jtw-s2-c5-p5', 'jtw-s2-c5-p6', 'jtw-s2-c5-p7',
+  ].includes(storyMission.lessonId);
   const {
     phase,
     saveStatus,
@@ -194,6 +214,7 @@ export function BlocksStudioPage({
     setMissionFixApplied(false);
     setMissionCorrectRunFinished(previouslyCompleted);
     setMissionWrongRunObserved(false);
+    setMissionFixedGoObserved(false);
     setMissionVoicesOverlapped(false);
     voicesOverlappedRef.current = false;
     setMissionBellRangAlone(false);
@@ -234,6 +255,7 @@ export function BlocksStudioPage({
   }, [navigate, nextJourneyPosition, nextMissionBusy]);
   useEffect(() => {
     if (missionTargetFixed) return;
+    setMissionFixedGoObserved(false);
     setMissionCorrectRunFinished(false);
     setMissionFixPersisted(false);
     setMissionCompleted(false);
@@ -520,6 +542,7 @@ export function BlocksStudioPage({
           storyMission.lessonId,
           missionScript?.blocks,
         );
+        const observedJtwS2ShortRoute = isJtwS2C3P6 && runner.state('wukong-scout')?.gx === 5;
         if (
           storyMission.lessonId === 'tsv-s1-a6-h' &&
           tinyStarBellRangWithoutHop(bellPlayedOpsRef.current) &&
@@ -533,8 +556,18 @@ export function BlocksStudioPage({
         if (observedOvershoot) setMissionWrongRunObserved(true);
         if (observedOrderBug) setMissionWrongRunObserved(true);
         if (observedWrongEventTrigger) setMissionWrongRunObserved(true);
+        if (observedJtwS2ShortRoute) setMissionWrongRunObserved(true);
         if (observedLateBounce) setMissionWrongRunObserved(true);
         if (observedEarlyBell) setMissionWrongRunObserved(true);
+        if (isJtwS2C2P6 && missionTargetFixed && missionWrongRunObserved) {
+          setMissionFixedGoObserved(true);
+        }
+        if (isJtwS2C3P6 && missionTargetFixed && missionWrongRunObserved) {
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
+          return;
+        }
         if (storyMission.mode === 'observe-only') {
           const completedDistanceHook =
             storyMission.lessonId === 'tsv-s1-a4-h' &&
@@ -560,6 +593,11 @@ export function BlocksStudioPage({
           missionTargetFixed &&
           reachedMissionTarget &&
           !isJtwC4DualBuild &&
+          !isJtwS2C2P5 &&
+          !isJtwS2C2P6 &&
+          !isJtwS2C2P7 &&
+          !isJtwS2C3P6 &&
+          !isJtwS2MessageMission &&
           (!(
             isA2DirectionDebug ||
             isA4ParameterDebug ||
@@ -603,6 +641,11 @@ export function BlocksStudioPage({
     needsBellOrderRun,
     isJtwOrderDebug,
     isJtwC4DualBuild,
+    isJtwS2C2P5,
+    isJtwS2C2P6,
+    isJtwS2C2P7,
+    isJtwS2C3P6,
+    isJtwS2MessageMission,
     missionScript,
     missionWrongRunObserved,
     missionAnswer,
@@ -695,6 +738,57 @@ export function BlocksStudioPage({
         const targetFixedNow = storyMission
           ? storyMissionProgramMatches(useBlocksStore.getState().project, storyMission.lessonId)
           : false;
+        if (isJtwS2C2P5TapCompletion(
+          storyMission?.lessonId, id, missionHasRun, targetFixedNow,
+        )) {
+          setMissionTapObserved(true);
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
+          return;
+        }
+        if (isJtwS2C2P6TapCompletion(
+          storyMission?.lessonId,
+          id,
+          missionWrongRunObserved,
+          missionFixedGoObserved,
+          answeredCorrectly,
+          targetFixedNow,
+        )) {
+          setMissionTapObserved(true);
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
+          return;
+        }
+        if (isJtwS2C2P7TapCompletion(
+          storyMission?.lessonId, id, missionHasRun, targetFixedNow,
+        )) {
+          setMissionTapObserved(true);
+          setMissionCorrectRunFinished(true);
+          setStoryCoachCue('saving');
+          setMissionOpen(false);
+          return;
+        }
+        const s2MessageSender = storyMission?.lessonId.startsWith('jtw-s2-c4-')
+          ? JTW_S2_C4_WUKONG_ID
+          : JTW_S2_C5_WUKONG_ID;
+        if (isJtwS2MessageMission && id === s2MessageSender) {
+          if (['jtw-s2-c4-p6', 'jtw-s2-c5-p6'].includes(storyMission?.lessonId ?? '') && !targetFixedNow) {
+            setMissionWrongRunObserved(true);
+            setMissionTapObserved(true);
+            setStoryCoachCue('fix');
+            setMissionOpen(true);
+            return;
+          }
+          if (targetFixedNow && (!['jtw-s2-c4-p6', 'jtw-s2-c5-p6'].includes(storyMission?.lessonId ?? '') || missionWrongRunObserved)) {
+            setMissionTapObserved(true);
+            setMissionCorrectRunFinished(true);
+            setStoryCoachCue('saving');
+            setMissionOpen(false);
+            return;
+          }
+        }
         if (
           id === JTW_C4_WUKONG_ID &&
           (storyMission?.lessonId === JTW_C4_P4_LESSON_ID ||
@@ -739,7 +833,17 @@ export function BlocksStudioPage({
         }
       });
     },
-    [isA3PersonalShip, makeRunner, missionHasRun, missionTapObserved, storyMission],
+    [
+      answeredCorrectly,
+      isA3PersonalShip,
+      isJtwS2MessageMission,
+      makeRunner,
+      missionFixedGoObserved,
+      missionHasRun,
+      missionTapObserved,
+      missionWrongRunObserved,
+      storyMission,
+    ],
   );
   const openFriendPicker = useCallback(() => {
     sfx.tap();
@@ -770,7 +874,7 @@ export function BlocksStudioPage({
     isA2DirectionDebug,
     isA3EventDebug,
     isA4ParameterBuild,
-    isA4ParameterDebug,
+    isA4ParameterDebug: isA4ParameterDebug || isJtwS2C3P6,
     isA5RelayDebug,
     isA6OrderDebug,
     missionWrongRunObserved,
@@ -792,7 +896,7 @@ export function BlocksStudioPage({
     isA2DirectionDebug,
     isA3EventDebug,
     isA4ParameterBuild,
-    isA4ParameterDebug,
+    isA4ParameterDebug: isA4ParameterDebug || isJtwS2C3P6,
     isA5RelayDebug,
     isA6OrderDebug,
     isA2PersonalShip,

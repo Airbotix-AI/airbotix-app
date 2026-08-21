@@ -17,13 +17,16 @@ import {
 import { useBlocksStore } from './blocksStore'
 import type { StoryCoachCue, StoryMission } from './curriculumGuides'
 import { sfx } from './sounds'
+import { JTW_S2_C2_P6_LESSON_ID } from './jtwS2Builds'
 
 export function canRepairEventTrigger(
   lessonId: string | undefined,
   wrongRunObserved: boolean,
   tapObserved: boolean,
 ): boolean {
-  return lessonId === 'jtw-s1-c4-p6' ? wrongRunObserved : tapObserved
+  return lessonId === 'jtw-s1-c4-p6' || lessonId === JTW_S2_C2_P6_LESSON_ID
+    ? wrongRunObserved
+    : tapObserved
 }
 
 interface UseBlockEditorOptions {
