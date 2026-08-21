@@ -63,6 +63,10 @@ import { JourneyWestC5FinalPartsPage } from './JourneyWestC5FinalPartsPage';
 import { JourneyWestC6IntroPartsPage } from './JourneyWestC6IntroPartsPage';
 import { JourneyWestC6FinalPartsPage } from './JourneyWestC6FinalPartsPage';
 import { JourneyWestPartExperience } from './JourneyWestPartExperience';
+import { JourneyWestS2C1Part1Page } from './JourneyWestS2C1Part1Page';
+import { JourneyWestS2C1Part2Page } from './JourneyWestS2C1Part2Page';
+import { JourneyWestS2BatchPartPage } from './JourneyWestS2BatchPartPage';
+import { JTW_S2_BATCH_PART_IDS } from './journeyWestSeason2';
 import { Choice, EvidenceGroup } from './partUi';
 
 const PART_ID = 'jtw-s1-c1-p1';
@@ -80,6 +84,11 @@ export function JourneyWestPartRoute() {
 }
 
 function JourneyWestPartContent({ partId }: { partId: string }) {
+  if (partId === 'jtw-s2-c1-p1') return <JourneyWestS2C1Part1Page />;
+  if (partId === 'jtw-s2-c1-p2') return <JourneyWestS2C1Part2Page />;
+  if ((JTW_S2_BATCH_PART_IDS as readonly string[]).includes(partId)) {
+    return <JourneyWestS2BatchPartPage partId={partId} />;
+  }
   if (partId === PART_ID) return <JourneyWestPartPage />;
   if (partId === NEXT_PART_ID) return <JourneyWestPart2Page />;
   if (partId === 'jtw-s1-c1-p3') return <JourneyWestPart3Page />;

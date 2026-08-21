@@ -21,6 +21,7 @@ import {
   JTW_MISSION_CONTRACTS,
   type StoryMissionProgramContract,
 } from './storyMissionContracts.jtw';
+import { jtwS2BuildMatches } from './jtwS2Builds';
 import {
   TINY_STAR_BELL_BUILD_PAGE_ID,
   TINY_STAR_BELL_BUILD_ROUTE,
@@ -577,6 +578,7 @@ function missionBlockMatches(
 }
 
 export function storyMissionProgramMatches(project: BlocksProject, lessonId: string): boolean {
+  if (lessonId.startsWith('jtw-s2-')) return jtwS2BuildMatches(project, lessonId);
   if ([JTW_C5_P4_ID, JTW_C5_P5_ID, JTW_C5_P7_ID, JTW_C6_P4_ID, JTW_C6_P5_ID, JTW_C6_P8_ID].includes(lessonId)) {
     return jtwC5C6BuildMatches(project, lessonId);
   }
