@@ -175,9 +175,9 @@ describe('family profile navigation', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/expires after 5 minutes and works once/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Copy family code' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: "Edit Mia's profile" })).toHaveClass(
-      'btn-pill-secondary',
-    );
+    expect(screen.getByRole('article', { name: 'Mia profile' })).toBeInTheDocument();
+    expect(screen.getByText('Growth snapshot')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: "Edit Mia's profile" })).toHaveClass('rounded-2xl');
   });
 
   it('copies the family sign-in code and confirms the action', async () => {
