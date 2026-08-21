@@ -98,6 +98,38 @@ describe('CreatorPassportView', () => {
     expect(screen.getByText('Stamp revoked')).toBeInTheDocument();
   });
 
+  it('keeps multiple skill checks from the same creation inside one project evidence card', () => {
+    const data = passport();
+    data.evidence.push({
+      ...data.evidence[0],
+      id: 'evidence-2',
+      child_reflection: {
+        format: 'text',
+        text: 'I changed my prompt after the first result.',
+        entered_by: 'kid',
+      },
+      definition: {
+        ...data.evidence[0].definition,
+        id: 'definition-2',
+        code: 'prompt_director',
+        display_name: 'Prompt Director',
+      },
+      award: { id: 'award-2', awarded_at: '2026-08-20T03:00:00.000Z', revoked_at: null },
+    });
+
+    render(
+      <MemoryRouter>
+        <CreatorPassportView passport={data} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getAllByTestId('passport-project-evidence')).toHaveLength(1);
+    expect(screen.getAllByTestId('passport-evidence')).toHaveLength(2);
+    expect(screen.getByText('2 skills')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Open “Ocean Helper”' })).toHaveLength(1);
+    expect(screen.getByText('2 checks · 1 project')).toBeInTheDocument();
+  });
+
   it('states that Showcase eligibility still needs parent confirmation and media permission', () => {
     render(
       <MemoryRouter>

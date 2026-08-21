@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-22 (changed: Creator Passport visual hierarchy)
+
+### Changed
+
+- Reworked the child `/learn/passport` experience around a clearer passport journey: a compact
+  progress-led cover, a responsive two-column stamp wall on phones, a denser Showcase tracker and
+  an evidence journal grouped by real project. Repeated project evidence now reads as one coherent
+  project story while preserving every capability check, child reflection, teacher note, status,
+  revocation state and deep-link target.
+
 ## 2026-08-22 (fixed: calmer, correctly branded Learn shell)
 
 ### Fixed

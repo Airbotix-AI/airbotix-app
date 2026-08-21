@@ -34,7 +34,7 @@ export function CreatorPassportShowcase({ passport }: { passport: CreatorPasspor
 
   return (
     <section
-      className={`relative overflow-hidden rounded-[36px] border-2 p-6 sm:p-8 ${
+      className={`relative overflow-hidden rounded-[28px] border-2 p-5 sm:p-7 lg:rounded-[32px] ${
         ready
           ? 'border-brand-sunshine bg-wash-sunshine shadow-brand-sunshine'
           : 'border-brand-bubblegum bg-wash-bubblegum shadow-brand-bubblegum'
@@ -46,7 +46,10 @@ export function CreatorPassportShowcase({ passport }: { passport: CreatorPasspor
           <p className={ready ? 'sticker-sunshine inline-flex' : 'sticker-bubblegum inline-flex'}>
             {ready ? 'Showcase ready' : 'Your Showcase trail'}
           </p>
-          <h2 id="showcase-heading" className="mt-4 text-2xl font-extrabold text-ink sm:text-3xl">
+          <h2
+            id="showcase-heading"
+            className="mt-3 text-2xl font-extrabold text-ink sm:text-[28px]"
+          >
             {ready ? 'You unlocked an invitation!' : 'Four steps to Showcase Day'}
           </h2>
           <p className="mt-2 max-w-2xl text-[14px] font-medium leading-6 text-ink-soft">
@@ -56,7 +59,7 @@ export function CreatorPassportShowcase({ passport }: { passport: CreatorPasspor
           </p>
         </div>
         <div
-          className={`grid h-16 w-16 shrink-0 place-items-center rounded-full ${ready ? 'bg-brand-sunshine' : 'bg-canvas-pure'}`}
+          className={`grid h-14 w-14 shrink-0 place-items-center rounded-full ${ready ? 'bg-brand-sunshine' : 'bg-canvas-pure'}`}
         >
           {ready ? (
             <PartyPopper size={30} aria-hidden="true" />
@@ -66,11 +69,11 @@ export function CreatorPassportShowcase({ passport }: { passport: CreatorPasspor
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-5 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
         {requirements.map(({ label, value, done, Icon }) => (
           <div
             key={label}
-            className={`rounded-2xl border-2 px-4 py-4 ${
+            className={`rounded-2xl border-2 px-3 py-3.5 sm:px-4 ${
               done ? 'border-brand-mint bg-wash-mint' : 'border-hairline bg-canvas-pure/80'
             }`}
           >
