@@ -149,7 +149,10 @@ export function LearnLayout() {
         {fluid ? (
           <Outlet />
         ) : (
-          <div className="mx-auto max-w-5xl px-6 py-8 md:px-10 md:py-12">
+          <div
+            className="mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-7 md:py-10 xl:px-10 xl:py-12"
+            data-testid="learn-content-frame"
+          >
             <Outlet />
           </div>
         )}

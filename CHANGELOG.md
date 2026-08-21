@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-22 (fixed: calmer, correctly branded Learn shell)
+
+### Fixed
+
+- Expanded ordinary `/learn` pages and their header to a centred 1440px canvas, replaced the
+  placeholder lettermark with the real Airbotix logo, and reorganised the crowded navigation
+  into six primary destinations plus a compact `More` menu. Tablet and phone widths now use a
+  clear navigation grid, while immersive studio routes retain their intentional full-bleed
+  layout.
+
 ## 2026-08-20 (fixed: challenge dates render in the competition timezone)
 
 ### Fixed
