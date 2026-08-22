@@ -12,6 +12,8 @@
 
 - Kept the Journey West C1-P6 mission validator aligned with the backend starter's canonical
   `Hello, I just came here.` dialogue so the pre-deploy journey can complete after a real repair.
+- Accepted the backend's canonical C2-P7 cave evidence line so a correctly built right-bank route
+  completes against the project the server actually seeds.
 
 ### Added
 
