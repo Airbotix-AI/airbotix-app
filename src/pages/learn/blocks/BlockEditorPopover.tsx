@@ -13,6 +13,7 @@ import { sfx } from './sounds'
 import type { StoryCoachCue } from './curriculumGuides'
 import type { BlocksTheme } from './blocksTheme'
 import { useBlocksStore } from './blocksStore'
+import { blockEditorViewportStyle } from './blockEditorViewport'
 
 export interface EditingBlock {
   scriptId: string
@@ -51,12 +52,19 @@ export function BlockEditorPopover({
 }: BlockEditorPopoverProps) {
   if (!editing) return null
 
+  const viewportStyle = blockEditorViewportStyle(
+    editing.left,
+    editing.top,
+    window.innerWidth,
+    window.innerHeight,
+  )
+
   return createPortal(
     <div
       data-testid="block-editor"
       className="bsx bsx-card fixed z-[70] rounded-2xl p-3 shadow-card-soft"
       data-theme={theme}
-      style={{ left: editing.left, top: editing.top, width: 230 }}
+      style={viewportStyle}
     >
       <div className="mb-2 flex items-center gap-2 text-[13px] font-extrabold">
         <span className="text-[20px]">{blockDef(editing.block.op).icon}</span>
