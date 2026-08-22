@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { KidAvatar } from '@/components/KidAvatar';
+import { KidCharacterSticker } from '@/components/KidCharacterSticker';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -78,32 +79,50 @@ export function DashboardKidsPanel({ familyId }: { familyId: string }) {
           ))}
         </div>
       ) : kids.isError ? (
-        <div className="card-base">
-          <h3 className="text-[20px] font-bold text-ink">We couldn&apos;t load your kids</h3>
-          <p className="mt-2 text-[14px] text-ink-soft">
-            Your other Dashboard tools are still available. Try again or open My Family.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button type="button" onClick={() => void kids.refetch()} className="btn-pill-primary">
-              Retry
-            </button>
-            <Link to="/portal/family" className="btn-pill-secondary">
-              Open My Family
-            </Link>
+        <div className="card-base relative min-h-48 overflow-hidden">
+          <div className="relative z-10 pr-24 sm:pr-36">
+            <h3 className="text-[20px] font-bold text-ink">We couldn&apos;t load your kids</h3>
+            <p className="mt-2 text-[14px] text-ink-soft">
+              Your other Dashboard tools are still available. Try again or open My Family.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => void kids.refetch()}
+                className="btn-pill-primary"
+              >
+                Retry
+              </button>
+              <Link to="/portal/family" className="btn-pill-secondary">
+                Open My Family
+              </Link>
+            </div>
           </div>
+          <KidCharacterSticker
+            character="tuantuan-thinking"
+            className="absolute -bottom-5 -right-4 w-32 rotate-[3deg] sm:w-40"
+            testId="dashboard-kids-error-character"
+          />
         </div>
       ) : kids.data?.length === 0 ? (
-        <div className="card-base">
-          <div className="text-[38px] leading-none" aria-hidden="true">
-            🌱
+        <div className="card-base relative min-h-52 overflow-hidden">
+          <div className="relative z-10 pr-24 sm:pr-36">
+            <div className="text-[38px] leading-none" aria-hidden="true">
+              🌱
+            </div>
+            <h3 className="mt-3 text-[22px] font-bold text-ink">Add your first kid</h3>
+            <p className="mt-2 text-[14px] text-ink-soft">
+              Create their profile so they can sign in and start making.
+            </p>
+            <Link to="/portal/family/new" className="btn-pill-primary mt-5">
+              Add your first kid →
+            </Link>
           </div>
-          <h3 className="mt-3 text-[22px] font-bold text-ink">Add your first kid</h3>
-          <p className="mt-2 text-[14px] text-ink-soft">
-            Create their profile so they can sign in and start making.
-          </p>
-          <Link to="/portal/family/new" className="btn-pill-primary mt-5">
-            Add your first kid →
-          </Link>
+          <KidCharacterSticker
+            character="lumi-welcome"
+            className="absolute -bottom-5 -right-4 w-32 rotate-[3deg] sm:w-40"
+            testId="dashboard-kids-empty-character"
+          />
         </div>
       ) : (
         <div

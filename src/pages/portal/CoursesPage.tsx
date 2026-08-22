@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { useMe } from '@/auth/useAuth';
+import { KidCharacterSticker } from '@/components/KidCharacterSticker';
 import { api } from '@/lib/api';
 import { CourseComparisonList } from './CourseComparisonList';
 import { MyClassesPanel } from './MyClassesPanel';
@@ -41,15 +42,23 @@ export function CoursesPage() {
     <div>
       <MyClassesPanel compact />
 
-      <div className="mb-8">
-        <div className="eyebrow eyebrow-bubblegum">Courses</div>
-        <h1 className="hero-display">
-          Compare courses for your <span className="squiggle-word">kid.</span>
-        </h1>
-        <p className="lead-text mt-4">
-          See the differences that matter before you choose: age fit, difficulty, time, price, and
-          what your child will make.
-        </p>
+      <div className="mb-8 grid grid-cols-[minmax(0,1fr)_104px] items-center gap-3 overflow-hidden rounded-hero bg-wash-bubblegum px-6 py-6 shadow-card-soft sm:grid-cols-[minmax(0,1fr)_168px] sm:px-8">
+        <div className="relative z-10 min-w-0">
+          <div className="eyebrow eyebrow-bubblegum">Courses</div>
+          <h1 className="hero-display">
+            Compare courses for your <span className="squiggle-word">kid.</span>
+          </h1>
+          <p className="lead-text mt-4">
+            See the differences that matter before you choose: age fit, difficulty, time, price,
+            and what your child will make.
+          </p>
+        </div>
+        <KidCharacterSticker
+          character="tuantuan-thinking"
+          className="-my-8 -mr-5 w-32 justify-self-end rotate-[2deg] drop-shadow-md sm:-my-10 sm:w-44"
+          priority
+          testId="portal-courses-hero-character"
+        />
       </div>
 
       {(packs.isLoading || comparisonCatalog.isLoading) && (
@@ -57,9 +66,16 @@ export function CoursesPage() {
       )}
 
       {!packs.isLoading && (packs.data?.length ?? 0) === 0 && (
-        <div className="card-base text-center">
-          <span className="sticker-sunshine">Coming soon</span>
-          <p className="lead-text mt-4">New courses are being added. Check back soon!</p>
+        <div className="card-base relative min-h-52 overflow-hidden text-left">
+          <div className="relative z-10 pr-28 sm:pr-40">
+            <span className="sticker-sunshine">Coming soon</span>
+            <p className="lead-text mt-4">New courses are being added. Check back soon!</p>
+          </div>
+          <KidCharacterSticker
+            character="airo-building"
+            className="absolute -bottom-6 -right-4 w-36 rotate-[3deg] sm:w-44"
+            testId="portal-courses-empty-character"
+          />
         </div>
       )}
 

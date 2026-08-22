@@ -10,7 +10,7 @@ import { CreativeSpacesPanel } from './CreativeSpacesPanel';
 afterEach(() => cleanup());
 
 describe('CreativeSpacesPanel', () => {
-  it('explains the same four live studios to parents and tells them where kids find them', () => {
+  it('explains the live studios to parents and tells them where kids find them', () => {
     render(
       <MemoryRouter>
         <CreativeSpacesPanel />
@@ -121,6 +121,20 @@ describe('CreativeSpacesPanel', () => {
       expect(card).toHaveTextContent(prompt);
     }
 
+    const expectedCharacters = {
+      'story-blocks': 'lumi',
+      'creative-code': 'airo',
+      'website-studio': 'bix',
+      'art-studio': 'lumi',
+      'music-stage': 'tuantuan',
+    } as const;
+    for (const [id, character] of Object.entries(expectedCharacters)) {
+      expect(screen.getByTestId(`parent-studio-${id}-character`)).toHaveAttribute(
+        'data-character',
+        character,
+      );
+    }
+
     expect(screen.getAllByTestId('parent-guide-content')).toHaveLength(4);
     expect(screen.getAllByText('Real studio preview')).toHaveLength(4);
     expect(screen.getByText(/See the real workspace before you choose/i)).toBeInTheDocument();
@@ -135,7 +149,7 @@ describe('CreativeSpacesPanel', () => {
       'This is a system curriculum example, not a claim about your child',
     );
     expect(screen.getAllByTestId('parent-curriculum-preview')).toHaveLength(1);
-    expect(screen.getByText('Swipe to compare all four →')).toHaveClass('sm:hidden');
+    expect(screen.getByText('Swipe to compare studios →')).toHaveClass('sm:hidden');
     const studioGrid = screen.getByTestId('parent-studio-story-blocks').parentElement;
     expect(studioGrid).toHaveClass(
       'grid-flow-col',

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 
-import { COURSE_CTA_SIZE } from './courseCtaStyles';
+import { KidCharacterSticker } from '@/components/KidCharacterSticker';
 import { recommendCoursesForKid, type CourseComparisonRow, type Kid } from './courseComparison';
 
 const difficultyLabel = (level: number | null): string => {
@@ -27,15 +27,16 @@ export function CourseRecommendations({
   if (kids.length === 0 || !selectedKid) return null;
 
   const recommendations = recommendCoursesForKid(rows, selectedKid);
+  const guidanceCharacter = recommendations.length > 0 ? 'bix-celebrating' : 'tuantuan-thinking';
 
   return (
     <section
-      className="mb-5 rounded-3xl border border-brand-mint/30 bg-brand-mint/10 p-5 shadow-card-soft"
+      className="relative mb-5 overflow-hidden rounded-3xl border border-brand-mint/30 bg-brand-mint/10 p-5 shadow-card-soft"
       aria-labelledby="course-recommendations-title"
       data-testid="course-recommendations"
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-4 pr-20 sm:pr-28">
+        <div className="min-w-0 flex-1">
           <div className="eyebrow eyebrow-mint">Recommended for your child</div>
           <h2 id="course-recommendations-title" className="section-heading">
             Top picks for {selectedKid.nickname}
@@ -67,6 +68,12 @@ export function CourseRecommendations({
         )}
       </div>
 
+      <KidCharacterSticker
+        character={guidanceCharacter}
+        className="absolute right-2 top-3 w-20 rotate-[4deg] drop-shadow-sm sm:right-4 sm:top-2 sm:w-28"
+        testId="course-recommendations-character"
+      />
+
       {recommendations.length === 0 ? (
         <div className="mt-5 rounded-2xl border border-hairline bg-canvas-pure p-4">
           <div className="text-[15px] font-bold text-ink">No exact age match is open yet</div>
@@ -86,33 +93,50 @@ export function CourseRecommendations({
               data-testid="course-recommendation-card"
               data-course-slug={row.pack.slug}
             >
-              <div className="flex flex-wrap items-center gap-2">
+              <div
+                className="flex flex-wrap items-center gap-2"
+                data-testid="course-recommendation-labels"
+              >
                 <span className="rounded-full bg-brand-mint/20 px-2.5 py-1 text-[11px] font-bold text-ink">
                   {index === 0 ? 'Best age match' : `Also suits ${selectedKid.nickname}`}
+                </span>
+                <span className="text-[12px] font-bold text-slate2" aria-hidden="true">
+                  {' · '}
                 </span>
                 <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-brand-bubblegum">
                   {row.series}
                 </span>
               </div>
               <h3 className="mt-3 text-[18px] font-bold leading-snug text-ink">{row.title}</h3>
-              <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">{row.bestFor}</p>
-              <div className="mt-3 text-[12px] font-semibold text-slate2">
-                Ages {row.ageLabel} · {difficultyLabel(row.difficulty)} · {row.lengthLabel}
-              </div>
-              <p className="mt-3 text-[12px] leading-relaxed text-ink-soft">
-                <strong className="text-ink">They will make:</strong> {row.ship}
+              <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+                <strong className="text-ink">Best for:</strong> {row.bestFor}
               </p>
-              <div className="mt-auto pt-4">
+              <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-bold text-slate2">
+                <span className="rounded-full bg-surface px-2.5 py-1">Ages {row.ageLabel}</span>
+                <span className="rounded-full bg-surface px-2.5 py-1">
+                  {difficultyLabel(row.difficulty)}
+                </span>
+                <span className="rounded-full bg-surface px-2.5 py-1">{row.lengthLabel}</span>
+              </div>
+              <div className="mt-3 rounded-2xl bg-wash-sky/50 p-3">
+                <div className="text-[10px] font-bold uppercase tracking-[0.09em] text-slate2">
+                  They will make
+                </div>
+                <p className="mt-1 line-clamp-4 text-[12px] leading-relaxed text-ink-soft">
+                  {row.ship}
+                </p>
+              </div>
+              <div className="mt-auto grid gap-2 pt-4" data-testid="course-recommendation-actions">
                 <Link
                   to={`/portal/courses/${row.pack.slug}`}
-                  className="mb-3 inline-flex text-[13px] font-bold text-ink underline decoration-brand-coral decoration-2 underline-offset-4"
+                  className="btn-pill-secondary flex h-11 w-full items-center justify-center px-3 text-center text-[13px]"
                 >
-                  View course details
+                  View course details →
                 </Link>
                 <button
                   type="button"
                   onClick={() => onChooseCourse(row)}
-                  className={`btn-pill-primary ${COURSE_CTA_SIZE}`}
+                  className="btn-pill-primary h-11 w-full px-3 text-[13px]"
                 >
                   View course options
                 </button>

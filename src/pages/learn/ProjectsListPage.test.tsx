@@ -127,6 +127,20 @@ afterEach(() => {
 });
 
 describe('ProjectsListPage — grouping', () => {
+  it('uses the building pose in the empty project state', async () => {
+    api.mockImplementation((path: string) => {
+      if (path === '/classes/mine') return Promise.resolve(CLASSES);
+      if (path === '/kids/kid-1/projects') return Promise.resolve([]);
+      return Promise.resolve(undefined);
+    });
+    renderPage();
+
+    expect(await screen.findByTestId('projects-empty-character')).toHaveAttribute(
+      'data-character',
+      'airo-building',
+    );
+  });
+
   it('groups by Personal + each enrolled class and exposes a class tab', async () => {
     wireApi();
     renderPage();

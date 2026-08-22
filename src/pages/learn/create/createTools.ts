@@ -319,5 +319,5 @@ export const CREATE_TOOLS: CreateTool[] = [
   },
 ];
 
-/** The four currently available studios shown on both parent and kid discovery surfaces. */
+/** The currently available studios shown on both parent and kid discovery surfaces. */
 export const LIVE_CREATE_TOOLS = CREATE_TOOLS.filter((tool) => !tool.comingSoon);

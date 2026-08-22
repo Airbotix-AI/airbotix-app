@@ -1,17 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
-import { useMe } from '@/auth/useAuth';
 import { api } from '@/lib/api';
-import { type AvailableClass, ClassCard } from './availableClasses';
+import type { AvailableClass } from './availableClasses';
+import { ClassesTimetable } from './ClassesTimetable';
+import type { MarketingCourseCard } from './courseComparison';
 import { MyClassesPanel } from './MyClassesPanel';
-
-interface FamilyData {
-  id: string;
-  city: string | null;
-  state: string | null;
-}
 
 interface CityOption {
   city: string;
@@ -23,26 +18,14 @@ interface CitiesResponse {
   has_online: boolean;
 }
 
-const CITY_STORAGE_KEY = 'airbotix:portal:class-city';
+interface MarketingCourseDetail {
+  page_config: {
+    plannedOfferings?: NonNullable<MarketingCourseCard['planned_offerings']>;
+  } | null;
+}
+
 const ALL_CITIES = '__all__';
 const ONLINE = '__online__';
-
-// `null` means the parent has made no explicit choice yet (first visit). Only then
-// do we seed the select from Family.city; an explicit stored choice is never overridden.
-const readStoredCity = (): string | null => {
-  try {
-    return window.localStorage?.getItem(CITY_STORAGE_KEY) ?? null;
-  } catch {
-    return null;
-  }
-};
-const writeStoredCity = (city: string) => {
-  try {
-    window.localStorage?.setItem(CITY_STORAGE_KEY, city);
-  } catch {
-    // Storage can be unavailable in embedded or test contexts; city still works in memory.
-  }
-};
 
 const classesPath = (city: string) => {
   if (city === ALL_CITIES) return '/class-seats/classes';
@@ -51,60 +34,81 @@ const classesPath = (city: string) => {
 };
 
 export function FindClassesPage() {
-  const me = useMe();
-  const qc = useQueryClient();
-  const familyId = me.data?.kind === 'user' ? me.data.family_id : null;
-  // `null` until the parent chooses; renders as "All cities" and lets the
-  // first-visit family-city default seed the select exactly once.
-  const [selectedCity, setSelectedCity] = useState<string | null>(readStoredCity);
-  const seededFromFamily = useRef(false);
-  const effectiveCity = selectedCity ?? ALL_CITIES;
-
-  const family = useQuery<FamilyData>({
-    queryKey: ['families', familyId],
-    queryFn: () => api<FamilyData>(`/families/${familyId}`),
-    enabled: !!familyId,
-  });
+  // This is a catalogue filter, not a family-profile preference. Always begin
+  // with the complete bookable catalogue so classes in other cities stay discoverable.
+  const [selectedCity, setSelectedCity] = useState(ALL_CITIES);
   const cities = useQuery<CitiesResponse>({
     queryKey: ['class-seats', 'cities'],
     queryFn: () => api<CitiesResponse>('/class-seats/cities'),
   });
 
-  useEffect(() => {
-    // Seed from Family.city ONLY on first visit (no stored/explicit choice), once.
-    // An explicit choice (including "All cities") makes selectedCity non-null and is never overridden.
-    if (seededFromFamily.current || selectedCity !== null) return;
-    const city = family.data?.city;
-    if (city) {
-      seededFromFamily.current = true;
-      setSelectedCity(city);
-    }
-  }, [family.data?.city, selectedCity]);
-
   const classes = useQuery<AvailableClass[]>({
-    queryKey: ['class-seats', 'classes', effectiveCity],
-    queryFn: () => api<AvailableClass[]>(classesPath(effectiveCity)),
+    queryKey: ['class-seats', 'classes', selectedCity],
+    queryFn: () => api<AvailableClass[]>(classesPath(selectedCity)),
   });
-
-  const updateCity = useMutation({
-    mutationFn: (city: string) =>
-      familyId && city !== ALL_CITIES && city !== ONLINE
-        ? api(`/families/${familyId}`, { method: 'PATCH', body: { city } })
-        : Promise.resolve(null),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['families', familyId] });
+  const courseCatalog = useQuery<MarketingCourseCard[]>({
+    queryKey: ['marketing-courses', 'planned-classes', 'details-v1'],
+    queryFn: async () => {
+      const cards = await api<MarketingCourseCard[]>('/courses');
+      return Promise.all(
+        cards.map(async (card) => {
+          if ((card.planned_offerings?.length ?? 0) > 0) return card;
+          const detail = await api<MarketingCourseDetail>(`/courses/${encodeURIComponent(card.slug)}`);
+          return {
+            ...card,
+            planned_offerings: detail.page_config?.plannedOfferings ?? [],
+          };
+        }),
+      );
     },
   });
 
-  const options = useMemo(() => cities.data?.cities ?? [], [cities.data?.cities]);
+  const plannedClasses = useMemo(
+    () =>
+      (courseCatalog.data ?? []).flatMap((course) =>
+        (course.planned_offerings ?? []).map((offering) => ({
+          ...offering,
+          slug: course.slug,
+          title: course.title,
+          ageRange: course.age_range,
+        })),
+      ),
+    [courseCatalog.data],
+  );
+  const options = useMemo(() => {
+    const byCity = new Map<string, CityOption>();
+    for (const option of cities.data?.cities ?? []) byCity.set(option.city, option);
+    for (const offering of plannedClasses) {
+      if (!byCity.has(offering.city)) {
+        byCity.set(offering.city, { city: offering.city, state: offering.state });
+      }
+    }
+    return [...byCity.values()].sort((a, b) => a.city.localeCompare(b.city));
+  }, [cities.data?.cities, plannedClasses]);
+  const visiblePlannedClasses = useMemo(() => {
+    if (selectedCity === ONLINE) return [];
+    const publishedKeys = new Set(
+      (classes.data ?? []).map(
+        (item) => `${item.course_pack?.slug ?? ''}:${item.venue?.city ?? ''}`,
+      ),
+    );
+    return plannedClasses.filter(
+      (item) =>
+        (selectedCity === ALL_CITIES || item.city === selectedCity) &&
+        !publishedKeys.has(`${item.slug}:${item.city}`),
+    );
+  }, [classes.data, plannedClasses, selectedCity]);
+  const totalVisible = (classes.data?.length ?? 0) + visiblePlannedClasses.length;
+  const scopeLabel =
+    selectedCity === ALL_CITIES
+      ? 'across all cities'
+      : selectedCity === ONLINE
+        ? 'online'
+        : `in ${selectedCity}`;
 
   const onCityChange = (city: string) => {
     if (!city) return;
     setSelectedCity(city);
-    writeStoredCity(city);
-    // Persist to the family profile only for a real city — never "All cities"/"Online".
-    const isRealCity = city !== ALL_CITIES && city !== ONLINE;
-    if (isRealCity && family.data?.city !== city) updateCity.mutate(city);
   };
 
   return (
@@ -114,16 +118,16 @@ export function FindClassesPage() {
       <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="eyebrow eyebrow-bubblegum">Find a class</div>
-          <h1 className="section-heading">Pick the class that fits your family.</h1>
+          <h1 className="section-heading">Class timetable</h1>
           <p className="lead-text mt-3 max-w-3xl">
-            Browse real bookable classes by city, time, price and seats available.
+            Compare every course by city and school period. Swipe the timetable sideways on smaller screens.
           </p>
         </div>
         <label className="min-w-[240px]">
           <span className="label-k12">City</span>
           <select
             className="input-k12"
-            value={effectiveCity}
+            value={selectedCity}
             onChange={(event) => onCityChange(event.target.value)}
           >
             <option value={ALL_CITIES}>All cities</option>
@@ -137,7 +141,9 @@ export function FindClassesPage() {
         </label>
       </div>
 
-      {classes.isLoading && <p className="lead-text">Loading classes…</p>}
+      {(classes.isLoading || courseCatalog.isLoading) && (
+        <p className="lead-text">Loading classes…</p>
+      )}
 
       {!classes.isLoading && classes.isError && (
         <div className="card-base text-center">
@@ -155,24 +161,31 @@ export function FindClassesPage() {
         </div>
       )}
 
-      {!classes.isLoading && !classes.isError && (classes.data?.length ?? 0) === 0 && (
+      {!classes.isLoading &&
+        !courseCatalog.isLoading &&
+        !classes.isError &&
+        totalVisible === 0 && (
         <div className="card-base text-center">
           <span className="sticker-sunshine">No open seats</span>
           <p className="lead-text mt-4">
-            There are no purchasable classes for this city yet. You can still request a seat and
+            There are no purchasable classes {scopeLabel} yet. You can still request a seat and
             we’ll help match a time.
           </p>
           <Link to="/portal/courses" className="btn-pill-secondary mt-6">
             Request a seat
           </Link>
         </div>
+        )}
+
+      {!classes.isLoading && !courseCatalog.isLoading && !classes.isError && totalVisible > 0 && (
+        <p className="mb-4 text-[13px] font-bold text-slate2" aria-live="polite">
+          {totalVisible} {totalVisible === 1 ? 'course' : 'courses'} {scopeLabel}
+        </p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {(classes.data ?? []).map((item) => (
-          <ClassCard key={item.id} item={item} />
-        ))}
-      </div>
+      {!classes.isLoading && !courseCatalog.isLoading && !classes.isError && totalVisible > 0 && (
+        <ClassesTimetable bookable={classes.data ?? []} planned={visiblePlannedClasses} />
+      )}
     </div>
   );
 }

@@ -1,5 +1,118 @@
 # Changelog
 
+## 2026-08-22 (changed: all-city class timetable in the Parent Portal)
+
+### Changed
+
+- The Parent Portal class finder now opens as a city-by-city timetable across the complete
+  catalogue. Course rows line up against term, holiday and open-booking columns; each scheduled
+  cell reuses the same transparent course sticker as the marketing timetable, while the table scrolls horizontally on narrow
+  screens. City and Online remain page-level filters and never rewrite the family's home city.
+
+## 2026-08-22 (changed: state-matched course guidance for parents)
+
+### Changed
+
+- Added Tuan Tuan to the Parent Portal course-comparison hero, a matching thinking or celebrating
+  guide to personalised recommendations, and Airo's building pose when no sellable courses are
+  available. The characters clarify course-selection state without covering prices or actions.
+- Moved the recommendation character out of the heading grid into a dedicated top-right sticker
+  position, restoring a natural full-width reading flow and a smaller mobile-safe footprint.
+- Rebuilt each recommended-course card around separated recommendation and series labels, compact
+  metadata chips, a bounded outcome summary and two full-width equal actions. Long course copy no
+  longer overwhelms the card or runs visually into its controls.
+
+## 2026-08-22 (changed: character guidance begins in the Parent Portal)
+
+### Changed
+
+- Added a calm Tuan Tuan welcome to the parent Dashboard, helpful character states to the My Kids
+  empty and retry cards, and the shared role-matched characters to every Creative Spaces card.
+  Parent cards remain read-only guides and still never deep-link into kid-protected studios.
+
+## 2026-08-22 (changed: fifteen evidence-backed Creator Passport adventures)
+
+### Changed
+
+- Expanded the child stamp book from five one-off cards into five three-chapter adventure trails.
+  Each of the 15 collectible stamps still requires its own active verified project award, while
+  Showcase eligibility continues to count different capabilities rather than collectible volume.
+- Added a generated open-passport hero showing all 15 progression badges and reorganised the
+  responsive collection so each trail reads as a clear 1 → 2 → 3 journey for a child.
+
+## 2026-08-22 (fixed: character-led Create studio cards)
+
+### Fixed
+
+- Added role-matched character stickers to all five live Create studios and both Coming Soon
+  studios. Reworked every card around a protected right-side character zone and separated the
+  Stars cost from the `Open studio` action so labels no longer read as one crowded string.
+
+## 2026-08-22 (fixed: complete character coverage on the Learn home)
+
+### Fixed
+
+- Added state-matched character stickers to every remaining Learn-home destination card:
+  Challenge, Courses, Exam Prep, AI Workspace, Projects and Class Wall. Each card now reserves a
+  consistent right-side character zone so the artwork cannot cover its copy or action.
+
+## 2026-08-22 (changed: character guidance across Kids Studio)
+
+### Changed
+
+- Expanded the shared Lumi, Tuan Tuan, Airo and Bix sticker component from four career poses to
+  eight Design System-backed poses. The Learn, Create and Lessons heroes, project and exam empty
+  states, and Creator Passport milestone now use a state-matched character without covering copy
+  or controls.
+
+## 2026-08-22 (changed: simpler Creator Passport stamp collection)
+
+### Changed
+
+- Reduced the child stamp wall to quiet white cards with smaller circular artwork, one concise
+  evidence rule, one status and one project link. Removed stamp numbers, full-card colour washes,
+  heavy glow and duplicated status treatment so the five capabilities scan as one collection.
+
+## 2026-08-22 (changed: Airbotix characters guide the Learn home)
+
+### Changed
+
+- Added the established Lumi, Tuan Tuan, Airo and Bix character artwork to the child Learn home:
+  Lumi welcomes the child, while each active creative studio carries a small role-matched character
+  without replacing its name, age guidance, description or action.
+
+## 2026-08-22 (changed: collectible Creator Passport stamp artwork)
+
+### Changed
+
+- Replaced the generic line icons in the five child capability stamps with distinct, scalable
+  illustrated badges for ideation, prompt direction, debugging, game testing and presenting.
+  Earned stamps now carry a bold verification tick while locked stamps retain a quieter preview.
+
+## 2026-08-22
+
+- Redesigned the kid **My Classes** page with a colourful learning overview, clearer active and completed class sections, a three-column desktop class grid, richer compact cards, responsive loading states, and accessible lesson progress indicators.
+
+## 2026-08-22 (changed: Creator Passport visual hierarchy)
+
+### Changed
+
+- Reworked the child `/learn/passport` experience around a clearer passport journey: a compact
+  progress-led cover, a responsive two-column stamp wall on phones, a denser Showcase tracker and
+  an evidence journal grouped by real project. Repeated project evidence now reads as one coherent
+  project story while preserving every capability check, child reflection, teacher note, status,
+  revocation state and deep-link target.
+
+## 2026-08-22 (fixed: calmer, correctly branded Learn shell)
+
+### Fixed
+
+- Expanded ordinary `/learn` pages and their header to a centred 1440px canvas, replaced the
+  placeholder lettermark with the real Airbotix logo, and reorganised the crowded navigation
+  into six primary destinations plus a compact `More` menu. Tablet and phone widths now use a
+  clear navigation grid, while immersive studio routes retain their intentional full-bleed
+  layout.
+
 ## 2026-08-22 (changed: cleaner Family kid-profile cards)
 
 ### Changed
@@ -3869,6 +3982,8 @@ plaza? · Scene 5 of 24 · 4 finished`) and opens it. **Resume reopens the child
 - Checkout response types carry optional `client_secret`.
 
 ## Unreleased
+
+- Replaced the parent class catalogue cards with a city-filterable timetable: course rows, term and holiday columns, bookable-class cells, course sticker backgrounds, and horizontal scrolling on narrow screens.
 
 ### Added
 

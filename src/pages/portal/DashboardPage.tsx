@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
+import { KidCharacterSticker } from '@/components/KidCharacterSticker';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { FamilyGuidesRecommendation } from './guides/FamilyGuidesRecommendation';
@@ -63,17 +64,28 @@ export function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-10">
-        <div className="eyebrow">Today</div>
-        <h1 className="section-heading">Hello{displayName ? `, ${displayName}` : ''}.</h1>
-        <p className="lead-text mt-3">
-          5-second answer to "what's my kid doing and is everything OK?"
-        </p>
-        {hasFamily && (
-          <button onClick={openWelcomeTour} className="btn-pill-ghost mt-4">
-            <span aria-hidden="true">✨ </span>How it works
-          </button>
-        )}
+      <div
+        className="mb-10 grid grid-cols-[minmax(0,1fr)_96px] items-center gap-3 overflow-hidden rounded-hero bg-wash-sky px-6 py-6 shadow-card-soft sm:grid-cols-[minmax(0,1fr)_156px] sm:px-8"
+        data-testid="parent-dashboard-welcome"
+      >
+        <div className="relative z-10 min-w-0">
+          <div className="eyebrow">Today</div>
+          <h1 className="section-heading">Hello{displayName ? `, ${displayName}` : ''}.</h1>
+          <p className="lead-text mt-3">
+            5-second answer to "what's my kid doing and is everything OK?"
+          </p>
+          {hasFamily && (
+            <button onClick={openWelcomeTour} className="btn-pill-ghost mt-4">
+              <span aria-hidden="true">✨ </span>How it works
+            </button>
+          )}
+        </div>
+        <KidCharacterSticker
+          character="tuantuan"
+          className="-my-8 -mr-5 w-32 justify-self-end rotate-[2deg] drop-shadow-md sm:-my-10 sm:w-44"
+          priority
+          testId="parent-dashboard-welcome-character"
+        />
       </div>
 
       {!hasFamily ? (

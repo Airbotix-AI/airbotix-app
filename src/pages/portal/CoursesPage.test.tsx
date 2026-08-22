@@ -5,7 +5,7 @@
 // purchasable class only.
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -152,6 +152,10 @@ describe('CoursesPage comparison', () => {
     expect(screen.getByText('4 weeks')).toBeInTheDocument();
     expect(screen.getByTitle('Difficulty 2 out of 4')).toBeInTheDocument();
     expect(api).toHaveBeenCalledWith('/courses');
+    expect(screen.getByTestId('portal-courses-hero-character')).toHaveAttribute(
+      'data-character',
+      'tuantuan-thinking',
+    );
   });
 
   it('marks honest age matches without hiding any course from the family', async () => {
@@ -182,6 +186,33 @@ describe('CoursesPage comparison', () => {
     expect(await screen.findByRole('heading', { name: 'Top picks for Mia' })).toBeInTheDocument();
     expect(screen.getByText(/Based on Mia's age \(10\)/)).toBeInTheDocument();
     expect(screen.getAllByTestId('course-recommendation-card')).toHaveLength(1);
+    const recommendation = screen.getByTestId('course-recommendation-card');
+    expect(within(recommendation).getByTestId('course-recommendation-labels')).toHaveTextContent(
+      'Best age match · Tech Lab',
+    );
+    expect(within(recommendation).getByText('Ages 8–12')).toHaveClass('rounded-full');
+    expect(within(recommendation).getByText('Beginner-friendly challenge')).toHaveClass(
+      'rounded-full',
+    );
+    expect(within(recommendation).getByText('A robot they can drive')).toHaveClass('line-clamp-4');
+    const recommendationActions = within(recommendation).getByTestId(
+      'course-recommendation-actions',
+    );
+    expect(
+      within(recommendationActions).getByRole('link', { name: 'View course details →' }),
+    ).toHaveClass('h-11', 'w-full');
+    expect(
+      within(recommendationActions).getByRole('button', { name: 'View course options' }),
+    ).toHaveClass('h-11', 'w-full');
+    expect(screen.getByTestId('course-recommendations-character')).toHaveAttribute(
+      'data-character',
+      'bix-celebrating',
+    );
+    expect(screen.getByTestId('course-recommendations-character')).toHaveClass(
+      'absolute',
+      'right-2',
+      'top-3',
+    );
     expect(
       await screen.findByText('2 courses to compare · 1 recommended for Mia'),
     ).toBeInTheDocument();
@@ -199,7 +230,22 @@ describe('CoursesPage comparison', () => {
     expect(screen.getByText('Build and Drive a Robot')).toBeInTheDocument();
     expect(screen.getByText('1 course to compare · 0 recommended for Mia')).toBeInTheDocument();
     expect(screen.getAllByTestId('course-comparison-row')).toHaveLength(1);
+    expect(screen.getByTestId('course-recommendations-character')).toHaveAttribute(
+      'data-character',
+      'tuantuan-thinking',
+    );
     expect(screen.queryByText(/courses? suitable for Mia/)).not.toBeInTheDocument();
+  });
+
+  it('uses the building pose while new sellable courses are being prepared', async () => {
+    wireApi({ packs: [] });
+    renderPage();
+
+    expect(await screen.findByText('New courses are being added. Check back soon!')).toBeInTheDocument();
+    expect(screen.getByTestId('portal-courses-empty-character')).toHaveAttribute(
+      'data-character',
+      'airo-building',
+    );
   });
 
   it('opens the recommended course and keeps the paired actions exactly the same size', async () => {

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
+import { KidCharacterSticker } from '@/components/KidCharacterSticker';
 import { api } from '@/lib/api';
 import { useWsEvent } from '@/lib/useWsEvent';
 import { listMyClasses, type ClassMineSummary } from './classroom/classroomApi';
@@ -148,6 +149,11 @@ export function ProjectsListPage() {
 
       {!projects.isLoading && all.length === 0 && (
         <div className="card-base flex flex-col items-center py-12 text-center">
+          <KidCharacterSticker
+            character="airo-building"
+            className="mb-1 w-36 sm:w-44"
+            testId="projects-empty-character"
+          />
           <span className="sticker-sky">Empty</span>
           <p className="lead-text mt-4" style={{ fontSize: '16px' }}>
             Your works will show up here.

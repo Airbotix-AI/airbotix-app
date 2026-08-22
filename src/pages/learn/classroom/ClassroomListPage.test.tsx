@@ -3,7 +3,7 @@
 // sections, empty state. FE-only: `@/lib/api` + `@/auth/useAuth` mocked.
 
 import '@testing-library/jest-dom/vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -76,16 +76,26 @@ describe('ClassroomListPage', () => {
     renderPage();
 
     expect(await screen.findByText('Year 5 AI Lab')).toBeInTheDocument();
+    expect(screen.getByTestId('classroom-hero')).toBeInTheDocument();
+    const overview = screen.getByLabelText('Learning overview');
+    expect(within(overview).getByText('1')).toBeInTheDocument();
+    expect(within(overview).getByText('Active class')).toBeInTheDocument();
+    expect(within(overview).getByText('11/16')).toBeInTheDocument();
+    expect(screen.getByTestId('active-classes-grid')).toHaveClass('xl:grid-cols-3');
+    expect(screen.getByTestId('finished-classes-grid')).toHaveClass('xl:grid-cols-3');
     expect(screen.getByText('Ms. Chen')).toBeInTheDocument();
     expect(screen.getByText('3 / 8 lessons')).toBeInTheDocument();
-    expect(screen.getByText('● LIVE NOW')).toBeInTheDocument();
-    expect(screen.getByText('Enter →')).toBeInTheDocument();
+    expect(screen.getByText('Live now')).toBeInTheDocument();
+    expect(screen.getByText('Enter')).toBeInTheDocument();
+    expect(
+      screen.getByRole('progressbar', { name: '3 of 8 lessons complete' }),
+    ).toHaveAttribute('aria-valuenow', '3');
 
     // Finished section + card with stars + Revisit CTA.
-    expect(screen.getByText('Finished')).toBeInTheDocument();
+    expect(screen.getByText('Finished adventures')).toBeInTheDocument();
     expect(screen.getByText('First Steps in AI')).toBeInTheDocument();
     expect(screen.getByText('⭐ You earned 240 stars')).toBeInTheDocument();
-    expect(screen.getByText('Revisit →')).toBeInTheDocument();
+    expect(screen.getByText('Revisit')).toBeInTheDocument();
   });
 
   it('shows the classmate count and links to the class hub', async () => {
