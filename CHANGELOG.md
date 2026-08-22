@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-08-22 (added: Journey to the West Season 2 formal visual pack)
+
+### Added
+
+- All 48 Season 2 Parts now render a real illustrated before/resolved story scene instead of a
+  text-only card: 16 chapter backgrounds, the five-person travelling cast with task-specific
+  poses, and nine independent interactive props.
+- The app bundle now carries the S2 visual assets under the existing Story Blocks public asset
+  root. A manifest-style unit test resolves every image used by every Part in both states and
+  rejects unknown Part IDs, so a missing file cannot silently fall back to an emoji or proxy.
+
+### Tests
+
+- Added `JourneyWestS2Scene.test.ts` to cover all 48 Part mappings, corrected C6 page versions,
+  physical public-file presence and fail-closed identifier handling.
+
 ## 2026-08-20 (fixed: challenge dates render in the competition timezone)
 
 ### Fixed

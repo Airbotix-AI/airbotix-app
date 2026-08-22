@@ -1202,6 +1202,37 @@
   display: none;
 }
 
+/* Journey to the West S2 starter scenes. These ids are persisted by the
+   backend templates, while the artwork remains a versioned app asset. */
+.bsx-stage[data-scene='jtw-s2-c1-changan-to-mountain'] {
+  background: #dcc89f url('/story-blocks/journey-to-the-west/backgrounds/s2/c1/before-v01.webp') center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s2-c2-five-elements-mountain'] {
+  background: #d9c595 url('/story-blocks/journey-to-the-west/backgrounds/s2/c2/before-v01.webp') center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s2-c3-eagle-sorrow-stream'] {
+  background: #b8d3d0 url('/story-blocks/journey-to-the-west/backgrounds/s2/c3/before-v01.webp') center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s2-c4-gaolao-courtyard'] {
+  background: #e3c9a0 url('/story-blocks/journey-to-the-west/backgrounds/s2/c4/before-v01.webp') center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s2-c5-flowing-sands-river'] {
+  background: #c7d4c1 url('/story-blocks/journey-to-the-west/backgrounds/s2/c5/before-v01.webp') center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s2-c6-team-gather'] {
+  background: #d8c59c url('/story-blocks/journey-to-the-west/backgrounds/s2/c6/page1-before-v02.webp') center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s2-c6-team-bridge'] {
+  background: #c5d4c8 url('/story-blocks/journey-to-the-west/backgrounds/s2/c6/page2-before-v01.webp') center / cover no-repeat;
+}
+.bsx-stage[data-scene='jtw-s2-c6-team-west'] {
+  background: #dbc895 url('/story-blocks/journey-to-the-west/backgrounds/s2/c6/page3-before-v01.webp') center / cover no-repeat;
+}
+.bsx-stage[data-scene^='jtw-s2-'] .bsx-hill,
+.bsx-stage[data-scene^='jtw-s2-'] .bsx-deco {
+  display: none;
+}
+
 .bsx-character-asset {
   display: block;
   width: clamp(92px, 24cqh, 180px);

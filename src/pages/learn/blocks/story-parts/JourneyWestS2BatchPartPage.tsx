@@ -10,6 +10,7 @@ import {
   type BlocksTemplateId,
 } from '../blocksApi'
 import { jtwS2BuildMatches } from '../jtwS2Builds'
+import { JourneyWestS2Scene } from './JourneyWestS2Scene'
 import { Choice, OrderCards } from './partUi'
 import {
   JTW_S2_C1_P3_ID,
@@ -217,6 +218,8 @@ export function JourneyWestS2BatchPartPage({ partId }: { partId: string }) {
         </p>
         <h1 className="text-[28px] font-black text-ink">{config.title}</h1>
       </header>
+
+      <JourneyWestS2Scene partId={partId} resolved={resolved || completed} />
 
       <section className="space-y-4" data-testid={`${partId}-story`}>
         {config.story.map((paragraph) => <p key={paragraph} className="text-[16px] leading-8 text-ink">{paragraph}</p>)}

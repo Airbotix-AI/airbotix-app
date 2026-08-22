@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Choice } from './partUi'
+import { JourneyWestS2Scene } from './JourneyWestS2Scene'
 import {
   JTW_S2_C1_P2_ID,
   JTW_S2_C1_P3_ID,
@@ -72,6 +73,8 @@ export function JourneyWestS2C1Part2Page() {
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">西游记 · 第二季 · 第一章 长安的出发纸条 · Part 2 · Why</p>
         <h1 className="text-[28px] font-black text-ink">纸条为什么只有三行？</h1>
       </header>
+
+      <JourneyWestS2Scene partId={JTW_S2_C1_P2_ID} resolved={resolved || completed} />
 
       <section className="space-y-4" data-testid="jtw-s2-c1p2-story">
         {S2_C1_P2_STORY.map((paragraph) => <p key={paragraph} className="text-[16px] leading-8 text-ink">{paragraph}</p>)}
