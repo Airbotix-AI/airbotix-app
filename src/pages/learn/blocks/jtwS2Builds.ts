@@ -9,6 +9,17 @@ const C4_BACKGROUND = 'jtw-s2-c4-gaolao-courtyard'
 const C5_BACKGROUND = 'jtw-s2-c5-flowing-sands-river'
 const XUANZANG_START = { gx: 2, gy: 9, size: 2, rot: 0 }
 
+const S2_ASSET_ROOT = '/story-blocks/journey-to-the-west'
+export const JTW_S2_ASSETS = {
+  xuanzang: `${S2_ASSET_ROOT}/characters/xuanzang/neutral-v01.png`,
+  wukong: `${S2_ASSET_ROOT}/characters/wukong-traveller/neutral-v01.png`,
+  horse: `${S2_ASSET_ROOT}/characters/white-dragon-horse/neutral-v01.png`,
+  bajie: `${S2_ASSET_ROOT}/characters/bajie/neutral-v01.png`,
+  wujing: `${S2_ASSET_ROOT}/characters/wujing/neutral-v01.png`,
+  routeMarker: `${S2_ASSET_ROOT}/props/route-marker/neutral-v01.png`,
+  rippleStone: `${S2_ASSET_ROOT}/props/water-ripple-stone/neutral-v01.png`,
+} as const
+
 export const JTW_S2_C1_P4_TARGET: Block[] = [
   { op: 'when_flag' },
   { op: 'say', text: '行囊带好' },
@@ -196,7 +207,7 @@ function actor(project: BlocksProject, pageId: string, characterId: string): Cha
 function xuanzangFrame(project: BlocksProject, pageId: string, background: string): Character | null {
   const page = project.pages.find((item) => item.id === pageId)
   const person = page?.characters.find((item) => item.id === 'xuanzang')
-  if (!page || !person || page.background !== background || person.asset) return null
+  if (!page || !person || page.background !== background || person.asset !== JTW_S2_ASSETS.xuanzang) return null
   const start = person.start
   return start.gx === XUANZANG_START.gx && start.gy === XUANZANG_START.gy &&
     start.size === XUANZANG_START.size && start.rot === XUANZANG_START.rot ? person : null
@@ -213,9 +224,9 @@ function c3Frame(project: BlocksProject, lessonId: string): boolean {
   const horse = c3Actor(project, lessonId, JTW_S2_C3_HORSE_ID)
   return Boolean(
     page?.id === `${lessonId}-page` && page.background === C3_BACKGROUND && page.characters.length === 3 &&
-    wukong && !wukong.asset && wukong.start.gx === 2 && wukong.start.gy === 8 &&
-    stone && !stone.asset && stone.start.gy === 8 &&
-    horse && !horse.asset && horse.start.gx === 8 && horse.start.gy === 8 &&
+    wukong && wukong.asset === JTW_S2_ASSETS.wukong && wukong.start.gx === 2 && wukong.start.gy === 8 &&
+    stone && stone.asset === JTW_S2_ASSETS.rippleStone && stone.start.gy === 8 &&
+    horse && horse.asset === JTW_S2_ASSETS.horse && horse.start.gx === 8 && horse.start.gy === 8 &&
     horse.start.reach === 3 && horse.start.visible === false,
   )
 }
@@ -262,7 +273,7 @@ export function jtwS2BuildMatches(project: BlocksProject, lessonId: string): boo
     const sign = actor(project, 'jtw-s2-c1-p5-page', 'five-elements-sign')
     const signBlocks = sign?.scripts.find((script) => script.id === 'mountain-sign-tap')?.blocks ?? []
     return Boolean(
-      person && sign && page.characters.length === 2 && !sign.asset &&
+      person && sign && page.characters.length === 2 && sign.asset === JTW_S2_ASSETS.routeMarker &&
       sign.start.gx === 10 && sign.start.gy === 8 && sign.start.visible === false &&
       sameChain(route, JTW_S2_C1_P4_TARGET) && sameChain(signBlocks, JTW_S2_C1_P5_SIGN_TARGET),
     )
@@ -299,7 +310,7 @@ export function jtwS2BuildMatches(project: BlocksProject, lessonId: string): boo
     const wukong = actor(project, 'jtw-s2-c2-p4-page', 'wukong-waiting')
     const waiting = wukong?.scripts.find((script) => script.id === 'wukong-waits')?.blocks ?? []
     return Boolean(
-      person && wukong && page.characters.length === 2 && !wukong.asset &&
+      person && wukong && page.characters.length === 2 && wukong.asset === JTW_S2_ASSETS.wukong &&
       sameChain(blocks, JTW_S2_C2_P4_TARGET) && sameChain(waiting, [{ op: 'when_tap' }, { op: 'end' }]),
     )
   }
@@ -311,7 +322,7 @@ export function jtwS2BuildMatches(project: BlocksProject, lessonId: string): boo
     const wukong = actor(project, 'jtw-s2-c2-p5-page', JTW_S2_C2_WUKONG_ID)
     const answer = wukong?.scripts.find((script) => script.id === 'wukong-answers')?.blocks ?? []
     return Boolean(
-      person && wukong && page.characters.length === 2 && !wukong.asset &&
+      person && wukong && page.characters.length === 2 && wukong.asset === JTW_S2_ASSETS.wukong &&
       wukong.start.gx === 12 && wukong.start.gy === 8 && wukong.start.size === 2 &&
       wukong.start.rot === 0 && wukong.start.visible === false &&
       sameChain(approach, JTW_S2_C2_P4_TARGET) && sameChain(answer, JTW_S2_C2_P5_WUKONG_TARGET),
@@ -325,7 +336,7 @@ export function jtwS2BuildMatches(project: BlocksProject, lessonId: string): boo
     const wukong = actor(project, 'jtw-s2-c2-p6-page', JTW_S2_C2_WUKONG_ID)
     const answer = wukong?.scripts.find((script) => script.id === 'wukong-answers-too-early')?.blocks ?? []
     return Boolean(
-      person && wukong && page.characters.length === 2 && !wukong.asset &&
+      person && wukong && page.characters.length === 2 && wukong.asset === JTW_S2_ASSETS.wukong &&
       wukong.start.gx === 12 && wukong.start.gy === 8 && wukong.start.size === 2 &&
       wukong.start.rot === 0 && wukong.start.visible === false &&
       sameChain(approach, JTW_S2_C2_P4_TARGET) && sameChain(answer, JTW_S2_C2_P5_WUKONG_TARGET),
