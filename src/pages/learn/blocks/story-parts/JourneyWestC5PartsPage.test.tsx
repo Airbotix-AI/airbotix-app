@@ -158,5 +158,8 @@ describe('JourneyWestC5PartsPage', () => {
     ])
       fireEvent.click(screen.getByRole('button', { name: new RegExp(label) }));
     await waitFor(() => expect(screen.getByTestId('jtw-c5-complete')).toBeEnabled());
+    expect(screen.getByTestId('jtw-c5-resolved')).toHaveTextContent(
+      'the right fit is the goal',
+    );
   });
 });

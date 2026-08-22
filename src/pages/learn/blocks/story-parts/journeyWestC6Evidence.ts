@@ -1,4 +1,9 @@
 const EVIDENCE_TRACE_LIMIT = 12
+const EVIDENCE_VALUE_LIMIT = 64
+
+function boundedC6EvidenceValue(value: string): string {
+  return value.slice(0, EVIDENCE_VALUE_LIMIT)
+}
 
 export function boundedC6EvidenceTrace(trace: readonly string[]): string[] {
   if (trace.length <= EVIDENCE_TRACE_LIMIT) return [...trace]
@@ -21,6 +26,8 @@ export function nonEmptyC6Selections(
   selections: Record<string, string[]>,
 ): Record<string, string[]> {
   return Object.fromEntries(
-    Object.entries(selections).filter(([, values]) => values.length > 0),
+    Object.entries(selections)
+      .filter(([, values]) => values.length > 0)
+      .map(([key, values]) => [key, values.map(boundedC6EvidenceValue)]),
   )
 }

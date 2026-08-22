@@ -59,6 +59,13 @@ describe('JourneyWestC6FinalPartsPage', () => {
     });
   });
 
+  it('bounds every evidence value to the backend contract', () => {
+    const longRetell = 'As a result, there was still controversy over the invitation again.';
+    const selections = nonEmptyC6Selections({ retell_links: [longRetell] });
+    expect(selections.retell_links[0]).toHaveLength(64);
+    expect(longRetell.startsWith(selections.retell_links[0])).toBe(true);
+  });
+
   it('ships child-visible contracts for every remaining Part', async () => {
     for (const [part, title] of [
       ['jtw-s1-c6-p3', 'Six things cannot happen at the same time'],
@@ -99,6 +106,26 @@ describe('JourneyWestC6FinalPartsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview page by page' }));
     expect((await screen.findByTestId('jtw-c6-trace')).textContent).toContain('page-3:end');
     expect((screen.getByTestId('jtw-c6-complete') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('shows a child-readable retry message when completion cannot be saved', async () => {
+    vi.mocked(storyApi.completeStoryPart).mockRejectedValueOnce(new Error('bad request'));
+    renderPart('jtw-s1-c6-p3');
+    await screen.findByText(/If six things happen at the same time/i);
+    for (const label of [
+      'dissatisfied with office',
+      'leave',
+      'independent title',
+      'Enter the heaven again',
+      'The storm escalates',
+      'Five Elements Mountain results',
+      'Page 1',
+      'Page 2',
+    ])
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(label) }));
+    fireEvent.click(screen.getByRole('button', { name: 'Preview page by page' }));
+    fireEvent.click(await screen.findByTestId('jtw-c6-complete'));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/not saved/i);
   });
 
   it('runs the stable P7 bug before allowing an exact End repair and repeat', async () => {

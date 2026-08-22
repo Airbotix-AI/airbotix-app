@@ -363,7 +363,7 @@ export function JourneyWestC5PartsPage({
         <section className="rounded-2xl bg-wash-mint p-5" data-testid="jtw-c5-resolved">
           <strong>World changes:</strong>
           {partId === 'jtw-s1-c5-p5'
-            ? 'The narrow door safety line appears; Wukong knows that the right one is the goal. Next time check out the Reset hidden at the end.'
+            ? 'The narrow-door safety line appears; Wukong knows that the right fit is the goal. Next time, check the Reset hidden at the end.'
             : 'The shadow of the pillar changes according to the evidence, and the next part of the story has been revealed.'}
         </section>
       )}

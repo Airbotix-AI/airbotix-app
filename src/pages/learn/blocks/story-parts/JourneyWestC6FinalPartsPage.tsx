@@ -474,6 +474,11 @@ export function JourneyWestC6FinalPartsPage({
       >
         continue story
       </button>
+      {complete.isError && (
+        <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">
+          This Part was not saved. Check your connection and try again.
+        </p>
+      )}
       {number === 10 && done && (
         <button className="btn-pill-ghost w-full" onClick={() => setLater(true)}>
           {later ? 'Location saved' : 'continue later'}
