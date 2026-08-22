@@ -9,6 +9,13 @@ import { useQuery } from '@tanstack/react-query';
 import clsx from 'clsx';
 
 import { JTW_S1_CHAPTERS, JTW_S1_STORY_LINE_ID } from './journeyWestSeason1';
+import {
+  JTW_S2_C1_P1_ID,
+  JTW_S2_C1_P2_ID,
+  JTW_S2_BATCH_PART_IDS,
+  JTW_S2_PART_CONFIGS,
+  JTW_S2_STORY_LINE_ID,
+} from './journeyWestSeason2';
 import { fetchStoryLineProgress } from './storyPartsApi';
 
 /** Parts whose product build has shipped. Grows one part per queue task. */
@@ -70,9 +77,21 @@ export function JourneyWestMapPage() {
     queryKey: ['story-parts', JTW_S1_STORY_LINE_ID],
     queryFn: () => fetchStoryLineProgress(JTW_S1_STORY_LINE_ID),
   });
+  const season2Progress = useQuery({
+    queryKey: ['story-parts', JTW_S2_STORY_LINE_ID],
+    queryFn: () => fetchStoryLineProgress(JTW_S2_STORY_LINE_ID),
+  });
 
   const completed = new Set(progress.data?.completed.map((entry) => entry.part_id) ?? []);
   const unlocked = new Set(progress.data?.unlocked_part_ids ?? []);
+  const season2Completed = new Set(
+    season2Progress.data?.completed.map((entry) => entry.part_id) ?? [],
+  );
+  const season2Unlocked = new Set(season2Progress.data?.unlocked_part_ids ?? []);
+  const season2Part1Completed = season2Completed.has(JTW_S2_C1_P1_ID);
+  const season2Part1Open = season2Unlocked.has(JTW_S2_C1_P1_ID);
+  const season2Part2Unlocked = season2Unlocked.has(JTW_S2_C1_P2_ID);
+  const season2Part2Completed = season2Completed.has(JTW_S2_C1_P2_ID);
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-map">
@@ -142,6 +161,56 @@ export function JourneyWestMapPage() {
           </ol>
         </section>
       ))}
+
+      <section className="rounded-3xl border border-brand-sky/35 bg-wash-sky p-5" data-testid="jtw-map-s2">
+        <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">第二季 · 西行队伍集合</p>
+        <h2 className="mt-1 text-[20px] font-black text-ink">C1 · 长安的出发纸条</h2>
+        <p className="mt-2 text-[14px] text-ink-soft">玄奘把很远的西行目标拆成今天能完成的三步。</p>
+        <ol className="mt-4 grid gap-2 sm:grid-cols-2">
+          <li data-testid={`jtw-map-part-${JTW_S2_C1_P1_ID}`} data-state={season2Part1Completed ? 'completed' : season2Part1Open ? 'open' : 'locked'}>
+            {season2Part1Open || season2Part1Completed ? (
+              <Link className="block rounded-2xl border border-brand-sky/60 bg-canvas-pure p-3 text-ink" to={`/learn/story/journey-west/${JTW_S2_C1_P1_ID}`}>
+                <span className="text-[12px] font-bold text-ink-soft">C1-P1 · Read</span>
+                <span className="block text-[14px] font-semibold">把很远的路变成今天的三步</span>
+                <span className="mt-1 block text-[12px] font-bold text-brand-sky">{season2Part1Completed ? '✓ 已完成' : '▶ 可以开始'}</span>
+              </Link>
+            ) : <div className="rounded-2xl border border-hairline bg-canvas-pure p-3 text-ink-soft">🔒 第二季入口未解锁</div>}
+          </li>
+          <li data-testid={`jtw-map-part-${JTW_S2_C1_P2_ID}`} data-state={season2Part2Completed ? 'completed' : season2Part2Unlocked ? 'open' : 'locked'}>
+            {season2Part2Unlocked || season2Part2Completed ? (
+              <Link className="block rounded-2xl border border-brand-sky/60 bg-canvas-pure p-3 text-ink" to={`/learn/story/journey-west/${JTW_S2_C1_P2_ID}`}>
+                <span className="text-[12px] font-bold text-ink-soft">C1-P2 · Why</span>
+                <span className="block text-[14px] font-semibold">为什么先写三步？</span>
+                <span className="mt-1 block text-[12px] font-bold text-brand-sky">{season2Part2Completed ? '✓ 已完成' : '▶ 可以开始'}</span>
+              </Link>
+            ) : <div className="rounded-2xl border border-hairline bg-canvas-pure p-3 text-ink-soft">🔒 完成 P1 后解锁</div>}
+          </li>
+          {JTW_S2_BATCH_PART_IDS.map((partId) => {
+            const item = JTW_S2_PART_CONFIGS[partId]
+            const isCompleted = season2Completed.has(partId)
+            const isUnlocked = season2Unlocked.has(partId)
+            const state = isCompleted ? 'completed' : isUnlocked ? 'open' : 'locked'
+            return (
+              <li key={partId} data-testid={`jtw-map-part-${partId}`} data-state={state}>
+                {isCompleted || isUnlocked ? (
+                  <Link className="block rounded-2xl border border-brand-sky/60 bg-canvas-pure p-3 text-ink" to={`/learn/story/journey-west/${partId}`}>
+                    <span className="text-[12px] font-bold text-ink-soft">{partId.replace('jtw-s2-', '').toUpperCase()} · {item.scaffold}</span>
+                    <span className="block text-[14px] font-semibold">{item.title}</span>
+                    <span className={`mt-1 block text-[12px] font-bold ${isCompleted ? 'text-brand-mint' : 'text-brand-sky'}`}>{isCompleted ? '✓ 已完成' : '▶ 可以开始'}</span>
+                  </Link>
+                ) : (
+                  <div className="rounded-2xl border border-hairline bg-canvas-pure p-3 text-ink-soft">
+                    <span className="text-[12px] font-bold">{partId.replace('jtw-s2-', '').toUpperCase()} · {item.scaffold}</span>
+                    <span className="block text-[14px] font-semibold">{item.title}</span>
+                    <span className="mt-1 block text-[12px]">🔒 完成前一 Part 后解锁</span>
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ol>
+        <p className="mt-3 text-[12px] text-ink-soft">本季共 6 章、48 Parts；全部 Part 已完成内部产品实现。</p>
+      </section>
     </div>
   );
 }

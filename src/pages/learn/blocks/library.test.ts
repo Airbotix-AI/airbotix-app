@@ -27,4 +27,19 @@ describe('Tiny Star Village scene library', () => {
     expect(SCENES.filter((scene) => scene.id.startsWith('tsv-choice-workbench-'))).toHaveLength(3)
     expect(sceneId('tsv-choice-workbench-teal')).toBe('tsv-choice-workbench-teal')
   })
+
+  it('keeps every Journey to the West S2 starter scene', () => {
+    const scenes = [
+      'jtw-s2-c1-changan-to-mountain',
+      'jtw-s2-c2-five-elements-mountain',
+      'jtw-s2-c3-eagle-sorrow-stream',
+      'jtw-s2-c4-gaolao-courtyard',
+      'jtw-s2-c5-flowing-sands-river',
+      'jtw-s2-c6-team-gather',
+      'jtw-s2-c6-team-bridge',
+      'jtw-s2-c6-team-west',
+    ]
+
+    expect(scenes.map(sceneId)).toEqual(scenes)
+  })
 })

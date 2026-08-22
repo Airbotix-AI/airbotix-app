@@ -40,4 +40,16 @@ describe('curriculumGuides catalogue', () => {
       }
     }
   });
+
+  it('registers every implemented S2 Studio gate, including the C2-P6 debug choice', () => {
+    for (const lessonId of [
+      'jtw-s2-c1-p4', 'jtw-s2-c1-p5', 'jtw-s2-c1-p6', 'jtw-s2-c1-p7',
+      'jtw-s2-c2-p4', 'jtw-s2-c2-p5', 'jtw-s2-c2-p6',
+    ]) {
+      expect(storyMissionFor(lessonId)?.lessonId).toBe(lessonId);
+    }
+    expect(storyMissionFor('jtw-s2-c2-p6')?.choices).toContainEqual({
+      id: 'wukong-too-early', label: '悟空在玄奘询问前就回答了', correct: true,
+    });
+  });
 });

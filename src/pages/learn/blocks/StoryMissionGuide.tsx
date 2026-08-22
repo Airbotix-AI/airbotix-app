@@ -430,6 +430,11 @@ export function StoryMissionGuide({
                   ↻ {mission.fixRetry}
                 </p>
               )}
+              {mission.fixChoices.length === 0 && (
+                <button type="button" className="bsx-mission-primary" onClick={onClose}>
+                  Keep building ▶
+                </button>
+              )}
             </div>
           ) : hasRun ? (
             <div data-testid="story-mission-question">

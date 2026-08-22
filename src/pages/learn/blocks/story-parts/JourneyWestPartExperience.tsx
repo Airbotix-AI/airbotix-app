@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { isMuted, setMuted, sfx } from '../sounds'
-import { speakStory, stopStorySpeech } from '../storyAudio'
+import { playRecordedStory, speakStory, stopStorySpeech } from '../storyAudio'
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1'
+import { JTW_S2_STORY_LINE_ID } from './journeyWestSeason2'
+import { journeyWestS2NarrationFor } from './journeyWestS2Narration'
 import { fetchStoryLineProgress } from './storyPartsApi'
 
 const ASSET_ROOT = '/story-blocks/journey-to-the-west'
+const AUDIO_CONTROL_CLASS = 'min-h-11'
 
 interface ChapterPresentation {
   label: string
@@ -61,6 +64,7 @@ function chapterNumber(partId: string): number {
 }
 
 function presentationFor(partId: string): ChapterPresentation | null {
+  if (partId.startsWith('jtw-s2-')) return null
   const chapter = chapterNumber(partId)
   const base = PRESENTATIONS[chapter]
   if (!base || chapter !== 6) return base ?? null
@@ -88,9 +92,10 @@ function narrationFrom(root: HTMLDivElement | null): string {
 
 export function JourneyWestPartExperience({ partId, children }: { partId: string; children: ReactNode }) {
   const contentRef = useRef<HTMLDivElement>(null)
+  const storyLineId = partId.startsWith('jtw-s2-') ? JTW_S2_STORY_LINE_ID : JTW_S1_STORY_LINE_ID
   const progress = useQuery({
-    queryKey: ['story-parts', JTW_S1_STORY_LINE_ID],
-    queryFn: () => fetchStoryLineProgress(JTW_S1_STORY_LINE_ID),
+    queryKey: ['story-parts', storyLineId],
+    queryFn: () => fetchStoryLineProgress(storyLineId),
   })
   const [muted, setMuteState] = useState(() => isMuted())
   const [audioStatus, setAudioStatus] = useState<'idle' | 'narrating' | 'cue'>('idle')
@@ -102,7 +107,11 @@ export function JourneyWestPartExperience({ partId, children }: { partId: string
   const narrate = () => {
     const text = narrationFrom(contentRef.current)
     if (!text) return
-    setAudioStatus(speakStory(text) ? 'narrating' : 'idle')
+    const recordedNarration = journeyWestS2NarrationFor(partId)
+    const started = recordedNarration
+      ? playRecordedStory(recordedNarration.audioPath, recordedNarration.text)
+      : speakStory(text)
+    setAudioStatus(started ? 'narrating' : 'idle')
   }
 
   const playCue = () => {
@@ -128,15 +137,15 @@ export function JourneyWestPartExperience({ partId, children }: { partId: string
         aria-label="故事声音控制"
         data-testid="jtw-audio-controls"
       >
-        <button className="btn-pill-secondary" type="button" onClick={narrate} disabled={muted}>
+        <button className={`btn-pill-secondary ${AUDIO_CONTROL_CLASS}`} type="button" onClick={narrate} disabled={muted}>
           {audioStatus === 'narrating' ? '正在朗读 · 再听一次' : '🔊 朗读这一 Part'}
         </button>
         {presentation && (
-          <button className="btn-pill-secondary" type="button" onClick={playCue} disabled={muted}>
+          <button className={`btn-pill-secondary ${AUDIO_CONTROL_CLASS}`} type="button" onClick={playCue} disabled={muted}>
             {audioStatus === 'cue' ? `✓ ${presentation.soundLabel}` : `♪ ${presentation.soundLabel}`}
           </button>
         )}
-        <button className="btn-pill-ghost" type="button" onClick={toggleMute} aria-pressed={muted}>
+        <button className={`btn-pill-ghost ${AUDIO_CONTROL_CLASS}`} type="button" onClick={toggleMute} aria-pressed={muted}>
           {muted ? '开启声音' : '静音'}
         </button>
         <span className="text-xs text-ink-soft">声音关闭时，所有成功与任务证据仍会显示在画面上。</span>

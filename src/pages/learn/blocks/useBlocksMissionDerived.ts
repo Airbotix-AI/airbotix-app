@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import type { Block, BlocksProject } from './blocksModel'
 import { storyMissionFor, type StoryCoachCue } from './curriculumGuides'
 import { isJtwOrderDebugLesson } from './jtwOrderDebug'
+import { JTW_S2_C2_P6_LESSON_ID } from './jtwS2Builds'
 import { JTW_C4_P4_LESSON_ID, JTW_C4_P5_LESSON_ID, JTW_C4_P6_LESSON_ID, JTW_C4_P7_LESSON_ID } from './jtwC4DualBuild'
 import { sceneId } from './library'
 import {
@@ -43,14 +44,16 @@ interface UseBlocksMissionDerivedOptions {
 }
 
 export function isEventTriggerDebugLesson(lessonId: string | undefined): boolean {
-  return lessonId === 'tsv-s1-a3-d' || lessonId === JTW_C4_P6_LESSON_ID
+  return lessonId === 'tsv-s1-a3-d' || lessonId === JTW_C4_P6_LESSON_ID ||
+    lessonId === JTW_S2_C2_P6_LESSON_ID
 }
 
 export function eventTriggerWrongRunObserved(
   lessonId: string | undefined,
   blocks: readonly Block[] | undefined,
 ): boolean {
-  return lessonId === JTW_C4_P6_LESSON_ID && blocks?.[0]?.op === 'when_flag'
+  return (lessonId === JTW_C4_P6_LESSON_ID || lessonId === JTW_S2_C2_P6_LESSON_ID) &&
+    blocks?.[0]?.op === 'when_flag'
 }
 
 export function useBlocksMissionDerived({

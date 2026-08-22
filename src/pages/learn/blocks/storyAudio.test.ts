@@ -5,6 +5,7 @@ import { storyMissionFor } from './curriculumGuides';
 import {
   coachNarration,
   isStoryBackgroundEnabled,
+  playRecordedStory,
   setStoryBackgroundEnabled,
   speakStory,
   storyPageNarration,
@@ -79,6 +80,38 @@ describe('storyAudio', () => {
     expect(speakStory('悟空先观察，再运行程序。')).toBe(true);
 
     expect(speech.speak.mock.calls[0][0]).toMatchObject({ lang: 'zh-CN' });
+  });
+
+  it('plays a recorded story and stops it before replaying', () => {
+    const speech = stubSpeech();
+    const pause = vi.fn();
+    const play = vi.fn().mockResolvedValue(undefined);
+    const addEventListener = vi.fn();
+    const audio = { addEventListener, currentTime: 8, pause, play };
+    const AudioConstructor = vi.fn(() => audio);
+    vi.stubGlobal('Audio', AudioConstructor);
+
+    expect(playRecordedStory('/story.mp3', 'fallback')).toBe(true);
+
+    expect(AudioConstructor).toHaveBeenCalledWith('/story.mp3');
+    expect(play).toHaveBeenCalledOnce();
+    expect(speech.speak).not.toHaveBeenCalled();
+  });
+
+  it('falls back to device speech when a recording cannot play', async () => {
+    const speech = stubSpeech();
+    const audio = {
+      addEventListener: vi.fn(),
+      currentTime: 0,
+      pause: vi.fn(),
+      play: vi.fn().mockRejectedValue(new Error('missing recording')),
+    };
+    vi.stubGlobal('Audio', vi.fn(() => audio));
+
+    expect(playRecordedStory('/missing.mp3', '悟空继续前进。')).toBe(true);
+    await Promise.resolve();
+
+    expect(speech.speak).toHaveBeenCalledOnce();
   });
 
   it('stores the child-facing background music preference locally', () => {

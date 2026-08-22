@@ -247,6 +247,14 @@ const FIRST_PARTY_STORY_SCENE_IDS = new Set([
   'jtw-s1-c1-flower-fruit-stone',
   'jtw-s1-c2-water-curtain-actor-free',
   ...JTW_C3_STORY_SCENES,
+  'jtw-s2-c1-changan-to-mountain',
+  'jtw-s2-c2-five-elements-mountain',
+  'jtw-s2-c3-eagle-sorrow-stream',
+  'jtw-s2-c4-gaolao-courtyard',
+  'jtw-s2-c5-flowing-sands-river',
+  'jtw-s2-c6-team-gather',
+  'jtw-s2-c6-team-bridge',
+  'jtw-s2-c6-team-west',
 ]);
 /** Map any stored background to a known scene id (older docs used 'meadow'/'space'). */
 export function sceneId(bg: string | undefined): string {

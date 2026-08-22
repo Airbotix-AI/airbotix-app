@@ -6,6 +6,7 @@ describe('isEventTriggerDebugLesson', () => {
   it('enables the trigger repair picker for Tiny Star and Journey West debug lessons', () => {
     expect(isEventTriggerDebugLesson('tsv-s1-a3-d')).toBe(true)
     expect(isEventTriggerDebugLesson('jtw-s1-c4-p6')).toBe(true)
+    expect(isEventTriggerDebugLesson('jtw-s2-c2-p6')).toBe(true)
     expect(isEventTriggerDebugLesson('jtw-s1-c4-p5')).toBe(false)
   })
 })
@@ -15,5 +16,7 @@ describe('eventTriggerWrongRunObserved', () => {
     expect(eventTriggerWrongRunObserved('jtw-s1-c4-p6', [{ op: 'when_flag' }])).toBe(true)
     expect(eventTriggerWrongRunObserved('jtw-s1-c4-p6', [{ op: 'when_tap' }])).toBe(false)
     expect(eventTriggerWrongRunObserved('jtw-s1-c4-p5', [{ op: 'when_flag' }])).toBe(false)
+    expect(eventTriggerWrongRunObserved('jtw-s2-c2-p6', [{ op: 'when_flag' }])).toBe(true)
+    expect(eventTriggerWrongRunObserved('jtw-s2-c2-p6', [{ op: 'when_tap' }])).toBe(false)
   })
 })
