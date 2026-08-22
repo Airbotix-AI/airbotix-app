@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 
 import { formatAud } from '@/lib/money';
 import type { AvailableClass } from './availableClasses';
+import { formatClassDateLabel } from './classTime';
 
 export interface PlannedTimetableClass {
   slug: string;
@@ -27,35 +28,12 @@ interface TimetableRow {
 }
 
 const OPEN_NOW = 'Open for booking';
-const MONTH_NAMES = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
 // Keep this slug contract aligned with the marketing timetable. Both surfaces
 // use the same transparent course-sticker artwork rather than course covers.
 const courseStickerPath = (slug: string) => `/media/course-stickers/${slug}.webp`;
 
 const STICKER_CLASS =
   'pointer-events-none absolute -bottom-3 -right-3 z-0 h-24 w-24 rotate-3 select-none object-contain opacity-30 saturate-125 transition-all duration-300 group-hover:rotate-0 group-hover:scale-105 group-hover:opacity-40';
-
-const dateLabel = (iso: string) => {
-  const date = new Date(iso);
-  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]} · ${date.toLocaleTimeString('en-AU', {
-    hour: 'numeric',
-    minute: '2-digit',
-  })}`;
-};
 
 const periodRank = (label: string, termYears: number[]) => {
   if (label === OPEN_NOW) return 0;
@@ -118,7 +96,9 @@ function BookableCell({ items, slug }: { items: AvailableClass[]; slug: string }
             <span className="inline-flex rounded-full bg-brand-mint px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.1em] text-ink">
               Seats open
             </span>
-            <p className="mt-3 text-[13px] font-bold text-ink">{dateLabel(item.starts_at)}</p>
+            <p className="mt-3 text-[13px] font-bold text-ink">
+              {formatClassDateLabel(item.starts_at, item.venue?.state ?? '')}
+            </p>
             {item.venue?.suburb && <p className="mt-1 text-[12px] text-slate2">{item.venue.suburb}</p>}
             <p className="mt-2 text-[12px] font-bold text-ink">
               {item.course_total_aud_cents == null

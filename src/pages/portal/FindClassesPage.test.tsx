@@ -12,6 +12,7 @@ vi.mock('@/auth/useAuth', () => ({
   useMe: () => ({ data: { kind: 'user', family_id: 'fam-1', email: 'parent@example.com' } }),
 }));
 import { FindClassesPage } from './FindClassesPage';
+import { formatClassDateLabel } from './classTime';
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -238,5 +239,12 @@ describe('FindClassesPage', () => {
     fireEvent.change(screen.getByLabelText('City'), { target: { value: 'Sydney' } });
     await waitFor(() => expect(screen.getByText('1 course in Sydney')).toBeInTheDocument());
     expect(screen.getAllByRole('link', { name: 'Make Amazing Slides & Study Tools with AI' })).toHaveLength(1);
+  });
+});
+
+describe('formatClassDateLabel', () => {
+  it('uses the venue state time zone instead of the runtime machine time zone', () => {
+    expect(formatClassDateLabel('2026-07-18T03:30:00Z', 'QLD')).toBe('18 Jul · 1:30 pm');
+    expect(formatClassDateLabel('2026-01-18T03:30:00Z', 'NSW')).toBe('18 Jan · 2:30 pm');
   });
 });
