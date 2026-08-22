@@ -151,7 +151,7 @@ describe('jtwC3JumpFix — the only legal repair', () => {
     expect(jtwC3JumpFixVersion(project)).toBeNull();
   });
 
-  it('refuses a repair that also moves Page 3 (多页同时修改)', () => {
+  it('refuses a repair that also moves Page 3 (multiple pages can be modified at the same time)', () => {
     const project = fixed('starry');
     const arrivalMonkey = project.pages[2].characters.find(
       (actor) => actor.id === JTW_C3_MONKEY_KING_ID,

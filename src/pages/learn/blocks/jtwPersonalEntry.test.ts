@@ -185,7 +185,9 @@ describe('jtwPersonalEntryDesign', () => {
     ).toBeNull();
     expect(
       jtwPersonalEntryDesign(
-        entryPage(LEFT, { route: [LEFT.route[2], ...LEFT.route.slice(0, 2), ...LEFT.route.slice(3)] }),
+        entryPage(LEFT, {
+          route: [LEFT.route[2], ...LEFT.route.slice(0, 2), ...LEFT.route.slice(3)],
+        }),
       ),
     ).toBeNull();
   });
@@ -194,12 +196,18 @@ describe('jtwPersonalEntryDesign', () => {
     expect(jtwPersonalEntryDesign(entryPage(LEFT, { waitN: null }))).toBeNull();
     expect(jtwPersonalEntryDesign(entryPage(LEFT, { waitN: 3 }))).toBeNull();
     expect(
-      jtwPersonalEntryDesign(entryPage(LEFT, { route: [{ op: 'wait', n: 1 }, ...LEFT.route], waitN: null })),
+      jtwPersonalEntryDesign(
+        entryPage(LEFT, { route: [{ op: 'wait', n: 1 }, ...LEFT.route], waitN: null }),
+      ),
     ).toBeNull();
   });
 
   it('rejects a deleted, shortened or reordered response chain', () => {
-    expect(jtwPersonalEntryDesign(entryPage(LEFT, { curtainChain: [{ op: 'when_bump' }, { op: 'end' }] }))).toBeNull();
+    expect(
+      jtwPersonalEntryDesign(
+        entryPage(LEFT, { curtainChain: [{ op: 'when_bump' }, { op: 'end' }] }),
+      ),
+    ).toBeNull();
     expect(
       jtwPersonalEntryDesign(
         entryPage(LEFT, {
@@ -213,13 +221,15 @@ describe('jtwPersonalEntryDesign', () => {
       ),
     ).toBeNull();
     expect(
-      jtwPersonalEntryDesign(entryPage(LEFT, { caveChain: [{ op: 'when_bump' }, { op: 'show' }, { op: 'end' }] })),
+      jtwPersonalEntryDesign(
+        entryPage(LEFT, { caveChain: [{ op: 'when_bump' }, { op: 'show' }, { op: 'end' }] }),
+      ),
     ).toBeNull();
   });
 
   it('rejects a cave that no longer starts hidden and a free-typed line', () => {
     expect(jtwPersonalEntryDesign(entryPage(LEFT, { caveVisible: true }))).toBeNull();
-    expect(jtwPersonalEntryDesign(entryPage(LEFT, { line: '我最快！' }))).toBeNull();
+    expect(jtwPersonalEntryDesign(entryPage(LEFT, { line: "I'm the fastest!" }))).toBeNull();
   });
 });
 
@@ -246,7 +256,10 @@ describe('storyMissionProgramMatches · jtw-s1-c2-p7', () => {
 
   it('never completes from the shipped starter, which has an empty entry script', () => {
     expect(
-      storyMissionProgramMatches(entryProject(entryPage(LEFT, { route: [], waitN: null })), JTW_C2_P7_LESSON_ID),
+      storyMissionProgramMatches(
+        entryProject(entryPage(LEFT, { route: [], waitN: null })),
+        JTW_C2_P7_LESSON_ID,
+      ),
     ).toBe(false);
   });
 });

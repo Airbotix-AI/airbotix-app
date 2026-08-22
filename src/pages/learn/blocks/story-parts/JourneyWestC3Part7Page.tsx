@@ -195,9 +195,7 @@ export function JourneyWestC3Part7Page({
     setScreensRead(evidence.selections?.story_screens ?? [...C3_P7_SCREEN_IDS]);
     setPickedWeather(jtwC3ParseWeather(evidence.selections?.weather_version?.[0]));
     setPeer(c3p7DecodePeer(evidence.selections?.peer_predictions ?? []));
-    setSavedReopenOk(
-      (evidence.selections?.reopen_match ?? []).includes(C3_P7_REOPEN_MATCH_MARKER),
-    );
+    setSavedReopenOk((evidence.selections?.reopen_match ?? []).includes(C3_P7_REOPEN_MATCH_MARKER));
     setSavedTrace((evidence.selections?.page_trace ?? []).map(Number));
     setSavedBoundaries(jtwC3JumpDecodeBoundaries(evidence.selections?.run_boundaries ?? []));
     setRestored(true);
@@ -230,8 +228,7 @@ export function JourneyWestC3Part7Page({
   const mismatch = c3p7FirstMismatch(peer, run);
   // A page the route never opened has no measurement to compare against, which
   // is a different thing to explain than a page that ran and disagreed.
-  const mismatchUnvisited =
-    mismatch !== null && c3p7MeasuredAnswers(run)[mismatch] === undefined;
+  const mismatchUnvisited = mismatch !== null && c3p7MeasuredAnswers(run)[mismatch] === undefined;
   const peerMatched = runOk && (run ? mismatch === null : peerAnswered);
 
   const completed = Boolean(savedEntry);
@@ -338,7 +335,7 @@ export function JourneyWestC3Part7Page({
       >
         <p className="text-[16px] font-bold text-ink">{C3_P7_LOCKED_HINT}</p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -348,11 +345,14 @@ export function JourneyWestC3Part7Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c3-p7">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第三章 一叶木筏求师路 · Part 7 · Personal Ship
+          Journey to the West · Chapter 3 One Leaf Raft's Journey to Seeking a Master · Part 7 ·
+          Personal Ship
         </p>
-        <h1 className="text-[28px] font-black text-ink">我的三页求师路</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          My three-page guide to seeking a teacher
+        </h1>
         <p className="mt-1 text-[13px] font-bold text-ink-soft" data-testid="jtw-c3p7-work-name">
-          作品名：{C3_P7_WORK_NAME}
+          Title of work:{C3_P7_WORK_NAME}
         </p>
       </header>
 
@@ -387,15 +387,15 @@ export function JourneyWestC3Part7Page({
             </button>
           )}
           <span className="text-[12px] font-bold text-ink-soft" data-testid="jtw-c3p7-story-count">
-            {screensRead.length} / {C3_P7_SCREEN_IDS.length} 段
+            {screensRead.length} / {C3_P7_SCREEN_IDS.length} part
           </span>
         </div>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C3_P7_CLASSIC_CARD}
         </aside>
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C3_P7_STORY_BRIDGE}
         </aside>
       </section>
@@ -425,8 +425,14 @@ export function JourneyWestC3Part7Page({
               )}
               onClick={() => setPickedWeather(version.id)}
             >
-              <img src={version.background} alt={version.label} className="h-28 w-full object-cover" />
-              <span className="block px-3 py-2 text-[14px] font-bold text-ink">{version.label}</span>
+              <img
+                src={version.background}
+                alt={version.label}
+                className="h-28 w-full object-cover"
+              />
+              <span className="block px-3 py-2 text-[14px] font-bold text-ink">
+                {version.label}
+              </span>
             </button>
           ))}
         </div>
@@ -475,7 +481,10 @@ export function JourneyWestC3Part7Page({
             </span>
           )}
           {buildDone ? (
-            <span className="text-[13px] font-bold text-brand-mint" data-testid="jtw-c3p7-build-done">
+            <span
+              className="text-[13px] font-bold text-brand-mint"
+              data-testid="jtw-c3p7-build-done"
+            >
               {C3_P7_BUILD_DONE_LABEL}
             </span>
           ) : (
@@ -511,8 +520,8 @@ export function JourneyWestC3Part7Page({
                   <p className="text-[14px] font-bold text-ink">
                     Page {page.page} · {c3p2PageLabel(page.page)}
                     <span className="ml-2 text-[12px] font-semibold text-ink-soft">
-                      {page.actions.length} 块动作 · 向右 {page.moveTotal} 格 ·{' '}
-                      {page.ends ? '🏁 End 结束' : `📄 出口 → Page ${page.exitTo}`}
+                      {page.actions.length} Block Action · Right {page.moveTotal} grid ·{' '}
+                      {page.ends ? '🏁 End' : `📄 Export → Page ${page.exitTo}`}
                     </span>
                   </p>
                   <div className="mt-2 flex flex-wrap items-center gap-1">
@@ -536,10 +545,13 @@ export function JourneyWestC3Part7Page({
               data-sounds={design.sounds}
               data-pace={design.paces}
             >
-              {C3_P7_LEDGER_TITLE}：共 {design.childBlocks} 块 · 移动 {design.moves} · 声音{' '}
-              {design.sounds} · Wait/Speed {design.paces} · 对白 {design.says} · 出口 2 · End 1
+              {C3_P7_LEDGER_TITLE}:common {design.childBlocks} Block · Move {design.moves} · sound{' '}
+              {design.sounds} · Wait/Speed {design.paces} · Dialogue {design.says} · Exit 2 · End 1
               {build.data?.savedVersion !== null && build.data?.savedVersion !== undefined && (
-                <span data-testid="jtw-c3p7-saved-version"> · 保存版本 #{build.data.savedVersion}</span>
+                <span data-testid="jtw-c3p7-saved-version">
+                  {' '}
+                  · Save version #{build.data.savedVersion}
+                </span>
               )}
             </p>
           </section>
@@ -560,7 +572,7 @@ export function JourneyWestC3Part7Page({
                   data-picked={peer[page.page] ?? ''}
                 >
                   <p className="text-[14px] font-bold text-ink">
-                    Page {page.page} · {c3p2PageLabel(page.page)} · 出口数字{' '}
+                    Page {page.page} · {c3p2PageLabel(page.page)} · Export figures{' '}
                     {page.ends ? '🏁 End' : String(page.exitTo)}
                   </p>
                   <div className="flex flex-col gap-2">
@@ -569,7 +581,9 @@ export function JourneyWestC3Part7Page({
                         key={option.id}
                         option={option}
                         active={peer[page.page] === option.id}
-                        onPick={() => setPeer((current) => ({ ...current, [page.page]: option.id }))}
+                        onPick={() =>
+                          setPeer((current) => ({ ...current, [page.page]: option.id }))
+                        }
                       />
                     ))}
                   </div>
@@ -627,7 +641,11 @@ export function JourneyWestC3Part7Page({
           </section>
 
           {/* ── ⑤重开以后从 Page 1 跑一遍 ─────────────────────────── */}
-          <section className="space-y-4" data-testid="jtw-c3p7-run" data-reached={runOk ? '1' : '0'}>
+          <section
+            className="space-y-4"
+            data-testid="jtw-c3p7-run"
+            data-reached={runOk ? '1' : '0'}
+          >
             <h2 className="text-[15px] font-bold text-ink">{C3_P7_RUN_TITLE}</h2>
             <p className="text-[13px] leading-6 text-ink-soft">{C3_P7_RUN_NOTE}</p>
             <JourneyWestC3Stage
@@ -701,7 +719,7 @@ export function JourneyWestC3Part7Page({
         >
           <img
             src={JTW_C3_PAGE3_RESOLVED_BACKGROUND}
-            alt="彼岸山林：木筏靠在浅滩上，上山的石阶亮着，师门的石牌在雾里"
+            alt="Mountain forest on the other side: The raft is leaning on the shallows, the stone steps up the mountain are lit, and the stone plaque of the teacher's gate is in the fog."
             data-testid="jtw-c3p7-resolved-art"
             className="w-full rounded-2xl"
           />
@@ -716,7 +734,7 @@ export function JourneyWestC3Part7Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -725,12 +743,12 @@ export function JourneyWestC3Part7Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C3_P7_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C3_P7_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

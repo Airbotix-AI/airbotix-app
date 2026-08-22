@@ -102,7 +102,7 @@ function WaterSoundPreview({
       >
         <img
           src={JTW_C2_BACKGROUND_ASSET}
-          alt="瀑布前：石猴和三只群猴停在湿石左侧，白色水帘合着，入口没有亮起，洞口藏在水帘后面"
+          alt="In front of the waterfall: The stone monkey and three group monkeys stopped on the left side of the wet stone. The white water curtain was closed, the entrance was not lit, and the cave entrance was hidden behind the water curtain."
           className="absolute inset-0 h-full w-full object-cover"
         />
         {/* 石猴与群猴停在左侧 — the monkey stays visible; no show/hide runs here. */}
@@ -158,7 +158,8 @@ function WaterSoundPreview({
 
       <div>
         <p className="mb-2 text-[13px] font-semibold text-ink-soft">
-          系统预览轨道（只读）——这不是你的程序，听听山谷里是什么在响：
+          System Preview Track (read-only) - This is not your program, listen to what's ringing in
+          the valley:
         </p>
         <div className="flex flex-wrap items-center gap-1" data-testid="jtw-c2p1-preview-chain">
           {blocks.map((block, index) => (
@@ -180,7 +181,11 @@ function WaterSoundPreview({
         onClick={() => void run()}
         data-testid="jtw-c2p1-run"
       >
-        {runState === 'running' ? '播放中…' : runState === 'done' ? '再听一次' : '▶ 听一听'}
+        {runState === 'running'
+          ? 'Playing…'
+          : runState === 'done'
+            ? 'listen again'
+            : '▶ Listen to it'}
       </button>
     </div>
   );
@@ -256,7 +261,11 @@ export function JourneyWestC2Part1Page({
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">水声在前面等着大家…</p>;
+    return (
+      <p className="p-8 text-center text-ink-soft">
+        The sound of water is waiting for everyone in front...
+      </p>
+    );
   }
 
   if (!unlocked && !completed) {
@@ -266,10 +275,11 @@ export function JourneyWestC2Part1Page({
         data-testid="jtw-c2p1-locked"
       >
         <p className="text-[16px] font-bold text-ink">
-          先在第一章 Part 8 讲回石猴的出世故事，再跟着水声来到瀑布前。
+          First, tell the birth story of the Stone Monkey in Chapter 1, Part 8, and then follow the
+          sound of water to the waterfall.
         </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -279,9 +289,11 @@ export function JourneyWestC2Part1Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c2-p1">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第二章 水帘洞的约定 · Part 1
+          Journey to the West · Chapter 2 The Agreement of Water Curtain Cave · Part 1
         </p>
-        <h1 className="text-[28px] font-black text-ink">水声把大家带到哪里</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          Where does the sound of water take everyone?
+        </h1>
       </header>
 
       {/* ── story_before：故事卡A 全文，两屏 + 原著卡 + 因果桥 ─────────── */}
@@ -292,18 +304,20 @@ export function JourneyWestC2Part1Page({
           </p>
         ))}
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C2_P1_CLASSIC_CARD}
         </aside>
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C2_P1_STORY_BRIDGE}
         </aside>
       </section>
 
       {/* ── 动机证据 ────────────────────────────────────────────────── */}
       <section data-testid="jtw-c2p1-motive">
-        <h2 className="mb-2 text-[15px] font-bold text-ink">石猴为什么先停下来观察？</h2>
+        <h2 className="mb-2 text-[15px] font-bold text-ink">
+          Why did the stone monkey stop to observe first?
+        </h2>
         <div className="flex flex-col gap-2">
           {C2_P1_MOTIVE_OPTIONS.map((option) => (
             <Choice
@@ -318,7 +332,7 @@ export function JourneyWestC2Part1Page({
 
       {/* ── 三条 Read 证据（“看见洞口”被排除） ───────────────────────── */}
       <EvidenceGroup
-        title="路上有哪三条线索告诉大家瀑布近了？"
+        title="What are the three clues on the road that tell everyone that the waterfall is near?"
         options={C2_P1_CLUE_OPTIONS}
         selected={clues}
         onToggle={(id) =>
@@ -338,7 +352,8 @@ export function JourneyWestC2Part1Page({
       {/* ── 因为…所以… 句子 ─────────────────────────────────────────── */}
       <section data-testid="jtw-c2p1-so">
         <h2 className="mb-2 text-[15px] font-bold text-ink">
-          把句子说完整：“因为水声、湿石和水雾都指向前面的瀑布，所以石猴先——”
+          Complete the sentence: "Because the sound of water, wet stones, and water mist all point
+          to the waterfall in front, the stone monkey first—"
         </h2>
         <div className="flex flex-wrap gap-2">
           {C2_P1_SO_OPTIONS.map((option) => (
@@ -354,7 +369,9 @@ export function JourneyWestC2Part1Page({
 
       {/* ── 只读系统预览 + 预测 ─────────────────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-[15px] font-bold text-ink">听一听山谷里的声音（只读预览）</h2>
+        <h2 className="text-[15px] font-bold text-ink">
+          Hear the sounds of the valley (read-only preview)
+        </h2>
         <WaterSoundPreview
           resolved={resolved || completed}
           onRunDone={() => setPreviewRan(true)}
@@ -398,7 +415,7 @@ export function JourneyWestC2Part1Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -407,12 +424,12 @@ export function JourneyWestC2Part1Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C2_P1_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C2_P1_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

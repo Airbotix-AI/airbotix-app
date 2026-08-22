@@ -53,10 +53,7 @@ function renderPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/learn/story/journey-west/jtw-s1-c2-p2']}>
         <Routes>
-          <Route
-            path="/learn/story/journey-west/:partId"
-            element={<JourneyWestC2Part2Page />}
-          />
+          <Route path="/learn/story/journey-west/:partId" element={<JourneyWestC2Part2Page />} />
           <Route path="/learn/story/journey-west" element={<div data-testid="jtw-map-stub" />} />
         </Routes>
       </MemoryRouter>
@@ -66,23 +63,31 @@ function renderPage() {
 
 /** The two motives that hold together (from the dialogue). */
 function pickBothMotives() {
-  fireEvent.click(screen.getByRole('button', { name: /他想看清水帘后面究竟有什么/ }));
-  fireEvent.click(screen.getByRole('button', { name: /他答应回来告诉大家/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /He wanted to see what was behind the clear water curtain \("I'll see clearly first"\)/i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /He promised to come back and tell everyone and find a safe way for his companions \("Come back and tell you"\)/i,
+    }),
+  );
 }
 
 /** Tap the agreement cards into the exact 进去→看清→回来→分享 order. */
 function orderAgreementCards() {
-  fireEvent.click(screen.getByRole('button', { name: '进去' }));
-  fireEvent.click(screen.getByRole('button', { name: '看清' }));
-  fireEvent.click(screen.getByRole('button', { name: '回来' }));
-  fireEvent.click(screen.getByRole('button', { name: '分享' }));
+  fireEvent.click(screen.getByRole('button', { name: 'go in' }));
+  fireEvent.click(screen.getByRole('button', { name: 'see clearly' }));
+  fireEvent.click(screen.getByRole('button', { name: 'return' }));
+  fireEvent.click(screen.getByRole('button', { name: 'share' }));
 }
 
 /** Motives + card order + the enter-not-enough explanation. */
 function completeEvidence() {
   pickBothMotives();
   orderAgreementCards();
-  fireEvent.click(screen.getByRole('button', { name: /“进去”只是第一格/ }));
+  fireEvent.click(screen.getByRole('button', { name: /"Going in" is just the first step/i }));
 }
 
 beforeEach(() => {
@@ -98,8 +103,8 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestC2Part2Page · C2-P2 瀑布前的约定', () => {
-  it('ships the full 故事卡B text, the dialogue, the closed-curtain stage and the unsorted cards', async () => {
+describe('JourneyWestC2Part2Page · C2-P2 The Promise Before the Waterfall', () => {
+  it('ships the full story card B text, the dialogue, the closed-curtain stage and the unsorted cards', async () => {
     // Contract: exactly two motives hold together; 被夸奖/最快 are distractors.
     expect(C2_P2_MOTIVE_OPTIONS.filter((option) => option.correct).map((o) => o.id)).toEqual([
       'curious-see-inside',
@@ -123,13 +128,13 @@ describe('JourneyWestC2Part2Page · C2-P2 瀑布前的约定', () => {
     for (const line of C2_P2_DIALOGUE) {
       expect(screen.getByText(line)).toBeInTheDocument();
     }
-    expect(screen.getByTestId('jtw-c2p2-story')).toHaveTextContent('孙悟空');
+    expect(screen.getByTestId('jtw-c2p2-story')).toHaveTextContent('Sun Wukong');
     expect(screen.getByTestId('jtw-c2p2-story')).toHaveTextContent('On Bump');
     // Curtain still closed: cave mouth hidden, monkey facing the curtain.
     expect(screen.getByTestId('jtw-c2p2-cave-mouth')).toHaveAttribute('data-visible', 'false');
     expect(screen.getByTestId('jtw-c2p2-stone-monkey')).toHaveAttribute('data-facing', 'curtain');
     // The four agreement cards start unsorted (nothing pressed) and no track shows.
-    for (const label of ['进去', '看清', '回来', '分享']) {
+    for (const label of ['go in', 'see clearly', 'return', 'share']) {
       expect(screen.getByRole('button', { name: label })).toHaveAttribute('aria-pressed', 'false');
     }
     expect(screen.queryByTestId('jtw-c2p2-agreement-track')).not.toBeInTheDocument();
@@ -146,44 +151,60 @@ describe('JourneyWestC2Part2Page · C2-P2 瀑布前的约定', () => {
     expect(screen.queryByTestId('jtw-part-c2-p2')).not.toBeInTheDocument();
   });
 
-  it('rejects 被夸奖 as motive evidence with the dialogue hint and keeps continue locked', async () => {
+  it('rejects be praised as motive evidence with the dialogue hint and keeps continue locked', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c2-p2')).toBeInTheDocument());
     completeEvidence();
-    fireEvent.click(screen.getByRole('button', { name: /不能——没有人回来说清路线/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /No - no one has come back to clarify the route and the conditions inside\. My friends don’t know how to walk safely\./i,
+      }),
+    );
     expect(screen.getByTestId('jtw-c2p2-continue')).toBeEnabled();
 
     // Adding 被夸奖 breaks the motive evidence even with everything else done.
-    fireEvent.click(screen.getByRole('button', { name: '他只想被大家夸奖' }));
-    expect(screen.getByRole('status')).toHaveTextContent('“被夸奖”和“最快”都不在他的话里');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'He just wants to be praised by everyone' }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Read the dialogue again: Stone Monkey said "see clearly first" and "come back and tell you" - "being praised" and "fastest" were not in his words.',
+    );
     expect(screen.getByTestId('jtw-c2p2-continue')).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: '他只想被大家夸奖' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'He just wants to be praised by everyone' }),
+    );
     expect(screen.getByTestId('jtw-c2p2-continue')).toBeEnabled();
 
     // 最快 is rejected the same way.
-    fireEvent.click(screen.getByRole('button', { name: '他想当最快冲进去的那一个' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'He wants to be the fastest one to rush in.' }),
+    );
     expect(screen.getByTestId('jtw-c2p2-continue')).toBeDisabled();
   });
 
-  it('passes ONLY the 进去→看清→回来→分享 order', async () => {
+  it('passes ONLY the go in→see clearly→come back→share order', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c2-p2')).toBeInTheDocument());
     pickBothMotives();
 
     // Wrong order: 回来 first — the explanation stays hidden, continue locked.
-    fireEvent.click(screen.getByRole('button', { name: '回来' }));
-    fireEvent.click(screen.getByRole('button', { name: '进去' }));
-    fireEvent.click(screen.getByRole('button', { name: '看清' }));
-    fireEvent.click(screen.getByRole('button', { name: '分享' }));
-    fireEvent.click(screen.getByRole('button', { name: /不能——没有人回来说清路线/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'return' }));
+    fireEvent.click(screen.getByRole('button', { name: 'go in' }));
+    fireEvent.click(screen.getByRole('button', { name: 'see clearly' }));
+    fireEvent.click(screen.getByRole('button', { name: 'share' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /No - no one has come back to clarify the route and the conditions inside\. My friends don’t know how to walk safely\./i,
+      }),
+    );
     expect(screen.queryByTestId('jtw-c2p2-enter')).not.toBeInTheDocument();
     expect(screen.getByTestId('jtw-c2p2-continue')).toBeDisabled();
     expect(screen.queryByTestId('jtw-c2p2-resolved')).not.toBeInTheDocument();
 
     // Re-order into the exact agreement — replayable tap-to-order.
-    fireEvent.click(screen.getByRole('button', { name: '重新排' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reorder' }));
     orderAgreementCards();
-    fireEvent.click(screen.getByRole('button', { name: /“进去”只是第一格/ }));
+    fireEvent.click(screen.getByRole('button', { name: /"Going in" is just the first step/i }));
     expect(screen.getByTestId('jtw-c2p2-continue')).toBeEnabled();
   });
 
@@ -195,14 +216,18 @@ describe('JourneyWestC2Part2Page · C2-P2 瀑布前的约定', () => {
     completeEvidence();
     expect(screen.getByTestId('jtw-c2p2-continue')).toBeDisabled(); // prediction pending
 
-    fireEvent.click(screen.getByRole('button', { name: /能——大家跟着跳进去就行了/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('少了“回来”和“分享”');
+    fireEvent.click(screen.getByRole('button', { name: /Yes - everyone just jumps in\./i }));
+    expect(screen.getByRole('status')).toHaveTextContent(/without .come back. and .share./i);
     expect(screen.getByTestId('jtw-c2p2-continue')).toBeDisabled();
     expect(screen.queryByTestId('jtw-c2p2-resolved')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /不能——没有人回来说清路线/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /No - no one has come back to clarify the route and the conditions inside\. My friends don’t know how to walk safely\./i,
+      }),
+    );
     // 四格约定固定在舞台侧边作为后续证据轨。
-    expect(screen.getByTestId('jtw-c2p2-resolved')).toHaveTextContent('证据轨');
+    expect(screen.getByTestId('jtw-c2p2-resolved')).toHaveTextContent('evidence track');
     const cells = screen.getByTestId('jtw-c2p2-agreement-track').querySelectorAll('[data-card]');
     expect(Array.from(cells).map((cell) => cell.getAttribute('data-card'))).toEqual([
       'card-enter',
@@ -217,7 +242,11 @@ describe('JourneyWestC2Part2Page · C2-P2 瀑布前的约定', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-c2p2-continue')).toBeInTheDocument());
     completeEvidence();
-    fireEvent.click(screen.getByRole('button', { name: /不能——没有人回来说清路线/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /No - no one has come back to clarify the route and the conditions inside\. My friends don’t know how to walk safely\./i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-c2p2-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
@@ -258,17 +287,17 @@ describe('JourneyWestC2Part2Page · C2-P2 瀑布前的约定', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('jtw-c2p2-resolved')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /他想看清水帘后面究竟有什么/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: '他只想被大家夸奖' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
-    );
+    expect(
+      screen.getByRole('button', {
+        name: /He wanted to see what was behind the clear water curtain \("I'll see clearly first"\)/i,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByRole('button', { name: 'He just wants to be praised by everyone' }),
+    ).toHaveAttribute('aria-pressed', 'false');
     // The saved order re-renders with its position badges.
-    expect(screen.getByRole('button', { name: /1.*进去/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /4.*分享/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /1 go in/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /4 share/i })).toBeInTheDocument();
     expect(screen.getByTestId('jtw-c2p2-agreement-track')).toBeInTheDocument();
     expect(screen.getByTestId('jtw-c2p2-continue')).toBeEnabled();
   });

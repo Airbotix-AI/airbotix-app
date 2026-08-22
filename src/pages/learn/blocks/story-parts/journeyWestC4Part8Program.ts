@@ -1,25 +1,25 @@
-import type { JtwEvidenceOption } from './journeyWestSeason1'
+import type { JtwEvidenceOption } from './journeyWestSeason1';
 
-export const C4_P8_PART_ID = 'jtw-s1-c4-p8'
-export const C4_P8_NEXT_PART_ID = 'jtw-s1-c5-p1'
-export const C4_P8_SEAL_ID = 'jtw-s1-c4-naming-seal'
+export const C4_P8_PART_ID = 'jtw-s1-c4-p8';
+export const C4_P8_NEXT_PART_ID = 'jtw-s1-c5-p1';
+export const C4_P8_SEAL_ID = 'jtw-s1-c4-naming-seal';
 
 export const C4_P8_STORY_BEFORE = [
-  '石猴走了很远，在门前说清来意，得到“孙悟空”这个名字，又经过很长时间学习。名字连接他的来处和以后，但名字和几块积木都不等于一下子学完整修行。',
-  '同伴先按 Go，名字牌和“我是孙悟空”出现；本领安静等待。只有同伴真的轻点悟空，他选择的小展示才运行到 End。现在请打开 Part 7 真正保存的作品，把这段因果完整讲回来。',
-] as const
+  'The stone monkey walked a long way, explained his purpose in front of the door, and got the name "Sun Wukong", which took a long time to learn. The name connects him to where he came from and what he has done in the future, but neither a name nor a few building blocks can mean learning a complete spiritual practice at once.',
+  'The companion presses Go first, and the name tag and "I am Sun Wukong" appear; the ability waits quietly. Only when the companion actually taps Wukong does the small display he selected run to End. Now please open the truly preserved work of Part 7 and tell the complete story of cause and effect.',
+] as const;
 
 export const C4_P8_CLASSIC_CARD =
-  '原著第一至二回写猴王经过多年寻找，拜师得名孙悟空，并在长期学习后展示本领。课程只用一个温和小展示练习 Start 与 Tap，不把它写成完整修行或七十二变。'
+  'Chapters 1 to 2 of the original work describe that after years of searching, the Monkey King became an apprentice and was named Sun Wukong, and showed his skills after long-term study. The course only uses a gentle small demonstration of the practice Start and Tap, and does not describe it as a complete practice or the seventy-two transformations.';
 
 export const C4_P8_CAUSE_CARDS: JtwEvidenceOption[] = [
-  { id: 'leave-home', label: '🏝 离开花果山', correct: true },
-  { id: 'explain-purpose', label: '⛩ 到门前说明来意', correct: true },
-  { id: 'receive-name', label: '🏷 得到名字', correct: true },
-  { id: 'learn-over-time', label: '📚 经过学习', correct: true },
-  { id: 'wait-for-invitation', label: '👆 等待邀请', correct: true },
-  { id: 'show-skill', label: '✨ 展示本领', correct: true },
-]
+  { id: 'leave-home', label: '🏝Leave Flower-Fruit Mountain', correct: true },
+  { id: 'explain-purpose', label: '⛩ Go to the door and explain your intention', correct: true },
+  { id: 'receive-name', label: '🏷 Get a name', correct: true },
+  { id: 'learn-over-time', label: '📚 After learning', correct: true },
+  { id: 'wait-for-invitation', label: '👆 Waiting for invitation', correct: true },
+  { id: 'show-skill', label: '✨ Show your skills', correct: true },
+];
 
 export const C4_P8_CAUSE_ORDER = [
   'leave-home',
@@ -28,40 +28,72 @@ export const C4_P8_CAUSE_ORDER = [
   'learn-over-time',
   'wait-for-invitation',
   'show-skill',
-] as const
+] as const;
 
 export const C4_P8_RETELL_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'linked-story-and-events',
     label:
-      '因为石猴想认真学习，所以他从花果山远行、在门前说明来意；结果他得到孙悟空这个名字，经过学习后仍先等观众邀请；后来 Go 只让名字出现，Tap 才让本领展示到 End，他带着名字和来处回家。',
+      "Because Stone Monkey wanted to study seriously, he traveled from Flower-Fruit Mountain and explained the purpose of his visit in front of the door; as a result, he got the name Sun Wukong, and after studying, he still waited for the audience's invitation; later, Go only let the name appear, and Tap showed his skills to End, and he went home with his name and where he came from.",
     correct: true,
   },
   { id: 'blocks-only', label: 'Start、Show、Say、End、Tap、Hop、Wait、End。', correct: false },
-  { id: 'instant-learning', label: '他得到名字，按一下按钮就学会了全部本领。', correct: false },
-]
+  {
+    id: 'instant-learning',
+    label: 'He was given a name and learned all the tricks at the push of a button.',
+    correct: false,
+  },
+];
 
 export const C4_P8_TEXT_EVIDENCE: JtwEvidenceOption[] = [
-  { id: 'came-to-learn', label: '“我从花果山来，想认真学习。”', correct: true },
-  { id: 'treasure', label: '“我远行只是为了寻找闪亮宝物。”', correct: false },
-]
+  {
+    id: 'came-to-learn',
+    label: '"I come from Flower-Fruit Mountain and want to study hard."',
+    correct: true,
+  },
+  {
+    id: 'treasure',
+    label: '"I travel far and wide just to find shining treasures."',
+    correct: false,
+  },
+];
 
 export const C4_P8_RUN_EVIDENCE: JtwEvidenceOption[] = [
-  { id: 'two-trigger-traces', label: 'Go 轨迹只走名字链，真实 Tap 才走本领链，两条都到 End。', correct: true },
-  { id: 'auto-played', label: 'Go 自动把名字和本领全部播放完。', correct: false },
-]
+  {
+    id: 'two-trigger-traces',
+    label:
+      'The Go track only goes through the name chain, and the real Tap goes through the skill chain, both of which go to End.',
+    correct: true,
+  },
+  {
+    id: 'auto-played',
+    label: 'Go automatically plays all the names and abilities.',
+    correct: false,
+  },
+];
 
 export const C4_P8_DEBUG_EVIDENCE: JtwEvidenceOption[] = [
-  { id: 'wrong-trigger-first', label: 'P6 第一次偏离是本领用了错误的 Start Trigger。', correct: true },
-  { id: 'wait-too-long', label: 'P6 第一次偏离只是 Wait 太久。', correct: false },
-]
+  {
+    id: 'wrong-trigger-first',
+    label: 'The first deviation of P6 was that the skill used the wrong Start Trigger.',
+    correct: true,
+  },
+  {
+    id: 'wait-too-long',
+    label: 'The first deviation of P6 is just waiting too long.',
+    correct: false,
+  },
+];
 
 export function c4p8CardsOrdered(order: readonly string[]): boolean {
-  return order.length === C4_P8_CAUSE_ORDER.length && C4_P8_CAUSE_ORDER.every((id, index) => order[index] === id)
+  return (
+    order.length === C4_P8_CAUSE_ORDER.length &&
+    C4_P8_CAUSE_ORDER.every((id, index) => order[index] === id)
+  );
 }
 
 export function c4p8Correct(options: JtwEvidenceOption[], selected: string | null): boolean {
-  return options.find((option) => option.id === selected)?.correct === true
+  return options.find((option) => option.id === selected)?.correct === true;
 }
 
-export type C4P8ContinueChoice = 'now' | 'later'
+export type C4P8ContinueChoice = 'now' | 'later';

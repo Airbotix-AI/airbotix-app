@@ -155,7 +155,9 @@ export function JourneyWestC3Part8Page({
   const savedProject = build.data?.project ?? null;
   const savedVersion = build.data?.savedVersion ?? null;
   const workFound = c3p7BuildDone(build.data);
-  const weather = build.data?.startedWeather ? jtwC3WeatherVersion(build.data.startedWeather) : null;
+  const weather = build.data?.startedWeather
+    ? jtwC3WeatherVersion(build.data.startedWeather)
+    : null;
   const cardsDone = c3p8CardsOrdered(cardOrder);
 
   // A live run is judged on what the runner measured; a restored one can only be
@@ -211,9 +213,7 @@ export function JourneyWestC3Part8Page({
             ? c3p2EncodeFootprints(c3p2FootprintsOf(run))
             : (savedEntry?.evidence.selections?.run_footprints ?? []),
           run_boundaries: jtwC3JumpEncodeBoundaries(boundaries),
-          run_stop: run
-            ? [run.stoppedBy]
-            : (savedEntry?.evidence.selections?.run_stop ?? []),
+          run_stop: run ? [run.stoppedBy] : (savedEntry?.evidence.selections?.run_stop ?? []),
           exit_page: [String(JTW_C3_FAR_SHORE_PAGE)],
           rerun_result: run
             ? [`trace:${run.trace.join('-')}`, `stop:${run.stoppedBy}`]
@@ -240,7 +240,7 @@ export function JourneyWestC3Part8Page({
       >
         <p className="text-[16px] font-bold text-ink">{C3_P8_LOCKED_HINT}</p>
         <Link className="btn-pill-primary inline-block" to={STORY_MAP_PATH}>
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -250,9 +250,12 @@ export function JourneyWestC3Part8Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c3-p8">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第三章 一叶木筏求师路 · Part 8 · Retell
+          Journey to the West · Chapter 3 One Leaf Raft’s Journey to Seeking a Master · Part 8 ·
+          Retell
         </p>
-        <h1 className="text-[28px] font-black text-ink">到达不是学会，而是准备开始</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          Arrival is not about learning, but about getting ready to start
+        </h1>
       </header>
 
       {/* ── story_before：故事卡D 全文 + 原著卡 + 岸边的两句对白 ─────────── */}
@@ -263,13 +266,13 @@ export function JourneyWestC3Part8Page({
           </p>
         ))}
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C3_P8_CLASSIC_CARD}
         </aside>
         <div className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
           <p className="mb-2 font-bold">{C3_P8_DIALOGUE_INTRO}</p>
-          <p>群猴：「{C3_P8_DIALOGUE_MONKEYS}」</p>
-          <p>美猴王：「{C3_P8_DIALOGUE_MONKEY_KING}」</p>
+          <p>Group of monkeys: "{C3_P8_DIALOGUE_MONKEYS}」</p>
+          <p>Monkey King: "{C3_P8_DIALOGUE_MONKEY_KING}」</p>
         </div>
       </section>
 
@@ -284,10 +287,14 @@ export function JourneyWestC3Part8Page({
       />
 
       {/* ── 运行 P7 真实保存的作品：不另载答案项目 ─────────────────────── */}
-      <section className="space-y-4" data-testid="jtw-c3p8-saved-run" data-reached={runOk ? '1' : '0'}>
+      <section
+        className="space-y-4"
+        data-testid="jtw-c3p8-saved-run"
+        data-reached={runOk ? '1' : '0'}
+      >
         <h2 className="text-[15px] font-bold text-ink">{C3_P8_RUN_TITLE}</h2>
         <p className="text-[13px] leading-6 text-ink-soft">{C3_P8_RUN_NOTE}</p>
-        {build.isLoading && <p className="text-[13px] text-ink-soft">正在打开你保存的作品…</p>}
+        {build.isLoading && <p className="text-[13px] text-ink-soft">Opening your saved work...</p>}
         {!build.isLoading && !workFound && (
           <p
             className="rounded-2xl border border-brand-coral/50 bg-canvas-pure p-4 text-[14px] font-semibold text-ink"
@@ -315,8 +322,8 @@ export function JourneyWestC3Part8Page({
                     <p className="text-[14px] font-bold text-ink">
                       Page {page.page} · {c3p2PageLabel(page.page)}
                       <span className="ml-2 text-[12px] font-semibold text-ink-soft">
-                        {page.actions.length} 块动作 ·{' '}
-                        {page.ends ? '🏁 End 结束' : `📄 出口 → Page ${page.exitTo}`}
+                        {page.actions.length} Block Action ·{' '}
+                        {page.ends ? '🏁 End' : `📄 Export → Page ${page.exitTo}`}
                       </span>
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-1">
@@ -333,9 +340,9 @@ export function JourneyWestC3Part8Page({
                 ))}
               </ul>
               <p className="text-[13px] font-semibold text-ink-soft">
-                共 {design.childBlocks} 块由你主导
+                common {design.childBlocks} The block is yours
                 {savedVersion !== null && (
-                  <span data-testid="jtw-c3p8-saved-version"> · 保存版本 #{savedVersion}</span>
+                  <span data-testid="jtw-c3p8-saved-version"> · Save version #{savedVersion}</span>
                 )}
               </p>
             </div>
@@ -443,9 +450,7 @@ export function JourneyWestC3Part8Page({
             data-done={programDone ? '1' : '0'}
             data-measured={programMeasured.join(',')}
           >
-            <h2 className="mb-2 text-[15px] font-bold text-ink">
-              {C3_P8_PROGRAM_EVIDENCE_TITLE}
-            </h2>
+            <h2 className="mb-2 text-[15px] font-bold text-ink">{C3_P8_PROGRAM_EVIDENCE_TITLE}</h2>
             <div className="flex flex-col gap-2">
               {C3_P8_PROGRAM_EVIDENCE_OPTIONS.map((option) => (
                 <Choice
@@ -494,9 +499,12 @@ export function JourneyWestC3Part8Page({
             </>
           ) : (
             <p className="text-[14px] font-semibold text-ink-soft">
-              远行印还没亮——服务器记录里这一章还缺
-              {seal ? ` ${seal.missing.length} ` : '若干'}
-              项证据。补齐 C3 P1–P8 的阅读、解释、搭建、选择运行、修理、保存版本、重开重跑和讲回证据后它才会点亮。
+              The Seal of Far Journey has not been revealed yet - this chapter is still missing in
+              the server records
+              {seal ? ` ${seal.missing.length} ` : ' several '}
+              {seal?.missing.length === 1 ? 'item' : 'items'} of evidence. It will light up after completing C3 P1–P8 reading, explaining,
+              building, selecting to run, repairing, saving version, restarting and rerunning, and
+              telling back the evidence.
             </p>
           )}
         </section>
@@ -510,7 +518,7 @@ export function JourneyWestC3Part8Page({
         >
           <img
             src={JTW_C3_PAGE3_RESOLVED_BACKGROUND}
-            alt="彼岸山林：木筏靠在浅滩上，上山的石阶亮着，师门的石牌在雾里显出来"
+            alt="Mountain forest on the other side: The raft is leaning on the shoal, the stone steps up the mountain are lit, and the stone plaque of the teacher's gate is visible in the fog."
             data-testid="jtw-c3p8-resolved-art"
             className="w-full rounded-2xl"
           />
@@ -522,7 +530,7 @@ export function JourneyWestC3Part8Page({
 
       <footer className="flex flex-wrap items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to={STORY_MAP_PATH}>
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         {!completed ? (
           <button
@@ -532,7 +540,7 @@ export function JourneyWestC3Part8Page({
             disabled={!resolved || finish.isPending}
             onClick={() => void finish.mutate(null)}
           >
-            {finish.isPending ? '保存中…' : C3_P8_LIGHT_SEAL_LABEL}
+            {finish.isPending ? 'Saving…' : C3_P8_LIGHT_SEAL_LABEL}
           </button>
         ) : (
           <div className="flex flex-wrap gap-3">
@@ -559,7 +567,7 @@ export function JourneyWestC3Part8Page({
       </footer>
       {finish.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

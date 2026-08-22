@@ -55,9 +55,9 @@ const NEXT_PART_ID = 'jtw-s1-c3-p1';
 const P7_PART_PATH = '/learn/story/journey-west/jtw-s1-c2-p7';
 const STORY_MAP_PATH = '/learn/story/journey-west';
 const RUN_LABELS = {
-  idle: '▶ 从 Start 完整运行到 End',
-  running: '运行中…',
-  again: '▶ 再运行一遍',
+  idle: '▶ Complete run from Start to End',
+  running: 'Running…',
+  again: '▶ Run it again',
 } as const;
 
 export function JourneyWestC2Part8Page({
@@ -143,7 +143,11 @@ export function JourneyWestC2Part8Page({
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">伙伴们正在洞口等你讲这一章…</p>;
+    return (
+      <p className="p-8 text-center text-ink-soft">
+        Your friends are waiting for you at the cave entrance to tell this chapter...
+      </p>
+    );
   }
 
   if (!unlocked && !completed) {
@@ -153,10 +157,10 @@ export function JourneyWestC2Part8Page({
         data-testid="jtw-c2p8-locked"
       >
         <p className="text-[16px] font-bold text-ink">
-          先在 Part 7 把你的进入路线保存好，再来核对瀑布前的约定。
+          Save your entry route in Part 7 first, and then check the agreement before the waterfall.
         </p>
         <Link className="btn-pill-primary inline-block" to={STORY_MAP_PATH}>
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -166,9 +170,11 @@ export function JourneyWestC2Part8Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c2-p8">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第二章 水帘洞的约定 · Part 8 · Retell
+          Journey to the West · Chapter 2 The Agreement of Water Curtain Cave · Part 8 · Retell
         </p>
-        <h1 className="text-[28px] font-black text-ink">守约成为美猴王</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          Keep your promise and become the Monkey King
+        </h1>
       </header>
 
       {/* ── story_before：故事卡D 全文 + 原著卡 + 瀑布前的两句对白 ───────── */}
@@ -179,13 +185,13 @@ export function JourneyWestC2Part8Page({
           </p>
         ))}
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C2_P8_CLASSIC_CARD}
         </aside>
         <div className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
           <p className="mb-2 font-bold">{C2_P8_DIALOGUE_INTRO}</p>
-          <p>群猴：「{C2_P8_DIALOGUE_MONKEYS}」</p>
-          <p>石猴：「{C2_P8_DIALOGUE_STONE_MONKEY}」</p>
+          <p>Group of monkeys: "{C2_P8_DIALOGUE_MONKEYS}」</p>
+          <p>Stone Monkey: "{C2_P8_DIALOGUE_STONE_MONKEY}」</p>
         </div>
       </section>
 
@@ -201,26 +207,28 @@ export function JourneyWestC2Part8Page({
 
       {/* ── 运行 P7 真实保存的作品：不另载答案项目 ─────────────────────── */}
       <section className="space-y-4" data-testid="jtw-c2p8-saved-run">
-        <h2 className="text-[15px] font-bold text-ink">完整运行你在 Part 7 保存的那条路线</h2>
-        {build.isLoading && <p className="text-[13px] text-ink-soft">正在打开你保存的作品…</p>}
+        <h2 className="text-[15px] font-bold text-ink">
+          Completely run the route you saved in Part 7
+        </h2>
+        {build.isLoading && <p className="text-[13px] text-ink-soft">Opening your saved work...</p>}
         {!build.isLoading && !workFound && (
           <p
             className="rounded-2xl border border-brand-coral/50 bg-canvas-pure p-4 text-[14px] font-semibold text-ink"
             data-testid="jtw-c2p8-work-missing"
           >
-            没有找到你在 Part 7 保存的进入路线，或者它已经不成立了。
+            The entry route you saved in Part 7 is not found, or it is no longer valid.
             <Link className="ml-1 font-bold text-brand-sky" to={P7_PART_PATH}>
-              回到 Part 7 打开工作区，确认已保存 →
+              Go back to Part 7, open the workspace, and confirm that it has been saved →
             </Link>
           </p>
         )}
         {workFound && design && build.data?.page && (
           <>
             <p className="text-[13px] font-semibold text-ink-soft" data-testid="jtw-c2p8-design">
-              <span data-testid="jtw-c2p8-side">起点：{design.side.label}</span> ·{' '}
-              <span data-testid="jtw-c2p8-knock">敲门格 {design.side.knockCell}</span> ·{' '}
+              <span data-testid="jtw-c2p8-side">starting point:{design.side.label}</span> ·{' '}
+              <span data-testid="jtw-c2p8-knock">knocking door {design.side.knockCell}</span> ·{' '}
               <span data-testid="jtw-c2p8-saved-version">
-                保存版本 #{build.data.savedVersion}
+                Save version #{build.data.savedVersion}
               </span>
             </p>
             <div className="flex flex-wrap items-center gap-1" data-testid="jtw-c2p8-saved-chain">
@@ -242,7 +250,9 @@ export function JourneyWestC2Part8Page({
               onResult={setRun}
               sleep={previewSleep}
             />
-            {!cardsDone && <p className="text-[13px] font-semibold text-ink-soft">{C2_P8_RUN_GATE_HINT}</p>}
+            {!cardsDone && (
+              <p className="text-[13px] font-semibold text-ink-soft">{C2_P8_RUN_GATE_HINT}</p>
+            )}
             {run && (
               <p
                 className={clsx(
@@ -253,8 +263,8 @@ export function JourneyWestC2Part8Page({
                 data-consistent={runOk}
               >
                 {runOk
-                  ? `这一次和你保存的那一次一样：石猴停在 ${run.endCell}，水帘分开、洞口出现，洞口说出同一句发现。`
-                  : '这一次跑出来的结果和你保存的作品对不上——回 Part 7 检查路线，再回来运行一次。'}
+                  ? `This time is the same as the one you saved: the stone monkey stopped at ${run.endCell}, the water curtain parted, the entrance of the cave appeared, and the entrance of the cave said the same sentence of discovery.`
+                  : 'The result of this run does not match the work you saved - go back to Part 7 to check the route, and come back and run it again.'}
               </p>
             )}
           </>
@@ -314,9 +324,11 @@ export function JourneyWestC2Part8Page({
             </>
           ) : (
             <p className="text-[14px] font-semibold text-ink-soft">
-              水帘洞印还没亮——服务器记录里这一章还缺
-              {seal ? ` ${seal.missing.length} ` : '若干'}
-              项证据。补齐 C2 P1–P8 的阅读、解释、搭建、碰撞运行、修理、保存版本和讲回证据后它才会点亮。
+              The Water Curtain Cave seal is not yet lit - this chapter is still missing in the
+              server logs
+              {seal ? ` ${seal.missing.length} ` : ' several '}
+              {seal?.missing.length === 1 ? 'item' : 'items'} of evidence. It will light up after completing C2 P1–P8 reading, explaining,
+              building, crash running, repairing, saving versions, and speaking back evidence.
             </p>
           )}
         </section>
@@ -330,7 +342,7 @@ export function JourneyWestC2Part8Page({
         >
           <img
             src={JTW_C2_RESOLVED_BACKGROUND_ASSET}
-            alt="水帘后的洞口亮着暖光，湿石路把水帘和洞口连成一条大家都会走的路"
+            alt="The entrance of the cave behind the water curtain is illuminated by warm light, and the wet stone road connects the water curtain and the entrance of the cave into a path that everyone can walk on."
             className="mb-3 w-full rounded-xl"
           />
           <p className="text-[15px] leading-7 text-ink">{C2_P8_RESOLVED_WORLD_CHANGE}</p>
@@ -340,7 +352,7 @@ export function JourneyWestC2Part8Page({
 
       <footer className="flex flex-wrap items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to={STORY_MAP_PATH}>
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         {!completed ? (
           <button
@@ -350,7 +362,7 @@ export function JourneyWestC2Part8Page({
             disabled={!resolved || finish.isPending}
             onClick={() => void finish.mutate(null)}
           >
-            {finish.isPending ? '保存中…' : C2_P8_LIGHT_SEAL_LABEL}
+            {finish.isPending ? 'Saving…' : C2_P8_LIGHT_SEAL_LABEL}
           </button>
         ) : (
           <div className="flex flex-wrap gap-3">
@@ -377,7 +389,7 @@ export function JourneyWestC2Part8Page({
       </footer>
       {finish.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

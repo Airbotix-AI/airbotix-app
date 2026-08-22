@@ -49,7 +49,7 @@ describe('curriculumGuides catalogue', () => {
       expect(storyMissionFor(lessonId)?.lessonId).toBe(lessonId);
     }
     expect(storyMissionFor('jtw-s2-c2-p6')?.choices).toContainEqual({
-      id: 'wukong-too-early', label: '悟空在玄奘询问前就回答了', correct: true,
+      id: 'wukong-too-early', label: 'Wukong answered before Xuanzang asked', correct: true,
     });
   });
 });

@@ -45,10 +45,13 @@ function renderPage() {
 }
 
 function orderCardsCorrectly() {
-  fireEvent.click(screen.getByRole('button', { name: /石头有动静/ }));
-  fireEvent.click(screen.getByRole('button', { name: /石猴出现/ }));
-  fireEvent.click(screen.getByRole('button', { name: /跳一下/ }));
-  fireEvent.click(screen.getByRole('button', { name: /开口问好/ }));
+  const cards = within(screen.getByTestId('jtw-p2-cards'));
+  fireEvent.click(
+    cards.getByRole('button', { name: /🔔 There is movement in the stone \(Chime\)/i }),
+  );
+  fireEvent.click(cards.getByRole('button', { name: /Stone monkey appears/i }));
+  fireEvent.click(cards.getByRole('button', { name: /Hop/i }));
+  fireEvent.click(cards.getByRole('button', { name: /Say hello/i }));
 }
 
 beforeEach(() => {
@@ -64,19 +67,10 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestPart2Page · C1-P2 石猴出世运行示范', () => {
+describe('JourneyWestPart2Page · C1-P2 Stone Monkey Born Operation Demonstration', () => {
   it('defines the demo chain as EXACTLY the contracted arrival script', () => {
     const ops = C1_P2_DEMO_PROJECT.pages[0].characters[0].scripts[0].blocks.map((b) => b.op);
-    expect(ops).toEqual([
-      'when_flag',
-      'hide',
-      'play_sound',
-      'wait',
-      'show',
-      'hop',
-      'say',
-      'end',
-    ]);
+    expect(ops).toEqual(['when_flag', 'hide', 'play_sound', 'wait', 'show', 'hop', 'say', 'end']);
   });
 
   it('blocks kids who have not finished P1 (server-side unlock is the truth)', async () => {
@@ -100,9 +94,7 @@ describe('JourneyWestPart2Page · C1-P2 石猴出世运行示范', () => {
 
     fireEvent.click(screen.getByTestId('jtw-p2-run'));
     // After the full run the monkey ends VISIBLE (Show happened) and said hello.
-    await waitFor(() =>
-      expect(screen.getByTestId('jtw-p2-run')).toHaveTextContent('再跑一次'),
-    );
+    await waitFor(() => expect(screen.getByTestId('jtw-p2-run')).toHaveTextContent(/run again/i));
     expect(screen.getByTestId('jtw-p2-stone-monkey').dataset.visible).toBe('true');
     expect(screen.getByTestId('jtw-p2-demo-chain').querySelectorAll('.bsx-block')).toHaveLength(8);
   });
@@ -181,10 +173,9 @@ describe('JourneyWestPart2Page · C1-P2 石猴出世运行示范', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('jtw-p2-resolved')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /🔔 石头有动静/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      screen.getByRole('button', { name: /🔔 There is movement in the stone \(Chime\)/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(
       within(screen.getByTestId('jtw-p2-first-last')).getByRole('button', { name: '🚩 Start' }),
     ).toHaveAttribute('aria-pressed', 'true');

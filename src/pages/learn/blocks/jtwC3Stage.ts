@@ -76,14 +76,14 @@ export const JTW_C3_PAGE_BACKGROUNDS: readonly string[] = [
 
 /** Alt text describing what each page's artwork really shows. */
 export const JTW_C3_PAGE_ALTS: readonly string[] = [
-  '花果山海岸：左边是长着桃树的山，右边的海一直连到天边',
-  '海上中段：晨雾里的海面，远处的岛一层一层退向天边',
-  '彼岸山林：靠岸的浅滩、上山的小路，山上是师门的石门',
+  'Flower-Fruit Mountain coast: peach-covered slopes rise on the left, while the sea stretches to the horizon on the right.',
+  'Middle section of the sea: On the sea surface in the morning mist, the islands in the distance recede towards the horizon layer by layer.',
+  "The mountains and forests on the other side: the shallows near the shore, the path up the mountain, and the stone gate of the teacher's gate on the mountain",
 ];
 
 /** Alt text for the starry middle sea (C3-P5's second version). */
 export const JTW_C3_PAGE2_STARRY_ALT =
-  '海上中段的星夜：月亮挂在右边，海面上有月光，云还压在天边的岛上';
+  'Starry night in the middle of the sea: the moon hangs on the right, there is moonlight on the sea, and clouds are still pressing on the island on the horizon';
 
 /**
  * Stable scene ids a saved `BlocksProject` stores as a page background. The

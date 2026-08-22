@@ -12,9 +12,9 @@ import type { Block } from './blocksModel';
 
 /** JtW C1-P5 preset greetings — the child picks one; no free typing required. */
 export const JTW_GREETING_CHOICES = [
-  '你好，我也是刚刚认识这个世界。',
-  '你们好，我可以过来吗？',
-  '你好，我刚刚来到这里。',
+  'Hello, I have just met this world.',
+  'Hello, can I come over?',
+  'Hello, I just came here.',
 ] as const;
 
 /** JtW C1-P7: the visible action ops the Personal Ship contract allows. */

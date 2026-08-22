@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -48,14 +48,23 @@ function renderPage() {
 }
 
 function completeThroughSwap() {
-  fireEvent.click(screen.getByRole('button', { name: /他想让第一次见面清清楚楚/ }));
-  fireEvent.click(screen.getByRole('button', { name: /石头的提示/ }));
-  fireEvent.click(screen.getByRole('button', { name: /让大家看见我/ }));
-  fireEvent.click(screen.getByRole('button', { name: /做一个动作/ }));
-  fireEvent.click(screen.getByRole('button', { name: /说出问候/ }));
+  const cards = within(screen.getByTestId('jtw-p3-cards'));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /He wants to make the first meeting clear and put his partner at ease/i,
+    }),
+  );
+  fireEvent.click(cards.getByRole('button', { name: /🔔 Chime/i }));
+  fireEvent.click(cards.getByRole('button', { name: /👀 Let everyone see me \(Show\)/i }));
+  fireEvent.click(cards.getByRole('button', { name: /🦘 Make a move \(Hop\)/i }));
+  fireEvent.click(cards.getByRole('button', { name: /💬 Say hello \(Say\)/i }));
   fireEvent.click(screen.getByTestId('jtw-p3-swap-toggle'));
-  fireEvent.click(screen.getByRole('button', { name: /能——因为石猴已经先出现了/ }));
-  fireEvent.click(screen.getByRole('button', { name: /把 Say 放到 Show 前面/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Yes - because the stone monkey has already appeared first, it makes sense to say hello first and then jump\./i,
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: /Put Say in front of Show/i }));
 }
 
 beforeEach(() => {
@@ -71,13 +80,11 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestPart3Page · C1-P3 树叶后的顺序排练', () => {
+describe('JourneyWestPart3Page · C1-P3 Sequence rehearsal after leaves', () => {
   it('maps the four cards uniquely and shows the read-only preset chain', async () => {
     // Card ids map 1:1 onto the contracted ops — unique, complete.
     expect(new Set(C1_P3_CARD_ORDER).size).toBe(4);
-    expect(C1_P3_STORY_CARDS.map((card) => card.id).sort()).toEqual(
-      [...C1_P3_CARD_ORDER].sort(),
-    );
+    expect(C1_P3_STORY_CARDS.map((card) => card.id).sort()).toEqual([...C1_P3_CARD_ORDER].sort());
     expect(C1_P3_PRESET_CHAIN.map((block) => block.op)).toEqual([
       'when_flag',
       'hide',
@@ -92,9 +99,9 @@ describe('JourneyWestPart3Page · C1-P3 树叶后的顺序排练', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c1-p3')).toBeInTheDocument());
     expect(screen.getByText(C1_P3_STORY_BEFORE)).toBeInTheDocument();
-    expect(
-      screen.getByTestId('jtw-p3-preset-chain').querySelectorAll('.bsx-block'),
-    ).toHaveLength(8);
+    expect(screen.getByTestId('jtw-p3-preset-chain').querySelectorAll('.bsx-block')).toHaveLength(
+      8,
+    );
   });
 
   it('blocks kids who have not finished P2', async () => {
@@ -114,27 +121,28 @@ describe('JourneyWestPart3Page · C1-P3 树叶后的顺序排练', () => {
     await waitFor(() => expect(screen.getByTestId('jtw-part-c1-p3')).toBeInTheDocument());
     // Swap lab appears only after the target order is built.
     expect(screen.queryByTestId('jtw-p3-swap-lab')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /石头的提示/ }));
-    fireEvent.click(screen.getByRole('button', { name: /让大家看见我/ }));
-    fireEvent.click(screen.getByRole('button', { name: /做一个动作/ }));
-    fireEvent.click(screen.getByRole('button', { name: /说出问候/ }));
+    const cards = within(screen.getByTestId('jtw-p3-cards'));
+    fireEvent.click(cards.getByRole('button', { name: /🔔 Chime/i }));
+    fireEvent.click(cards.getByRole('button', { name: /👀 Let everyone see me \(Show\)/i }));
+    fireEvent.click(cards.getByRole('button', { name: /🦘 Make a move \(Hop\)/i }));
+    fireEvent.click(cards.getByRole('button', { name: /💬 Say hello \(Say\)/i }));
 
     const line = () =>
-      Array.from(
-        screen.getByTestId('jtw-p3-rehearsal-line').querySelectorAll('li'),
-      ).map((li) => li.textContent ?? '');
-    expect(line()[2]).toContain('做一个动作');
-    expect(line()[3]).toContain('说出问候');
+      Array.from(screen.getByTestId('jtw-p3-rehearsal-line').querySelectorAll('li')).map(
+        (li) => li.textContent ?? '',
+      );
+    expect(line()[2]).toContain('🦘 Make a move (Hop)');
+    expect(line()[3]).toContain('💬 Say hello (Say)');
 
     fireEvent.click(screen.getByTestId('jtw-p3-swap-toggle'));
     expect(screen.getByTestId('jtw-p3-rehearsal-line').dataset.swapped).toBe('true');
-    expect(line()[2]).toContain('说出问候');
-    expect(line()[3]).toContain('做一个动作');
+    expect(line()[2]).toContain('💬 Say hello (Say)');
+    expect(line()[3]).toContain('🦘 Make a move (Hop)');
 
     // Replayable — toggling back restores the original rehearsal order.
     fireEvent.click(screen.getByTestId('jtw-p3-swap-toggle'));
     expect(screen.getByTestId('jtw-p3-rehearsal-line').dataset.swapped).toBe('false');
-    expect(line()[2]).toContain('做一个动作');
+    expect(line()[2]).toContain('🦘 Make a move (Hop)');
   });
 
   it('keeps continue locked until motive + order + swap comparison + prediction are done', async () => {
@@ -145,11 +153,23 @@ describe('JourneyWestPart3Page · C1-P3 树叶后的顺序排练', () => {
     completeThroughSwap();
     expect(screen.getByTestId('jtw-p3-continue')).toBeDisabled(); // prediction pending
 
-    fireEvent.click(screen.getByRole('button', { name: /石猴已经站在石台上挥手/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('还没有 Show，大家能看见谁？');
-    fireEvent.click(screen.getByRole('button', { name: /空空的石台/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /The stone monkey is already standing on the stone platform waving/i,
+      }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Think about the agreement during rehearsal: There is no show yet, who can everyone see?',
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Empty stone platform - only sound, no stone monkey in sight/i,
+      }),
+    );
 
-    expect(screen.getByTestId('jtw-p3-resolved')).toHaveTextContent('把四张顺序卡交给石猴');
+    expect(screen.getByTestId('jtw-p3-resolved')).toHaveTextContent(
+      'The monkeys can say "what happens now" to each card. They handed four sequence cards to Stone Monkey, preparing to put the rehearsal into the real story stage.',
+    );
     expect(screen.getByTestId('jtw-p3-continue')).toBeEnabled();
   });
 
@@ -157,7 +177,11 @@ describe('JourneyWestPart3Page · C1-P3 树叶后的顺序排练', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-p3-continue')).toBeInTheDocument());
     completeThroughSwap();
-    fireEvent.click(screen.getByRole('button', { name: /空空的石台/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Empty stone platform - only sound, no stone monkey in sight/i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-p3-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
@@ -199,11 +223,14 @@ describe('JourneyWestPart3Page · C1-P3 树叶后的顺序排练', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('jtw-p3-resolved')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /他想让第一次见面清清楚楚/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: /石头的提示/ })).toHaveAttribute(
+    expect(
+      screen.getByRole('button', {
+        name: /He wants to make the first meeting clear and put his partner at ease/i,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      within(screen.getByTestId('jtw-p3-cards')).getByRole('button', { name: /🔔 Chime/i }),
+    ).toHaveAttribute(
       'aria-pressed',
       'true',
     );

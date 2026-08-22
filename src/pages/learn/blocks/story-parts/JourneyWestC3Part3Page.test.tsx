@@ -101,8 +101,8 @@ function readStory() {
 
 /** The model half: why it looped, which single card changes, the walk, the password. */
 function explainTheModel() {
-  pick(/1 就是花果山海岸/);
-  pick('只换 Page 2 的出口卡');
+  pick(/1 is the Flower-Fruit Mountain coast/i);
+  pick('Only replace the export card of Page 2');
   const walk = screen.getByTestId('jtw-c3p3-walk');
   const step = (label: string) => {
     const button = Array.from(walk.querySelectorAll('button')).find(
@@ -111,18 +111,20 @@ function explainTheModel() {
     if (!button) throw new Error(`floor card ${label} is not rendered`);
     fireEvent.click(button);
   };
-  step('Page 1 花果山海岸');
-  step('Page 2 海上中段');
-  step('Page 1 花果山海岸');
-  pick('出口数字决定下一页。');
+  step('Page 1 · Flower-Fruit Mountain coast');
+  step('Page 2 Middle section of the sea');
+  step('Page 1 · Flower-Fruit Mountain coast');
+  pick('Exit numbers determine the next page.');
 }
 
 /** Predict all three candidate cards correctly. */
 function predictAllThree() {
   for (const candidate of C3_P3_CANDIDATES) {
     const card = screen.getByTestId(`jtw-c3p3-candidate-${candidate.exit}`);
-    const button = Array.from(card.querySelectorAll('button')).find((entry) =>
-      entry.getAttribute('aria-pressed') !== null && entry.textContent === outcomeLabel(candidate.outcomeId),
+    const button = Array.from(card.querySelectorAll('button')).find(
+      (entry) =>
+        entry.getAttribute('aria-pressed') !== null &&
+        entry.textContent === outcomeLabel(candidate.outcomeId),
     );
     if (!button) throw new Error(`outcome ${candidate.outcomeId} is not rendered`);
     fireEvent.click(button);
@@ -131,9 +133,12 @@ function predictAllThree() {
 
 function outcomeLabel(outcomeId: string): string {
   const labels: Record<string, string> = {
-    'outcome-loop-home': '又被送回花果山海岸，木筏还在打转',
-    'outcome-stay-open-sea': '再进一次海中央，就停在那里走不动了',
-    'outcome-reach-far-forest': '一路走到彼岸山林，稳稳地结束',
+    'outcome-loop-home':
+      'and was sent back to the coast of Flower-Fruit Mountain, the raft still spinning.',
+    'outcome-stay-open-sea':
+      'Once again, I entered the middle of the sea and stopped there, unable to walk.',
+    'outcome-reach-far-forest':
+      'Walk all the way to the mountains and forests on the other side, and end steadily',
   };
   return labels[outcomeId];
 }
@@ -220,7 +225,7 @@ describe('journeyWestC3Part3Program · candidate exit cards', () => {
   });
 });
 
-describe('JourneyWestC3Part3Page · C3-P3 页面出口不是门牌装饰', () => {
+describe('JourneyWestC3Part3Page · C3-P3 page exit is not a house decoration', () => {
   it('blocks kids who have not finished C3-P2 (server unlock is the truth)', async () => {
     fetchProgress.mockResolvedValue({
       ...C3_P2_DONE,
@@ -236,9 +241,7 @@ describe('JourneyWestC3Part3Page · C3-P3 页面出口不是门牌装饰', () =>
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c3-p3')).toBeInTheDocument());
 
-    const rows = Array.from(
-      screen.getByTestId('jtw-c3p3-part2-footprints').querySelectorAll('li'),
-    );
+    const rows = Array.from(screen.getByTestId('jtw-c3p3-part2-footprints').querySelectorAll('li'));
     expect(
       rows.map((row) => [row.getAttribute('data-page'), row.getAttribute('data-exit-to')]),
     ).toEqual([
@@ -270,29 +273,33 @@ describe('JourneyWestC3Part3Page · C3-P3 页面出口不是门牌装饰', () =>
 
     expect(screen.getByTestId('jtw-c3p3-try-1')).toBeDisabled();
     expect(screen.getByTestId('jtw-c3p3-try-3')).toBeDisabled();
-    expect(screen.getByTestId('jtw-c3p3-try-note')).toHaveTextContent('不先说出你以为会发生什么');
+    expect(screen.getByTestId('jtw-c3p3-try-note')).toHaveTextContent(
+      "All three cards must be predicted before you can try them out - if you don't tell them what you think will happen first, the results will not be considered evidence.",
+    );
 
     predictAllThree();
     expect(screen.getByTestId('jtw-c3p3-try-3')).toBeEnabled();
-    expect(screen.getByTestId('jtw-c3p3-try-note')).toHaveTextContent('点一张卡');
+    expect(screen.getByTestId('jtw-c3p3-try-note')).toHaveTextContent(/click on a card/i);
   });
 
   it('hints the wrong explanation, the wrong card and the speed password', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c3-p3')).toBeInTheDocument());
 
-    pick(/木筏走得太快/);
-    expect(screen.getByRole('status')).toHaveTextContent('一格没多走');
-    pick(/1 就是花果山海岸/);
+    pick(/raft went so fast/i);
+    expect(screen.getByRole('status')).toHaveTextContent('without moving more than one square');
+    pick(/1 is the Flower-Fruit Mountain coast/i);
 
-    pick('换 Page 1 的出口卡');
-    expect(screen.getByRole('status')).toHaveTextContent('那张卡没有错');
-    pick('三张页面全部重做一遍');
-    expect(screen.getByRole('status')).toHaveTextContent('脚印只指着一张卡');
-    pick('只换 Page 2 的出口卡');
+    pick('Replace the export card of Page 1');
+    expect(screen.getByRole('status')).toHaveTextContent('the card is not wrong');
+    pick('Redo all three pages');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      "If you redo everything, you won't be able to tell which number led you to the wrong path. The footprints only point to one card.",
+    );
+    pick('Only replace the export card of Page 2');
 
-    pick('走得越快，就越先到下一页。');
-    expect(screen.getByRole('status')).toHaveTextContent('用加速把循环遮起来');
+    pick('The faster you go, the sooner you get to the next page.');
+    expect(screen.getByRole('status')).toHaveTextContent('Use acceleration to hide the loop');
     expect(screen.getByTestId('jtw-c3p3-continue')).toBeDisabled();
   });
 
@@ -308,16 +315,16 @@ describe('JourneyWestC3Part3Page · C3-P3 页面出口不是门牌装饰', () =>
       fireEvent.click(button!);
     };
     // The tempting 1 → 2 → 3 is the plan, not what the raft really walked.
-    step('Page 1 花果山海岸');
-    step('Page 2 海上中段');
-    step('Page 3 彼岸山林');
+    step('Page 1 · Flower-Fruit Mountain coast');
+    step('Page 2 Middle section of the sea');
+    step('Page 3 The mountains and forests on the other side');
     expect(screen.getByTestId('jtw-c3p3-walk-steps').querySelectorAll('li')).toHaveLength(3);
     expect(walk.querySelector('h2')?.textContent).not.toContain('✓');
 
-    fireEvent.click(screen.getByRole('button', { name: '重走' }));
-    step('Page 1 花果山海岸');
-    step('Page 2 海上中段');
-    step('Page 1 花果山海岸');
+    fireEvent.click(screen.getByRole('button', { name: 'Go again' }));
+    step('Page 1 · Flower-Fruit Mountain coast');
+    step('Page 2 Middle section of the sea');
+    step('Page 1 · Flower-Fruit Mountain coast');
     expect(walk.querySelector('h2')?.textContent).toContain('✓');
   });
 
@@ -329,7 +336,7 @@ describe('JourneyWestC3Part3Page · C3-P3 页面出口不是门牌装饰', () =>
     fireEvent.click(screen.getByTestId('jtw-c3p3-try-1'));
     await waitFor(() => expect(screen.getByTestId('jtw-c3p3-result-1')).toBeInTheDocument());
     expect(screen.getByTestId('jtw-c3p3-candidate-1')).toHaveAttribute('data-trace', '1-2-1');
-    expect(screen.getByTestId('jtw-c3p3-result-1')).toHaveTextContent('打住了');
+    expect(screen.getByTestId('jtw-c3p3-result-1')).toHaveTextContent('route stops here');
     expect(screen.queryByTestId('jtw-c3p3-resolved')).not.toBeInTheDocument();
     expect(screen.getByTestId('jtw-c3p3-continue')).toBeDisabled();
 
@@ -352,7 +359,9 @@ describe('JourneyWestC3Part3Page · C3-P3 页面出口不是门牌装饰', () =>
     // The rehearsal really ended on the far forest.
     expect(screen.getByTestId('jtw-c3p3-stage')).toHaveAttribute('data-page', '3');
     // 出口卡 3 连上彼岸山林，返乡箭头淡出。
-    expect(screen.getByTestId('jtw-c3p3-connected-arrow')).toHaveTextContent('通向彼岸山林');
+    expect(screen.getByTestId('jtw-c3p3-connected-arrow')).toHaveTextContent(
+      'Page 2 Exit → 3 · Leading to the mountains and forests on the other side',
+    );
     expect(screen.getByTestId('jtw-c3p3-faded-arrow')).toHaveClass('opacity-50');
     // The rehearsal card is a copy: the starter's own exit still says 1.
     expect(screen.getByTestId('jtw-c3p3-rehearsal-exit')).toHaveAttribute('data-exit', '3');
@@ -426,10 +435,9 @@ describe('JourneyWestC3Part3Page · C3-P3 页面出口不是门牌装饰', () =>
 
     await waitFor(() => expect(screen.getByTestId('jtw-c3p3-resolved')).toBeInTheDocument());
     expect(screen.getByTestId('jtw-c3p3-candidate-3')).toHaveAttribute('data-chosen', 'true');
-    expect(screen.getByRole('button', { name: '只换 Page 2 的出口卡' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      screen.getByRole('button', { name: 'Only replace the export card of Page 2' }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('jtw-c3p3-walk-steps').querySelectorAll('li')).toHaveLength(3);
     expect(screen.getByTestId('jtw-c3p3-continue')).toBeEnabled();
   });

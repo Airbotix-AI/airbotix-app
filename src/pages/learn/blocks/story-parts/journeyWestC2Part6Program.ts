@@ -19,7 +19,7 @@ export const C2_P6_LESSON_ID = 'jtw-s1-c2-p6';
 export const C2_P6_PAGE_ID = 'jtw-c2-p6-page';
 export const C2_P6_SCRIPT_ID = 'stone-monkey-return-bug';
 export const C2_P6_TEMPLATE = 'blocks_jtw_c2_p6';
-export const C2_P6_PROJECT_TITLE = '西游记 · 回去的第一处偏离';
+export const C2_P6_PROJECT_TITLE = 'Journey to the West · The first deviation back';
 
 /** The monkey starts the return walk on the entrance cell P4/P5 left him on. */
 export const C2_P6_START = { gx: 6, gy: 7 } as const;
@@ -48,86 +48,153 @@ export const C2_P6_OFF_ROUTE_CELL = '2-7';
 
 /** Child-facing story text — teaching script C2 Part 6 IN FULL, never compressed. */
 export const C2_P6_STORY_BEFORE: readonly [string, string, string] = [
-  '石猴答应回去告诉伙伴，但返回脚本为Left 2 → Left 2 → Down 1；积木和参数都有用，只有中间顺序错误。孩子先标出三个实际停点，对照洞内地图定位第一处偏离，只交换Down 1与第二个Left 2再运行。',
-  'Debug Checkpoint 2：能完成“不是块太少，而是第___步应先___；交换后路线从___回到___。”',
-  '任务后故事：石猴回到群猴面前，说明洞里安全，并邀请大家跟着自己的路线进入。',
+  'Stone Monkey promised to go back and tell his partner, but the return script was Left 2 → Left 2 → Down 1; the building blocks and parameters were all useful, only the order in the middle was wrong. The child first marks three actual stopping points, locates the first deviation according to the map in the cave, and only exchanges Down 1 and the second Left 2 before running.',
+  'Debug Checkpoint 2: Able to complete "It\'s not that there are too few blocks, but that step ___ should be ___ first; after the exchange, the route returns from ___ to ___."',
+  'Post-mission story: The stone monkey returned to the group of monkeys, explained that the cave was safe, and invited everyone to follow his route.',
 ];
 
 /** 人物动机：兑现“回来分享”的约定；速度不能修复方向顺序。 */
 export const C2_P6_MOTIVE =
-  '石猴要兑现“回来分享”的约定：伙伴要照着他的脚印走，所以回程必须踩回来时的每一块湿石。跑得再快也修不好方向顺序——错的是第二段先往哪里走，不是速度。';
+  'The stone monkey wants to fulfill the promise of "come back and share": his companions must follow his footsteps, so they must step on every wet stone on the way back. No matter how fast you run, you can\'t fix the direction sequence - what\'s wrong is where to go first in the second segment, not the speed.';
 
 /** 因果桥：三段回程各对应一块积木和一个停点。 */
 export const C2_P6_STORY_BRIDGE =
-  '回程和去程是同一条湿石路，只是反过来走：Left 2 从入口退回高台，Down 1 踩下 4-8 的低石，最后 Left 2 回到伙伴等着的起点。三块积木、三个停点——顺序错了，脚印就不再是伙伴能跟的路。';
+  'The return journey is the same wet stone road as the outbound journey, just in reverse: Left 2 returns from the entrance to the high platform, Down 1 steps on the low rocks 4-8, and finally Left 2 returns to the starting point where the friends are waiting. Three building blocks, three stopping points - if the order is wrong, the footprints will no longer be a path that your partner can follow.';
 
 // ── 五段解释 1：预期 ─────────────────────────────────────────────────────────
-export const C2_P6_EXPECT_QUESTION = '先说预期：按约定原路返回，三个停点应该是哪三个？';
+export const C2_P6_EXPECT_QUESTION =
+  'Let’s talk about expectations first: If we return along the original route as agreed, what should be the three stopping points?';
 export const C2_P6_EXPECT_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'expect-4-7-4-8-2-8', label: '4-7 高台 → 4-8 低石 → 2-8 起点（来时怎么走，回去就怎么退）', correct: true },
-  { id: 'expect-straight-left', label: '一路向左就好，中间踩哪里都一样', correct: false },
-  { id: 'expect-down-first', label: '先跳下水，再一直向左游回去', correct: false },
+  {
+    id: 'expect-4-7-4-8-2-8',
+    label:
+      '4-7 High platform → 4-8 Low stone → 2-8 Starting point (how to go when you came, how to go back)',
+    correct: true,
+  },
+  {
+    id: 'expect-straight-left',
+    label:
+      'Just go all the way to the left, and it will be the same wherever you step in the middle.',
+    correct: false,
+  },
+  {
+    id: 'expect-down-first',
+    label: 'Jump into the water first, then swim back to the left',
+    correct: false,
+  },
 ];
 
 // ── 五段解释 2：实际 ─────────────────────────────────────────────────────────
-export const C2_P6_ACTUAL_QUESTION = '运行 bug 之后，实际的三个停点是什么？';
+export const C2_P6_ACTUAL_QUESTION =
+  'After running the bug, what are the actual three stopping points?';
 export const C2_P6_ACTUAL_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'actual-off-route', label: '4-7 → 2-7 → 2-8：第二段冲出高台，停在低石上方的水面', correct: true },
-  { id: 'actual-same-as-expected', label: '和预期完全一样，只是慢了一点', correct: false },
-  { id: 'actual-stuck', label: '石猴一步也没有动', correct: false },
+  {
+    id: 'actual-off-route',
+    label:
+      '4-7 → 2-7 → 2-8: The second section breaks out of the high platform and stops on the water above the low rocks.',
+    correct: true,
+  },
+  {
+    id: 'actual-same-as-expected',
+    label: 'Exactly as expected, just a little slower',
+    correct: false,
+  },
+  { id: 'actual-stuck', label: "The stone monkey didn't move a step", correct: false },
 ];
 
 // ── 五段解释 3：第一次偏离 ───────────────────────────────────────────────────
-export const C2_P6_DEVIATION_QUESTION = '第一处偏离在第几段？在轨迹上点出来：';
+export const C2_P6_DEVIATION_QUESTION =
+  'In which paragraph is the first deviation? Click on the track:';
 export const C2_P6_DEVIATION_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'deviation-second-segment',
-    label: '第二段——应该先 Down 1 踩上 4-8 的低石，bug 却继续 Left 2 冲到 2-7 的水面上方',
+    label:
+      'Second section - Down 1 should be used to step on the low rocks at 4-8, but the bug continues to use Left 2 to rush above the water at 2-7',
     correct: true,
   },
-  { id: 'deviation-first-segment', label: '第一段——两版从第一步就不一样', correct: false },
-  { id: 'deviation-third-segment', label: '第三段——只有最后一块不同', correct: false },
+  {
+    id: 'deviation-first-segment',
+    label: 'The first paragraph - the two versions are different from the first step',
+    correct: false,
+  },
+  {
+    id: 'deviation-third-segment',
+    label: 'Third paragraph - only the last piece is different',
+    correct: false,
+  },
 ];
 export const C2_P6_DEVIATION_RETRY_HINT =
-  '一段一段对着看：两版的第一段都是 Left 2、都停在 4-7 的高台上——最早不一样的是哪一段？';
+  'Look at each paragraph side by side: the first paragraph of both versions is Left 2, and both stop on the high platform of 4-7 - which paragraph is the first to be different?';
 
 // ── 五段解释 4：最小 diff ────────────────────────────────────────────────────
-export const C2_P6_FIX_QUESTION = '你在工作区里做了什么修改？';
+export const C2_P6_FIX_QUESTION = 'What changes did you make in the workspace?';
 export const C2_P6_FIX_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'fix-swap-two-blocks', label: '只把第二个 Left 2 和 Down 1 交换位置，别的什么都没动', correct: true },
-  { id: 'fix-bigger-number', label: '把 Left 2 改成 Left 4，一次退到底', correct: false },
-  { id: 'fix-speed', label: '加一块 Set Speed，让石猴跑快一点', correct: false },
-  { id: 'fix-rebuild', label: '把三块全删掉重新搭一条', correct: false },
+  {
+    id: 'fix-swap-two-blocks',
+    label: 'Just swap the positions of the second Left 2 and Down 1, nothing else is changed.',
+    correct: true,
+  },
+  {
+    id: 'fix-bigger-number',
+    label: 'Change Left 2 to Left 4 and retreat to the end at a time',
+    correct: false,
+  },
+  {
+    id: 'fix-speed',
+    label: 'Add a piece of Set Speed ​​to make the stone monkey run faster',
+    correct: false,
+  },
+  { id: 'fix-rebuild', label: 'Delete all three pieces and create a new one', correct: false },
 ];
 
 // ── 五段解释 5：重跑结果 ─────────────────────────────────────────────────────
-export const C2_P6_RERUN_QUESTION = '重跑以后，脚印和 bug 那次比有什么不同？';
+export const C2_P6_RERUN_QUESTION =
+  'After running again, what is the difference between the footprints and the bug?';
 export const C2_P6_RERUN_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'rerun-stone-path',
-    label: '终点一样，路却不一样了：这次踩过 4-8 的低石，伙伴照着走不会踩空',
+    label:
+      'The end point is the same, but the road is different: this time I have stepped on 4-8 low stones, and my partner will follow the same path without missing anything.',
     correct: true,
   },
-  { id: 'rerun-faster', label: '只是快了一点，路线其实一样', correct: false },
-  { id: 'rerun-new-endpoint', label: '石猴回到了另一个完全不同的地方', correct: false },
+  {
+    id: 'rerun-faster',
+    label: "It's just a little faster, but the route is actually the same",
+    correct: false,
+  },
+  {
+    id: 'rerun-new-endpoint',
+    label: 'Stone Monkey returns to a completely different place',
+    correct: false,
+  },
 ];
 export const C2_P6_RERUN_RETRY_HINT =
-  '把两串脚印排在一起比：两次都停在 2-8，但只有一次经过 4-8 那块低石——伙伴要跟的就是那一块。';
+  'Comparing the two sets of footprints together: they stopped at 2-8 twice, but only once passed the low stone at 4-8 - the one that the partner wanted to follow.';
 
 /** 预测（scene-specs）：第一段正确以后，第二段应该先向下还是继续向左？ */
-export const C2_P6_PREDICTION_QUESTION = '第一段正确以后，第二段应该先向下还是继续向左？';
+export const C2_P6_PREDICTION_QUESTION =
+  'After the first paragraph is correct, should the second paragraph go down first or continue to the left?';
 export const C2_P6_PREDICTION_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'predict-down-first', label: '先向下——踩上 4-8 的低石，才接得回伙伴那条路', correct: true },
-  { id: 'predict-left-again', label: '继续向左，最后再向下也一样到家', correct: false },
+  {
+    id: 'predict-down-first',
+    label:
+      'Go down first - step on the low rocks 4-8 before you can reach the path back to your partner.',
+    correct: true,
+  },
+  {
+    id: 'predict-left-again',
+    label: 'Continue to the left, and finally go down to reach home.',
+    correct: false,
+  },
 ];
 export const C2_P6_PREDICTION_RETRY_HINT =
-  '看看来时的脚印：石猴是从 4-8 跳上 4-7 的。回去要原路，就得先从高台踩回那块低石。';
+  'Look at the footprints: Stone Monkey jumped from 4-8 to 4-7. To go back to the original path, you must first step back to the low stone from the high platform.';
 
 export const C2_P6_RESOLVED_WORLD_CHANGE =
-  '石猴沿来路退回：先从水帘入口回到 4-7 的高台，再踩下 4-8 的低石，最后回到 2-8——伙伴们等着的高石前。三个脚印和来时完全对得上。';
+  'The stone monkey returns along the way it came: first from the water curtain entrance back to the high platform 4-7, then stepping on the low stone 4-8, and finally back to 2-8 - the high stone where the friends are waiting. The three footprints match exactly where they came from.';
 export const C2_P6_STORY_AFTER =
-  '他按桥、干地、清水把发现说清楚，并邀请大家跟着这条走得通的路线进去。';
-export const C2_P6_CONTINUE_LABEL = '把路线变成大家的路';
+  'He explained his findings clearly in terms of bridge, dry land, and clear water, and invited everyone to follow this feasible route.';
+export const C2_P6_CONTINUE_LABEL = 'Make the route a road for everyone';
 
 /**
  * The read-only reproduction the part page runs through the REAL BlocksRunner:

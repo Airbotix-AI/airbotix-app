@@ -73,16 +73,22 @@ export function JourneyWestC4Part1Page() {
     },
   });
 
-  if (progress.isLoading) return <p className="p-8 text-center text-ink-soft">山门的灯正在亮起…</p>;
+  if (progress.isLoading)
+    return (
+      <p className="p-8 text-center text-ink-soft">The lights at the mountain gate are on...</p>
+    );
   if (!unlocked && !completed) {
     return (
       <div
         className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center"
         data-testid="jtw-c4p1-locked"
       >
-        <p className="font-bold text-ink">先完成第三章的远行讲回，再来到山门。</p>
+        <p className="font-bold text-ink">
+          Complete the story about the journey in Chapter 3 first, and then come to the mountain
+          gate.
+        </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -92,9 +98,11 @@ export function JourneyWestC4Part1Page() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c4-p1">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第四章 你有名字了：孙悟空 · Part 1
+          Journey to the West · Chapter 4 You have a name: Sun Wukong · Part 1
         </p>
-        <h1 className="text-[28px] font-black text-ink">山门前，把来路讲清楚</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          In front of the mountain gate, explain clearly the way you came.
+        </h1>
       </header>
 
       <section className="space-y-4" data-testid="jtw-c4p1-story">
@@ -107,7 +115,7 @@ export function JourneyWestC4Part1Page() {
           ))}
         </div>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C4_P1_CLASSIC_CARD}
         </aside>
         <button
@@ -116,7 +124,7 @@ export function JourneyWestC4Part1Page() {
           data-testid="jtw-c4p1-read"
           onClick={() => setStoryRead(true)}
         >
-          {storyRead ? '正文已共读 ✓' : '我已读完这段正文'}
+          {storyRead ? 'The text has been read together ✓' : 'I have finished reading this text'}
         </button>
       </section>
 
@@ -126,23 +134,23 @@ export function JourneyWestC4Part1Page() {
       >
         <img
           src={JTW_C3_PAGE3_RESOLVED_BACKGROUND}
-          alt="石猴走过海路后抵达山中的师门石牌"
+          alt="After crossing the sea, Stone Monkey arrives at his master's mountain gate."
           className="absolute inset-0 h-full w-full object-cover"
         />
         <img
           src={JTW_C3_MONKEY_KING_SPRITE}
-          alt="仍系着旧布带的石猴站在山门前"
+          alt="The stone monkey still wearing an old cloth belt stands in front of the mountain gate"
           data-testid="jtw-c4p1-stone-monkey"
           className="absolute bottom-[18%] left-[24%] w-[15%]"
         />
         <div className="absolute right-[12%] top-[18%] rounded-xl border border-white/70 bg-ink/65 px-4 py-2 text-[14px] font-bold text-white">
-          空名字牌
+          empty name tag
         </div>
       </div>
 
       {storyRead ? (
         <OrderCards
-          title="把来路按先后排好"
+          title="Arrange the routes in order"
           options={[...C4_P1_ROUTE_CARDS]}
           order={routeOrder}
           onChange={setRouteOrder}
@@ -151,12 +159,12 @@ export function JourneyWestC4Part1Page() {
         />
       ) : (
         <p className="font-semibold text-brand-coral" data-testid="jtw-c4p1-unread">
-          先读完正文，来路卡才会打开。
+          Read the text first and then open the Luca card.
         </p>
       )}
 
       <EvidenceGroup
-        title="选出正文里的两条动机证据"
+        title="Select two pieces of evidence of motivation from the text."
         options={[...C4_P1_MOTIVE_OPTIONS]}
         selected={motives}
         onToggle={(id) =>
@@ -170,7 +178,8 @@ export function JourneyWestC4Part1Page() {
 
       <section data-testid="jtw-c4p1-prediction">
         <h2 className="mb-2 text-[15px] font-bold text-ink">
-          如果石猴只为寻宝，正文中哪两处会互相矛盾？
+          If the Stone Monkey were only looking for treasure, which two places in the text would
+          contradict each other?
         </h2>
         <div className="flex flex-col gap-2">
           {C4_P1_PREDICTION_OPTIONS.map((option) => (
@@ -186,7 +195,7 @@ export function JourneyWestC4Part1Page() {
 
       <section data-testid="jtw-c4p1-why">
         <h2 className="mb-2 text-[15px] font-bold text-ink">
-          看着来路，用自己的声音讲一句“因为—所以—后来”
+          Look at the origin and say in your own voice "because - so - later"
         </h2>
         <div className="flex flex-col gap-2">
           {C4_P1_WHY_OPTIONS.map((option) => (
@@ -206,17 +215,19 @@ export function JourneyWestC4Part1Page() {
           data-testid="jtw-c4p1-resolved"
         >
           <p className="text-[15px] leading-7 text-ink">
-            山门暖灯亮起，门只打开通往庭院的一条路，空名字牌进入视野。
+            The warm light on the mountain gate turned on, and the door only opened a way to the
+            courtyard, and the empty name plate came into view.
           </p>
           <p className="mt-2 font-semibold text-ink">
-            门内听见了石猴的来处和理由；下一步要理解为什么一个名字会连接过去与未来。
+            The door heard the origin and reason of the Stone Monkey; the next step is to understand
+            why a name connects the past and the future.
           </p>
         </section>
       )}
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -225,7 +236,7 @@ export function JourneyWestC4Part1Page() {
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : '看看空木牌'}
+          {complete.isPending ? 'Saving…' : 'Look at the empty wooden sign'}
         </button>
       </footer>
     </div>

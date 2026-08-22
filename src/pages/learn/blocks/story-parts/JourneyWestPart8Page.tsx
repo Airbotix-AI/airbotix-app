@@ -145,7 +145,7 @@ function SavedWorkRun({
       >
         <img
           src={JTW_C1_BACKGROUND_ASSET}
-          alt="花果山：你保存的亮相就要重新上演"
+          alt="Flower-Fruit Mountain: Your saved appearance will be played again"
           className="absolute inset-0 h-full w-full object-cover"
         />
         {character && (
@@ -174,7 +174,8 @@ function SavedWorkRun({
 
       <div>
         <p className="mb-2 text-[13px] font-semibold text-ink-soft">
-          这是你在 Part 7 保存的作品（只读）——从 Start 完整运行到 End，一块也不改：
+          This is the work you saved in Part 7 (read-only) - run from Start to End without changing
+          a single bit:
         </p>
         <div className="flex flex-wrap items-center gap-1" data-testid="jtw-p8-saved-chain">
           {blocks.map((block, index) => (
@@ -196,15 +197,17 @@ function SavedWorkRun({
         onClick={() => void run()}
         data-testid="jtw-p8-run"
       >
-        {running ? '运行中…' : ran ? '▶ 再运行一遍' : '▶ 从 Start 完整运行到 End'}
+        {running ? 'Running…' : ran ? '▶ Run it again' : '▶ Complete run from Start to End'}
       </button>
       {ran && heard && (
         <p className="text-[13px] font-semibold text-ink" data-testid="jtw-p8-heard">
-          运行时大家听见石猴说：「{heard}」
+          While running, everyone heard Stone Monkey say: "{heard}」
         </p>
       )}
       {disabled && (
-        <p className="text-[13px] font-semibold text-ink-soft">先把上面的五张因果卡排好，再运行。</p>
+        <p className="text-[13px] font-semibold text-ink-soft">
+          First arrange the five causal cards above and then run them.
+        </p>
       )}
     </div>
   );
@@ -284,15 +287,20 @@ export function JourneyWestPart8Page({
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">水声越来越近了…</p>;
+    return <p className="p-8 text-center text-ink-soft">The sound of water is getting closer...</p>;
   }
 
   if (!unlocked && !completed) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center" data-testid="jtw-p8-locked">
-        <p className="text-[16px] font-bold text-ink">先在 Part 7 完成并保存你自己的亮相，再来讲回这一章。</p>
+      <div
+        className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center"
+        data-testid="jtw-p8-locked"
+      >
+        <p className="text-[16px] font-bold text-ink">
+          Complete and save your own appearance in Part 7 before returning to this chapter.
+        </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -302,31 +310,31 @@ export function JourneyWestPart8Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c1-p8">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第一章 石猴出世 · Part 8 · Retell
+          Journey to the West · Chapter 1 The Stone Monkey is Born · Part 8 · Retell
         </p>
-        <h1 className="text-[28px] font-black text-ink">新伙伴听见了水声</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          The new partner heard the sound of water
+        </h1>
       </header>
 
       {/* ── story_before：完整儿童正文 + 原著卡 + 原创对白 ───────────── */}
       <section className="space-y-4" data-testid="jtw-p8-story">
         <p className="text-[16px] leading-8 text-ink">{C1_P8_STORY_BEFORE}</p>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C1_P8_CLASSIC_CARD}
         </aside>
         <div className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <p>
-            群猴：「{C1_P8_DIALOGUE_MONKEYS}」
-          </p>
-          <p>
-            石猴：「{C1_P8_DIALOGUE_STONE_MONKEY}」
-          </p>
+          <p>Group of monkeys: "{C1_P8_DIALOGUE_MONKEYS}」</p>
+          <p>Stone Monkey: "{C1_P8_DIALOGUE_STONE_MONKEY}」</p>
         </div>
       </section>
 
       {/* ── 动机 ────────────────────────────────────────────────────── */}
       <section data-testid="jtw-p8-motive">
-        <h2 className="mb-2 text-[15px] font-bold text-ink">石猴为什么同行，又为什么先观察？</h2>
+        <h2 className="mb-2 text-[15px] font-bold text-ink">
+          Why do the stone monkeys walk together, and why do they observe first?
+        </h2>
         <div className="flex flex-col gap-2">
           {C1_P8_MOTIVE_OPTIONS.map((option) => (
             <Choice
@@ -341,7 +349,7 @@ export function JourneyWestPart8Page({
 
       {/* ── 五张因果卡（运行之前排列） ───────────────────────────────── */}
       <OrderCards
-        title="运行之前：把这一章的五张因果卡按先后排好"
+        title="Before running: Arrange the five cause and effect cards in this chapter in order"
         options={C1_P8_CAUSE_CARDS}
         order={cardOrder}
         onChange={setCardOrder}
@@ -351,16 +359,19 @@ export function JourneyWestPart8Page({
 
       {/* ── 完整运行 P7 已保存的真实作品 ─────────────────────────────── */}
       <section className="space-y-4" data-testid="jtw-p8-saved-run">
-        <h2 className="text-[15px] font-bold text-ink">完整运行你保存的作品</h2>
-        {savedWork.isLoading && <p className="text-[13px] text-ink-soft">正在找你的作品…</p>}
+        <h2 className="text-[15px] font-bold text-ink">Completely run your saved work</h2>
+        {savedWork.isLoading && <p className="text-[13px] text-ink-soft">Looking for your work…</p>}
         {!savedWork.isLoading && !workFound && (
           <p
             className="rounded-2xl border border-brand-coral/50 bg-canvas-pure p-4 text-[14px] font-semibold text-ink"
             data-testid="jtw-p8-work-missing"
           >
-            没有找到你在 Part 7 保存的亮相作品。
-            <Link className="ml-1 font-bold text-brand-sky" to="/learn/story/journey-west/jtw-s1-c1-p7">
-              回到 Part 7 打开工作区，确认已保存 →
+            Your saved appearance in Part 7 was not found.
+            <Link
+              className="ml-1 font-bold text-brand-sky"
+              to="/learn/story/journey-west/jtw-s1-c1-p7"
+            >
+              Go back to Part 7, open the workspace, and confirm that it has been saved →
             </Link>
           </p>
         )}
@@ -425,9 +436,11 @@ export function JourneyWestPart8Page({
             </>
           ) : (
             <p className="text-[14px] font-semibold text-ink-soft">
-              出世印还没亮——服务器记录里这一章还缺
-              {seal ? ` ${seal.missing.length} ` : '若干'}
-              项证据。补齐 P1–P8 的阅读、解释、搭建、运行、修理和讲回证据后它才会点亮。
+              The Seal of Birth has not yet been revealed - this chapter is still missing in the
+              server records
+              {seal ? ` ${seal.missing.length} ` : 'several'}
+              item of evidence. It will light up after completing P1–P8 of reading, explaining,
+              building, running, repairing, and telling back the evidence.
             </p>
           )}
         </section>
@@ -446,7 +459,7 @@ export function JourneyWestPart8Page({
 
       <footer className="flex flex-wrap items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         {!completed ? (
           <button
@@ -456,7 +469,7 @@ export function JourneyWestPart8Page({
             disabled={!resolved || complete.isPending}
             onClick={() => void complete.mutate()}
           >
-            {complete.isPending ? '保存中…' : C1_P8_LIGHT_SEAL_LABEL}
+            {complete.isPending ? 'Saving…' : C1_P8_LIGHT_SEAL_LABEL}
           </button>
         ) : (
           <div className="flex flex-wrap gap-3">
@@ -483,7 +496,7 @@ export function JourneyWestPart8Page({
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

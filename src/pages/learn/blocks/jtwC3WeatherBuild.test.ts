@@ -4,11 +4,7 @@ import type { Block, BlocksProject } from './blocksModel';
 import { parseProject } from './blocksModel';
 import { runPageFlow } from './pageFlowRun';
 import { storyMissionProgramMatches, storyMissionSayChoices } from './storyMissionProgress';
-import {
-  JTW_C3_ARRIVAL_CHAIN,
-  JTW_C3_DEPART_CHAIN,
-  JTW_C3_RAFT_CHAIN,
-} from './jtwC3SeaBuild';
+import { JTW_C3_ARRIVAL_CHAIN, JTW_C3_DEPART_CHAIN, JTW_C3_RAFT_CHAIN } from './jtwC3SeaBuild';
 import {
   JTW_C3_LISTEN_CLUE,
   JTW_C3_MORNING_EXPRESSION,
@@ -114,7 +110,7 @@ function starter(id: JtwC3Weather): BlocksProject {
 }
 
 describe('jtwC3WeatherBuild — the C3-P5 two-branch contract', () => {
-  it('accepts BOTH versions independently ("断言两版均可独立成功")', () => {
+  it('accepts BOTH versions independently ("Assert that both versions can succeed independently")', () => {
     expect(jtwC3WeatherBuildVersion(built('starry'))).toBe('starry');
     expect(jtwC3WeatherBuildVersion(built('morning'))).toBe('morning');
     expect(storyMissionProgramMatches(built('starry'), JTW_C3_P5_LESSON_ID)).toBe(true);
@@ -143,11 +139,11 @@ describe('jtwC3WeatherBuild — the C3-P5 two-branch contract', () => {
     expect(jtwC3WeatherBuildComplete(starter('morning'))).toBe(false);
   });
 
-  it('rejects "只换背景" — repainting the sea without building the expression', () => {
+  it('rejects "just change the background" — repainting the sea without building the expression', () => {
     // The starry sea painted over the bare shipped route.
-    expect(jtwC3WeatherBuildComplete(weatherProject(JTW_C3_PAGE2_STARRY_SCENE, JTW_C3_P5_STARTER_CHAIN))).toBe(
-      false,
-    );
+    expect(
+      jtwC3WeatherBuildComplete(weatherProject(JTW_C3_PAGE2_STARRY_SCENE, JTW_C3_P5_STARTER_CHAIN)),
+    ).toBe(false);
     // And the reverse mismatch: a starry chain saved on the mist sea, or a mist
     // chain saved on the starry sea, is neither version.
     expect(
@@ -208,7 +204,7 @@ describe('jtwC3WeatherBuild — the C3-P5 two-branch contract', () => {
           { op: 'when_flag' },
           { op: 'set_speed', n: 1 },
           { op: 'play_sound', n: 4 },
-          { op: 'say', text: '随便打的字' },
+          { op: 'say', text: 'Typing casually' },
           ...JTW_C3_P5_ROUTE_TAIL,
         ]),
       ),

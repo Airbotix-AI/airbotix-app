@@ -46,7 +46,7 @@ const P3_DONE: StoryLineProgress = {
 function buildProject(middle: Array<{ op: string; n?: number; text?: string }>): BlocksProject {
   return {
     version: 1,
-    name: '西游记 · 搭出完整出世链',
+    name: 'Journey to the West · Create a complete birth chain',
     lessonId: 'jtw-s1-c1-p4',
     pages: [
       {
@@ -81,7 +81,7 @@ const TARGET_MIDDLE = [
   { op: 'play_sound', n: 2 },
   { op: 'show' },
   { op: 'hop', n: 1 },
-  { op: 'say', text: '你好，我刚刚来到这里。' },
+  { op: 'say', text: 'Hello, I just came here.' },
 ];
 
 function mockBuild(
@@ -93,7 +93,12 @@ function mockBuild(
     return;
   }
   listProjects.mockResolvedValue([
-    { id: 'proj_jtw_1', title: '西游记 · 搭出完整出世链', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_jtw_1',
+      title: 'Journey to the West · Create a complete birth chain',
+      kind: 'blocks',
+      status: 'active',
+    },
   ]);
   loadProject.mockResolvedValue({
     project: buildProject(middle),
@@ -101,7 +106,9 @@ function mockBuild(
     history: { past: [], future: [] },
     storyProgress: {
       schemaVersion: 1,
-      completed: runCompleted ? { 'jtw-s1-c1-p4': { completedAt: '2026-07-25T06:00:00.000Z' } } : {},
+      completed: runCompleted
+        ? { 'jtw-s1-c1-p4': { completedAt: '2026-07-25T06:00:00.000Z' } }
+        : {},
     },
     otherFiles: [],
   } as never);
@@ -124,15 +131,19 @@ function renderPage() {
 
 function answerQuestions() {
   for (const [blockId, meaning] of [
-    ['chime', '仙石有动静的提示'],
-    ['show', '主角出现，被大家看见'],
-    ['hop', '第一次行动'],
-    ['say', '第一次和伙伴联系'],
+    ['chime', 'A reminder that there is movement in the fairy stone'],
+    ['show', 'The protagonist appears and is seen by everyone'],
+    ['hop', 'first action'],
+    ['say', 'Contacting a partner for the first time'],
   ] as const) {
     const row = within(screen.getByTestId(`jtw-p4-meaning-${blockId}`));
     fireEvent.click(row.getByRole('button', { name: meaning }));
   }
-  fireEvent.click(screen.getByRole('button', { name: /👀 Show——先出现/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /👀 Show - appear first, actions and greetings will be seen later/i,
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -148,7 +159,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestPart4Page · C1-P4 搭出完整出世链', () => {
+describe('JourneyWestPart4Page · C1-P4 creates a complete birth chain', () => {
   it('blocks kids who have not finished P3', async () => {
     fetchProgress.mockResolvedValue({
       ...P3_DONE,
@@ -170,7 +181,7 @@ describe('JourneyWestPart4Page · C1-P4 搭出完整出世链', () => {
     fireEvent.click(screen.getByTestId('jtw-p4-open-studio'));
     await waitFor(() => expect(screen.getByTestId('studio-stub')).toBeInTheDocument());
     expect(createProject).toHaveBeenCalledWith({
-      title: '西游记 · 搭出完整出世链',
+      title: 'Journey to the West · Create a complete birth chain',
       template: 'blocks_jtw_c1_p4',
     });
   });
@@ -181,13 +192,15 @@ describe('JourneyWestPart4Page · C1-P4 搭出完整出世链', () => {
         { op: 'play_sound', n: 2 },
         { op: 'grow', n: 2 },
         { op: 'hop', n: 1 },
-        { op: 'say', text: '你好，我刚刚来到这里。' },
+        { op: 'say', text: 'Hello, I just came here.' },
       ],
       true, // even with a recorded run, the saved program itself must match
     );
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-p4-build')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByTestId('jtw-p4-build').dataset.buildState).toBe('in_progress'));
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-p4-build').dataset.buildState).toBe('in_progress'),
+    );
 
     answerQuestions();
     expect(screen.getByTestId('jtw-p4-continue')).toBeDisabled();
@@ -197,7 +210,9 @@ describe('JourneyWestPart4Page · C1-P4 搭出完整出世链', () => {
     mockBuild(TARGET_MIDDLE, false);
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-p4-build')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByTestId('jtw-p4-build').dataset.buildState).toBe('in_progress'));
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-p4-build').dataset.buildState).toBe('in_progress'),
+    );
     answerQuestions();
     expect(screen.getByTestId('jtw-p4-continue')).toBeDisabled();
   });
@@ -209,7 +224,7 @@ describe('JourneyWestPart4Page · C1-P4 搭出完整出世链', () => {
     expect(screen.getByTestId('jtw-p4-continue')).toBeDisabled(); // Q&A pending
 
     answerQuestions();
-    expect(screen.getByTestId('jtw-p4-resolved')).toHaveTextContent('仙石亮起');
+    expect(screen.getByTestId('jtw-p4-resolved')).toHaveTextContent('fairy stone lights up');
     fireEvent.click(screen.getByTestId('jtw-p4-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));

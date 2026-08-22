@@ -51,8 +51,9 @@ export const JTW_C2_P7_WAIT_CHOICES = [1, 2] as const;
  */
 export const JTW_C2_P7_EVIDENCE_LINES = [
   'Bridge, dry ground, stone seat, clear water.',
-  '进来吧，里面有干地和石座。',
-  '跟着我的脚印，桥是稳的。',
+  'Bridge, dry land, stone base, clear water.',
+  'Come in, there is dry ground and stone seats.',
+  'Follow my footsteps, the bridge is stable.',
 ] as const;
 
 export type JtwEntrySideId = 'left' | 'right';
@@ -79,7 +80,7 @@ export interface JtwEntrySide {
  */
 const LEFT_SIDE: JtwEntrySide = {
   id: 'left',
-  label: '左岸的湿石路（起点 2/8）',
+  label: 'Wet stone road on the left bank (starting point 2/8)',
   start: { gx: 2, gy: 8 },
   route: [
     { op: 'move_right', n: 1 },
@@ -100,7 +101,7 @@ const LEFT_SIDE: JtwEntrySide = {
  */
 const RIGHT_SIDE: JtwEntrySide = {
   id: 'right',
-  label: '右岸的花丛石滩（起点 12/9）',
+  label: 'The flower-covered stone beach on the right bank (starting point 12/9)',
   start: { gx: 12, gy: 9 },
   route: [
     { op: 'move_up', n: 1 },

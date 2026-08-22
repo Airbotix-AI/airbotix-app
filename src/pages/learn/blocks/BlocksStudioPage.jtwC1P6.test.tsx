@@ -54,7 +54,7 @@ async function renderStudio(readOnly = false, embedded = false) {
 
 describe('BlocksStudioPage JtW C1-P6 order-bug mission', () => {
   it('makes JtW C1-P6 run the order bug before a moved-blocks repair can succeed', { timeout: 20_000 }, async () => {
-    const orderDebug = blankProject('西游记 · 修好乱序的亮相');
+    const orderDebug = blankProject("Journey to the West·Repair the out-of-order appearance");
     orderDebug.lessonId = 'jtw-s1-c1-p6';
     orderDebug.pages[0] = {
       id: 'jtw-c1-p6-page',
@@ -73,7 +73,7 @@ describe('BlocksStudioPage JtW C1-P6 order-bug mission', () => {
                 { op: 'when_flag' },
                 { op: 'hide' },
                 { op: 'play_sound', n: 2 },
-                { op: 'say', text: 'Hello, I just came here.' },
+                { op: 'say', text: "Hello, I just came here." },
                 { op: 'hop', n: 1 },
                 { op: 'show' },
                 { op: 'end' },
@@ -112,7 +112,7 @@ describe('BlocksStudioPage JtW C1-P6 order-bug mission', () => {
       { op: 'play_sound', n: 2 },
       { op: 'show' },
       { op: 'hop', n: 1 },
-      { op: 'say', text: 'Hello, I just came here.' },
+      { op: 'say', text: "Hello, I just came here." },
       { op: 'end' },
     ]);
     await waitFor(() => expect(saveBlocksProject).toHaveBeenCalled());
@@ -126,7 +126,7 @@ describe('BlocksStudioPage JtW C1-P6 order-bug mission', () => {
   });
 
   it('JtW C1-P6 refuses success when the repair lands without a prior bug run', { timeout: 20_000 }, async () => {
-    const orderDebug = blankProject('西游记 · 修好乱序的亮相');
+    const orderDebug = blankProject("Journey to the West·Repair the out-of-order appearance");
     orderDebug.lessonId = 'jtw-s1-c1-p6';
     orderDebug.pages[0] = {
       id: 'jtw-c1-p6-page',
@@ -145,7 +145,7 @@ describe('BlocksStudioPage JtW C1-P6 order-bug mission', () => {
                 { op: 'when_flag' },
                 { op: 'hide' },
                 { op: 'play_sound', n: 2 },
-                { op: 'say', text: 'Hello, I just came here.' },
+                { op: 'say', text: "Hello, I just came here." },
                 { op: 'hop', n: 1 },
                 { op: 'show' },
                 { op: 'end' },

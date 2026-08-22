@@ -44,7 +44,7 @@ afterEach(() => {
 
 /** The starter document the backend seeds for `blocks_jtw_c2_p6`. */
 function returnBugProject() {
-  const project = blankProject('西游记 · 回去的第一处偏离');
+  const project = blankProject("Journey to the West · The first deviation when going back");
   project.lessonId = 'jtw-s1-c2-p6';
   project.pages[0] = {
     id: 'jtw-c2-p6-page',

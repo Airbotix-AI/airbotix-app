@@ -86,9 +86,13 @@ describe('JourneyWestMapPage', () => {
         : { story_line_id: storyLineId, completed: [], unlocked_part_ids: ['jtw-s1-c1-p1'] },
     );
     renderMap();
-    await waitFor(() => expect(screen.getByTestId('jtw-map-part-jtw-s2-c1-p1').dataset.state).toBe('completed'));
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-map-part-jtw-s2-c1-p1').dataset.state).toBe('completed'),
+    );
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c1-p2').dataset.state).toBe('open');
-    expect(screen.getByRole('link', { name: /为什么先写三步/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Why write three steps first\?/i }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c1-p3').dataset.state).toBe('locked');
   });
 
@@ -106,9 +110,11 @@ describe('JourneyWestMapPage', () => {
         : { story_line_id: storyLineId, completed: [], unlocked_part_ids: ['jtw-s1-c1-p1'] },
     );
     renderMap();
-    await waitFor(() => expect(screen.getByTestId('jtw-map-part-jtw-s2-c1-p2').dataset.state).toBe('completed'));
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-map-part-jtw-s2-c1-p2').dataset.state).toBe('completed'),
+    );
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c1-p3').dataset.state).toBe('open');
-    expect(screen.getByRole('link', { name: /先在桌面上走一遍/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Walk around the table first/i })).toBeInTheDocument();
   });
 
   it('shows implemented C2-P6 and C2-P7 in the playable chain, with C4-P1 as the frontier', async () => {
@@ -122,9 +128,11 @@ describe('JourneyWestMapPage', () => {
         : { story_line_id: storyLineId, completed: [], unlocked_part_ids: ['jtw-s1-c1-p1'] },
     );
     renderMap();
-    await waitFor(() => expect(screen.getByTestId('jtw-map-part-jtw-s2-c2-p5').dataset.state).toBe('completed'));
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-map-part-jtw-s2-c2-p5').dataset.state).toBe('completed'),
+    );
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c2-p6').dataset.state).toBe('open');
-    expect(screen.getByRole('link', { name: /谁回答得太早/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Who answered too early\?/i })).toBeInTheDocument();
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c2-p7').dataset.state).toBe('locked');
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p1').dataset.state).toBe('locked');
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p2').dataset.state).toBe('locked');
@@ -137,8 +145,14 @@ describe('JourneyWestMapPage', () => {
         : { story_line_id: storyLineId, completed: [], unlocked_part_ids: ['jtw-s1-c1-p1'] },
     );
     renderMap();
-    await waitFor(() => expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p1').dataset.state).toBe('open'));
-    expect(screen.getByRole('link', { name: /蓝边路线卡送错了谁/ })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p1').dataset.state).toBe('open'),
+    );
+    expect(
+      screen.getByRole('link', {
+        name: /The blue-edged route card was sent to the wrong person\./i,
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p2').dataset.state).toBe('locked');
   });
 
@@ -149,8 +163,12 @@ describe('JourneyWestMapPage', () => {
         : { story_line_id: storyLineId, completed: [], unlocked_part_ids: ['jtw-s1-c1-p1'] },
     );
     renderMap();
-    await waitFor(() => expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p2').dataset.state).toBe('open'));
-    expect(screen.getByRole('link', { name: /为什么先认同一种信号/ })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p2').dataset.state).toBe('open'),
+    );
+    expect(
+      screen.getByRole('link', { name: /Why identify with a signal first\?/i }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p3').dataset.state).toBe('locked');
   });
 
@@ -161,8 +179,12 @@ describe('JourneyWestMapPage', () => {
         : { story_line_id: storyLineId, completed: [], unlocked_part_ids: ['jtw-s1-c1-p1'] },
     );
     renderMap();
-    await waitFor(() => expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p3').dataset.state).toBe('open'));
-    expect(screen.getByRole('link', { name: /哪一对颜色能把消息接通/ })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p3').dataset.state).toBe('open'),
+    );
+    expect(
+      screen.getByRole('link', { name: /Which pair of colors can connect the message\?/i }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c4-p4').dataset.state).toBe('locked');
   });
 
@@ -173,8 +195,12 @@ describe('JourneyWestMapPage', () => {
         : { story_line_id: storyLineId, completed: [], unlocked_part_ids: ['jtw-s1-c1-p1'] },
     );
     renderMap();
-    await waitFor(() => expect(screen.getByTestId('jtw-map-part-jtw-s2-c5-p5').dataset.state).toBe('open'));
-    expect(screen.getByRole('link', { name: /紫色回执回到悟空/ })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-map-part-jtw-s2-c5-p5').dataset.state).toBe('open'),
+    );
+    expect(
+      screen.getByRole('link', { name: /Purple receipt back to Wukong/i }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('jtw-map-part-jtw-s2-c5-p6').dataset.state).toBe('locked');
   });
 });

@@ -25,65 +25,65 @@ export interface JtwChapterRef {
 }
 
 const CHAPTER_TITLES: Record<string, string> = {
-  C1: '石猴出世',
-  C2: '水帘洞的约定',
-  C3: '一叶木筏求师路',
-  C4: '你的名字叫孙悟空',
-  C5: '会变大小的金箍棒',
-  C6: '天宫的快与慢',
+  C1: 'The Stone Monkey Is Born',
+  C2: 'The Promise at Water Curtain Cave',
+  C3: 'Across the Sea to Find a Teacher',
+  C4: 'Your name is Sun Wukong',
+  C5: 'The Size-Changing Golden-Hooped Staff',
+  C6: 'Fast and Slow in Heaven',
 };
 
 const PART_TITLES: ReadonlyArray<readonly [code: string, title: string]> = [
-  ['C1-P1', '清晨的花果山'],
-  ['C1-P2', '石猴出世运行示范'],
-  ['C1-P3', '树叶后的顺序排练'],
-  ['C1-P4', '搭出完整出世链'],
-  ['C1-P5', '两种真诚的问候'],
-  ['C1-P6', '声音怎么从空中来了'],
-  ['C1-P7', '我的石猴亮相'],
-  ['C1-P8', '新伙伴听见了水声'],
-  ['C2-P1', '水声把大家带到哪里'],
-  ['C2-P2', '瀑布前的约定'],
-  ['C2-P3', '三段湿石路'],
-  ['C2-P4', '刚好到达，不多也不少'],
-  ['C2-P5', '水帘分开以后'],
-  ['C2-P6', '回去的第一处偏离'],
-  ['C2-P7', '把发现变成大家的路'],
-  ['C2-P8', '守约成为美猴王'],
-  ['C3-P1', '快乐的家，也装不下所有问题'],
-  ['C3-P2', '把出发和到达排成一条路'],
-  ['C3-P3', '页面出口不是门牌装饰'],
-  ['C3-P4', '让海中央既有故事又有出口'],
-  ['C3-P5', '星夜和晨雾都需要观察'],
-  ['C3-P6', '木筏跳了位置'],
-  ['C3-P7', '我的三页求师路'],
-  ['C3-P8', '到达不是学会，而是准备开始'],
-  ['C4-P1', '山门前，把来路讲清楚'],
-  ['C4-P2', '一个名字，两个开始'],
-  ['C4-P3', '两个入口圈'],
-  ['C4-P4', '名字先站稳，本领再回应'],
-  ['C4-P5', '本领不是为了抢先'],
-  ['C4-P6', '先找第一次偏离'],
-  ['C4-P7', '让同伴真正认识悟空'],
-  ['C4-P8', '名字跟着他回家'],
-  ['C5-P1', '海底柱影为什么出现'],
-  ['C5-P2', '最后一块会留下什么大小'],
-  ['C5-P3', '身体记住三个状态'],
-  ['C5-P4', '搭出完整大小试验'],
-  ['C5-P5', '最大不等于最合适'],
-  ['C5-P6', 'Reset站错了结尾'],
-  ['C5-P7', '我的如意大小故事'],
-  ['C5-P8', '带走宝物，也讲清结果'],
-  ['C6-P1', '六枚印走到天宫'],
-  ['C6-P2', '感受与选择不是一件事'],
-  ['C6-P3', '六件事不能同时发生'],
-  ['C6-P4', '第一页把身份冲突讲清楚'],
-  ['C6-P5', '第二页让行动与回应分开'],
-  ['C6-P6', '我的前传节奏'],
-  ['C6-P7', '到了五行山却没有结束'],
-  ['C6-P8', '我的三页美猴王前传'],
-  ['C6-P9', '六枚印与四个因为'],
-  ['C6-P10', '第一程完整结束'],
+  ['C1-P1', 'Morning on Flower-Fruit Mountain'],
+  ['C1-P2', 'Watch the Stone Monkey Appear'],
+  ['C1-P3', 'Rehearse the Story Order'],
+  ['C1-P4', 'Build the Full Arrival'],
+  ['C1-P5', 'Two sincere greetings'],
+  ['C1-P6', 'Where Did That Sound Come From?'],
+  ['C1-P7', 'My Stone Monkey Entrance'],
+  ['C1-P8', 'A New Friend Hears Water'],
+  ['C2-P1', 'Where does the sound of water take everyone?'],
+  ['C2-P2', 'The Promise at the Waterfall'],
+  ['C2-P3', 'Three Sections of Wet Stone'],
+  ['C2-P4', 'Reach It Exactly'],
+  ['C2-P5', 'Behind the Water Curtain'],
+  ['C2-P6', 'The first deviation on the way back'],
+  ['C2-P7', 'Make discovery the path for everyone'],
+  ['C2-P8', 'Keep the Promise, Become the Monkey King'],
+  ['C3-P1', 'A Happy Home Cannot Answer Every Question'],
+  ['C3-P2', 'Put Departure and Arrival in Order'],
+  ['C3-P3', 'A Page Exit Must Lead Somewhere'],
+  ['C3-P4', 'Give the Middle of the Sea a Story and an Exit'],
+  ['C3-P5', 'Observe the Starry Night and Morning Mist'],
+  ['C3-P6', 'The Raft Starts in the Wrong Place'],
+  ['C3-P7', 'My Three-Page Search for a Teacher'],
+  ['C3-P8', 'Arrival Is Only the Beginning'],
+  ['C4-P1', 'In front of the mountain gate, explain clearly the way you came.'],
+  ['C4-P2', 'One name, two starts'],
+  ['C4-P3', 'two entrance circles'],
+  ['C4-P4', 'Stand firm on the name first, then respond with the ability'],
+  ['C4-P5', 'The skill is not to be first'],
+  ['C4-P6', 'Find the first deviation first'],
+  ['C4-P7', 'Let your companions truly know Wukong'],
+  ['C4-P8', 'The name followed him home'],
+  ['C5-P1', 'Why do pillar shadows appear on the seabed?'],
+  ['C5-P2', 'What size will the last piece leave?'],
+  ['C5-P3', 'The body remembers three states'],
+  ['C5-P4', 'Build a full-size experiment'],
+  ['C5-P5', 'The largest does not mean the most suitable'],
+  ['C5-P6', 'Reset ended at the wrong end'],
+  ['C5-P7', 'My wishful story'],
+  ['C5-P8', 'Take away the treasure and explain the consequences'],
+  ['C6-P1', 'Six seals walked to the Heavenly Palace'],
+  ['C6-P2', 'Feelings and choices are not the same thing'],
+  ['C6-P3', 'Six things cannot happen at the same time'],
+  ['C6-P4', 'Make the identity conflict clear on the first page'],
+  ['C6-P5', 'Page 2 separates action from response'],
+  ['C6-P6', 'My prequel rhythm'],
+  ['C6-P7', 'It’s Five Elements Mountain but it’s not over yet'],
+  ['C6-P8', 'My three-page Monkey King prequel'],
+  ['C6-P9', 'Six seals and four reasons'],
+  ['C6-P10', 'The first journey is complete'],
 ];
 
 export function jtwPartId(code: string): string {
@@ -116,49 +116,59 @@ export interface JtwEvidenceOption {
 
 /** Child-facing story text — teaching-script "清晨的花果山" IN FULL, two screens. */
 export const C1_P1_STORY_BEFORE: readonly [string, string] = [
-  '天还没有完全亮，大海先把一层淡蓝色的光推到岸边。浪花拍着黑亮的礁石，发出“哗——哗——”的声音。山脚的桃树挂着露珠，山腰的藤蔓绕过石缝，清泉从高处一路唱到谷底。小鸟醒了，鹿抬起头，树上的群猴也开始寻找熟透的果子。只有山顶那块高大的仙石，仍像昨天、前天和许多个清晨一样安静。它没有门，也没有窗，却一直迎着风、雨、日光和月色。',
-  '今天，一只小猴刚要从树枝跳过，忽然指着山顶：“你们看，石缝里有光！”群猴停下动作。那道光很细，像一根暖金色的线；风吹过时，石头里面还传来轻轻的“咚”。大家没有靠得太近，只躲在叶子后认真看。这里还没有谁叫孙悟空，也没有取经队伍。故事先从这座山、这块石头，以及一个还没露面的新伙伴开始。',
+  'Before sunrise, pale blue light spreads across the sea. Waves splash against the dark rocks. Dew shines on the peach trees, a clear spring runs down the mountain and the monkeys search for ripe fruit. Only the tall magic stone at the summit stays still. It has no door or window, yet it has stood through wind, rain, sunshine and moonlight for many years.',
+  'A young monkey points towards the summit. “Look! There is light inside the crack!” The others stop. A thin golden glow shines from the stone, followed by a soft thump. The monkeys do not rush closer. They hide behind the leaves and watch. No one is called Sun Wukong yet, and the pilgrims have not met. Our story begins with this mountain, this stone and a new friend who has not appeared.',
 ];
 
 export const C1_P1_CLASSIC_CARD =
-  '原著第一回里，花果山的仙石先孕育出石猴。此时还没有“孙悟空”这个名字，也没有取经的伙伴。';
+  'In the opening chapter of the classic novel, the magic stone on Flower-Fruit Mountain gives birth to the Stone Monkey. He is not called Sun Wukong yet, and he has not met the pilgrims.';
 
 /** 环境证据：至少选 3 项（全部 5 项都是画面里真实存在的）。 */
 export const C1_P1_ENVIRONMENT_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'sea', label: '大海', correct: true },
-  { id: 'fruit-trees', label: '果树', correct: true },
-  { id: 'spring', label: '清泉', correct: true },
-  { id: 'immortal-stone', label: '仙石', correct: true },
-  { id: 'warm-light', label: '暖光', correct: true },
+  { id: 'sea', label: 'sea', correct: true },
+  { id: 'fruit-trees', label: 'fruit trees', correct: true },
+  { id: 'spring', label: 'clear spring', correct: true },
+  { id: 'immortal-stone', label: 'magic stone', correct: true },
+  { id: 'warm-light', label: 'warm light', correct: true },
 ];
 export const C1_P1_ENVIRONMENT_MIN = 3;
 
 /** 动静证据：群猴停下来观察的两条原因（恰好两条正确）。 */
 export const C1_P1_REASON_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'crack-light', label: '石缝里发出光', correct: true },
-  { id: 'stone-sound', label: '石头里传来“咚”的声音', correct: true },
-  { id: 'pick-fruit', label: '想先去摘熟透的果子', correct: false },
-  { id: 'sky-bright', label: '天马上就要全亮了', correct: false },
+  { id: 'crack-light', label: 'Light shines from the cracks in the rocks', correct: true },
+  { id: 'stone-sound', label: 'A "dong" sound came from the stone', correct: true },
+  { id: 'pick-fruit', label: 'I want to pick ripe fruits first', correct: false },
+  { id: 'sky-bright', label: 'It will be bright soon', correct: false },
 ];
 
 /** “因为……，所以群猴……”句子的结尾选项。 */
 export const C1_P1_SO_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'stop-watch', label: '停下来，躲在叶子后认真观察', correct: true },
-  { id: 'run-away', label: '马上跑开了', correct: false },
-  { id: 'touch-stone', label: '冲上去摸仙石', correct: false },
+  { id: 'stop-watch', label: 'Stop, hide behind the leaves and observe carefully', correct: true },
+  { id: 'run-away', label: 'Ran away immediately', correct: false },
+  { id: 'touch-stone', label: 'Rush up and touch the fairy stone', correct: false },
 ];
 
-export const C1_P1_PREDICTION_QUESTION = '声音响过以后，石猴已经出现了吗？';
+export const C1_P1_PREDICTION_QUESTION = 'After the sound, had the Stone Monkey appeared?';
 export const C1_P1_PREDICTION_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'not-yet-appeared', label: '还没有——石台上没有石猴，他还藏在石头里', correct: true },
-  { id: 'already-appeared', label: '已经出现了，就站在石台上', correct: false },
+  {
+    id: 'not-yet-appeared',
+    label:
+      'Not yet - there is no stone monkey on the stone platform, he is still hidden in the stone',
+    correct: true,
+  },
+  {
+    id: 'already-appeared',
+    label: 'Already appeared, standing on the stone platform',
+    correct: false,
+  },
 ];
-export const C1_P1_PREDICTION_RETRY_HINT = '再看看画面：石台上有石猴吗？答案要从画面里找。';
+export const C1_P1_PREDICTION_RETRY_HINT =
+  'Look again. Can you see the Stone Monkey on the platform yet? Use the picture as your evidence.';
 
 export const C1_P1_RESOLVED_WORLD_CHANGE =
-  '晨光移到仙石上，裂缝亮得更清楚；一片叶子被震落，石头里又响了一声。';
-export const C1_P1_STORY_AFTER = '群猴决定安静等一等。';
-export const C1_P1_CONTINUE_LABEL = '听一听石头里面';
+  'The morning light moved to the fairy stone, and the cracks became clearer; a leaf was shaken off, and there was another sound in the stone.';
+export const C1_P1_STORY_AFTER = 'The monkeys decided to wait quietly.';
+export const C1_P1_CONTINUE_LABEL = 'Listen to the inside of the stone';
 
 export const JTW_STONE_MONKEY_ASSET =
   '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png';
@@ -231,10 +241,10 @@ export const C1_P2_MOTIVE =
 
 /** The four story cards the kid must arrange into story order. */
 export const C1_P2_STORY_CARDS: JtwEvidenceOption[] = [
-  { id: 'stone-sound', label: '🔔 石头有动静（Chime）', correct: true },
-  { id: 'monkey-appears', label: '👀 石猴出现（Show）', correct: true },
-  { id: 'first-jump', label: '🦘 跳一下（Hop）', correct: true },
-  { id: 'say-hello', label: '💬 开口问好（Say）', correct: true },
+  { id: 'stone-sound', label: '🔔 There is movement in the stone (Chime)', correct: true },
+  { id: 'monkey-appears', label: '👀 Stone Monkey Appears (Show)', correct: true },
+  { id: 'first-jump', label: '🦘 Hop', correct: true },
+  { id: 'say-hello', label: '💬 Say hello (Say)', correct: true },
 ];
 export const C1_P2_CARD_ORDER = ['stone-sound', 'monkey-appears', 'first-jump', 'say-hello'];
 
@@ -258,7 +268,11 @@ export const C1_P2_PREDICTION_OPTIONS: JtwEvidenceOption[] = [
     label: 'No — he must appear (Show) first, or the jump and hello happen unseen',
     correct: true,
   },
-  { id: 'yes-anyway', label: 'Yes — they can see and hear him even while he is hidden', correct: false },
+  {
+    id: 'yes-anyway',
+    label: 'Yes — they can see and hear him even while he is hidden',
+    correct: false,
+  },
 ];
 export const C1_P2_PREDICTION_RETRY_HINT =
   'Look at the chain: Show comes before Hop and Say. What would the monkeys see without it?';
@@ -317,52 +331,82 @@ export const C1_P2_DEMO_PROJECT: BlocksProject = {
 
 /** Teaching-script "树叶后的排练" IN FULL. */
 export const C1_P3_STORY_BEFORE =
-  '石猴站在仙石旁，悄悄把四件事在心里走了一遍：先听见石头的提示，再让大家看见自己，然后做一个动作，最后说出问候。风把树叶吹得沙沙响，像在给他打节拍。树后的群猴也试着想象：如果先听见“你好”，却看不到说话的人，他们会四处寻找；如果石猴还没出现就先跳，大家只会看见空空的石台；如果每一步按顺序发生，他们就能跟着线索明白“新伙伴来了”。一只年纪小的群猴捡起四片不同形状的叶子，把它们放在地上代表四个故事动作。另一只群猴故意交换两片叶子，大家立刻发现故事变得奇怪。石猴没有笑谁排错，也没有急着给答案。他说：“我们慢一点，一步一步演。看到哪张卡，就只做那一步。”于是，身体变成了程序，草地变成了舞台，每个人都能看见顺序怎样改变故事。';
+  'The stone monkey stood next to the fairy stone and quietly went through four things in his mind: first he heard the prompts from the stone, then he let everyone see him, then he made an action, and finally he said his greetings. The wind rustled the leaves, as if playing a rhythm to him. The group of monkeys behind the tree also tried to imagine: if they hear "Hello" first but cannot see the speaker, they will look around; if the stone monkey jumps before it appears, everyone will only see an empty stone platform; if each step occurs in order, they can follow the clues to understand that "the new partner is coming." A younger group of monkeys picked up four leaves of different shapes and placed them on the ground to represent the four story actions. Another group of monkeys deliberately exchanged two leaves, and everyone immediately noticed that the story became strange. Stone Monkey did not laugh at anyone who was troubleshooting, nor did he rush to give an answer. He said: "Let\'s slow down and act step by step. Which card you see, just do that step." So, the body became the program, the grass became the stage, and everyone could see how the sequence changed the story.';
 
 /** 人物动机：石猴为什么愿意排练？ */
 export const C1_P3_MOTIVE_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'clear-first-meeting', label: '他想让第一次见面清清楚楚，让伙伴安心', correct: true },
-  { id: 'get-reward', label: '排练得好可以得到奖励', correct: false },
-  { id: 'grab-fruit', label: '想第一个抢到熟果子', correct: false },
+  {
+    id: 'clear-first-meeting',
+    label: 'He wants to make the first meeting clear and put his partner at ease',
+    correct: true,
+  },
+  { id: 'get-reward', label: 'Rehearse well and get rewarded', correct: false },
+  { id: 'grab-fruit', label: 'Want to be the first to grab the ripe fruit', correct: false },
 ];
 
 /** 四张故事卡——与 play_sound(Chime)/show/hop(1)/say 一一对应。 */
 export const C1_P3_STORY_CARDS: JtwEvidenceOption[] = [
-  { id: 'card-chime', label: '🔔 石头的提示（Chime）', correct: true },
-  { id: 'card-show', label: '👀 让大家看见我（Show）', correct: true },
-  { id: 'card-hop', label: '🦘 做一个动作（Hop）', correct: true },
-  { id: 'card-say', label: '💬 说出问候（Say）', correct: true },
+  { id: 'card-chime', label: '🔔 Chime', correct: true },
+  { id: 'card-show', label: '👀 Let everyone see me (Show)', correct: true },
+  { id: 'card-hop', label: '🦘 Make a move (Hop)', correct: true },
+  { id: 'card-say', label: '💬 Say hello (Say)', correct: true },
 ];
 export const C1_P3_CARD_ORDER = ['card-chime', 'card-show', 'card-hop', 'card-say'];
 /** Hop/Say swapped — the comparison rehearsal order. */
 export const C1_P3_SWAPPED_ORDER = ['card-chime', 'card-show', 'card-say', 'card-hop'];
 
 /** 交换 Hop/Say 之后的对比问题。 */
-export const C1_P3_SWAP_QUESTION = '交换 Hop 和 Say 以后，伙伴还能看懂“新朋友来了”吗？';
+export const C1_P3_SWAP_QUESTION =
+  'After exchanging Hop and Say, can my partner still understand "A new friend is here"?';
 export const C1_P3_SWAP_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'still-works-show-first', label: '能——因为石猴已经先出现了，先问好再跳也说得通', correct: true },
-  { id: 'breaks-completely', label: '完全看不懂了，故事坏掉了', correct: false },
+  {
+    id: 'still-works-show-first',
+    label:
+      'Yes - because the stone monkey has already appeared first, it makes sense to say hello first and then jump.',
+    correct: true,
+  },
+  {
+    id: 'breaks-completely',
+    label: "I can't understand it at all, the story is broken",
+    correct: false,
+  },
 ];
 
 /** 证据：哪一版会让声音像从空中冒出来？ */
-export const C1_P3_AIR_VOICE_QUESTION = '哪一种排法会让问候声像从空中冒出来？';
+export const C1_P3_AIR_VOICE_QUESTION =
+  'Which arrangement would make the greeting sound appear out of the air?';
 export const C1_P3_AIR_VOICE_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'say-before-show', label: '把 Say 放到 Show 前面——大家听见声音，却看不到人', correct: true },
-  { id: 'show-before-say', label: '把 Show 放在 Say 前面', correct: false },
+  {
+    id: 'say-before-show',
+    label: 'Put Say in front of Show - everyone hears the sound but cannot see the person',
+    correct: true,
+  },
+  { id: 'show-before-say', label: 'Put Show before Say', correct: false },
 ];
 
-export const C1_P3_PREDICTION_QUESTION = '如果先 Say 再 Show，伙伴第一眼会看见什么？';
+export const C1_P3_PREDICTION_QUESTION =
+  'If you say first and then show, what will your partner see first?';
 export const C1_P3_PREDICTION_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'empty-stage-voice', label: '空空的石台——只有声音，还看不到石猴', correct: true },
-  { id: 'monkey-waving', label: '石猴已经站在石台上挥手', correct: false },
+  {
+    id: 'empty-stage-voice',
+    label: 'Empty stone platform - only sound, no stone monkey in sight',
+    correct: true,
+  },
+  {
+    id: 'monkey-waving',
+    label: 'The stone monkey is already standing on the stone platform waving',
+    correct: false,
+  },
 ];
-export const C1_P3_PREDICTION_RETRY_HINT = '想想排练时的约定：还没有 Show，大家能看见谁？';
+export const C1_P3_PREDICTION_RETRY_HINT =
+  'Think about the agreement during rehearsal: There is no show yet, who can everyone see?';
 
-export const C1_P3_SAY_TEXT = '你好，我刚刚来到这里。';
+export const C1_P3_SAY_TEXT = 'Hello, I just came here.';
 export const C1_P3_RESOLVED_WORLD_CHANGE =
-  '群猴能对着每一张卡说出“现在发生了什么”。他们把四张顺序卡交给石猴，准备把排练放进真正的故事舞台。';
-export const C1_P3_STORY_AFTER = '排练说得通了，可真正的舞台还没搭好。下一步：把四个动作放进程序。';
-export const C1_P3_CONTINUE_LABEL = '把顺序搭起来';
+  'The monkeys can say "what happens now" to each card. They handed four sequence cards to Stone Monkey, preparing to put the rehearsal into the real story stage.';
+export const C1_P3_STORY_AFTER =
+  "The rehearsals made sense, but the real stage wasn't set yet. Next step: Put the four actions into the program.";
+export const C1_P3_CONTINUE_LABEL = 'Put the order together';
 
 /** 预置只读链（display only —— 本 Part 不运行，不算 Build）。 */
 export const C1_P3_PRESET_CHAIN: Block[] = [
@@ -385,7 +429,7 @@ export const C1_P3_PRESET_CHAIN: Block[] = [
 
 /** Teaching-script "让大家真正看见" IN FULL. */
 export const C1_P4_STORY_BEFORE =
-  '草地上的排练说得通，可仙石旁的故事舞台还是安静的。石猴的轮廓藏在光后，群猴只能看见一块微微发亮的石头。石猴望着四张顺序卡说：“刚才我们用身体演过了。现在要让舞台也照这个顺序做。”孩子从候选动作里寻找真正属于这次出世的步骤。`Grow`会让角色变大，`Turn`会让角色转身，它们都能运行，却不能回答眼前的问题；眼前需要的是提示、出现、第一次动作和问候。每接上一块，舞台就多了一段可以解释的因果。运行前，群猴请孩子先别急着按开始：“告诉我们，光亮之后会看见什么？石猴出现以后又会做什么？”孩子逐步预测，故事才开始。仙石发出清脆的提示，金光沿裂缝亮起；石猴从隐藏处出现，稳稳跳到石台中央，再把脸转向伙伴。每一步都被看见，没有动作躲在空中发生。';
+  'The rehearsal on the grass made sense, but the story stage next to the fairy stone was still quiet. The outline of the stone monkey was hidden behind the light, and the group of monkeys could only see a slightly shiny stone. Stone Monkey looked at the four sequence cards and said: "We just performed it with our bodies. Now we have to do it on the stage in this order." The child looked for the steps that really belong to this birth from the candidate movements. `Grow` will make the character grow bigger, and `Turn` will make the character turn around. They both work, but they cannot answer the question at hand; what is needed at the moment is prompts, appearances, first actions and greetings. Every time a piece is connected, there is an additional cause and effect on the stage that can be explained. Before running, the group of monkeys asked the children not to press start in a hurry: "Tell us, what will we see when the light shines? What will the stone monkey do after it appears?" The children gradually made predictions, and the story began. The fairy stone gave out a crisp reminder, and golden light lit up along the cracks; the stone monkey emerged from hiding, jumped steadily to the center of the stone platform, and then turned its face to its partner. Every step is seen, no movement happens in the air.';
 
 /** 逐块因果证据：每一块让观众看见/听见什么（Chime=仙石动静，Show=主角出现，Hop=第一次行动，Say=第一次联系）。 */
 export const C1_P4_BLOCK_MEANINGS: Array<{
@@ -394,26 +438,46 @@ export const C1_P4_BLOCK_MEANINGS: Array<{
   meaningId: string;
   meaningLabel: string;
 }> = [
-  { id: 'chime', label: '🔔 Chime', meaningId: 'stone-stir', meaningLabel: '仙石有动静的提示' },
-  { id: 'show', label: '👀 Show', meaningId: 'hero-appears', meaningLabel: '主角出现，被大家看见' },
-  { id: 'hop', label: '🦘 Hop 1', meaningId: 'first-action', meaningLabel: '第一次行动' },
-  { id: 'say', label: '💬 Say', meaningId: 'first-contact', meaningLabel: '第一次和伙伴联系' },
+  {
+    id: 'chime',
+    label: '🔔 Chime',
+    meaningId: 'stone-stir',
+    meaningLabel: 'A reminder that there is movement in the fairy stone',
+  },
+  {
+    id: 'show',
+    label: '👀 Show',
+    meaningId: 'hero-appears',
+    meaningLabel: 'The protagonist appears and is seen by everyone',
+  },
+  { id: 'hop', label: '🦘 Hop 1', meaningId: 'first-action', meaningLabel: 'first action' },
+  {
+    id: 'say',
+    label: '💬 Say',
+    meaningId: 'first-contact',
+    meaningLabel: 'Contacting a partner for the first time',
+  },
 ];
 
 export const C1_P4_PREDICTION_QUESTION =
-  '哪一块必须放在 Hop 和 Say 之前，伙伴才能看见是谁？';
+  'Which piece must be placed before Hop and Say so partners can see who it is?';
 export const C1_P4_PREDICTION_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'show-first', label: '👀 Show——先出现，动作和问候才被看见', correct: true },
+  {
+    id: 'show-first',
+    label: '👀 Show - appear first, actions and greetings will be seen later',
+    correct: true,
+  },
   { id: 'chime-first', label: '🔔 Chime', correct: false },
   { id: 'end-first', label: '🛑 End', correct: false },
 ];
-export const C1_P4_PREDICTION_RETRY_HINT = '排练时约定过：还没出现的伙伴，跳和问好都没人看见。';
+export const C1_P4_PREDICTION_RETRY_HINT =
+  'It was agreed during the rehearsal that no one would see the partners who have not shown up yet, dance or say hello.';
 
 export const C1_P4_RESOLVED_WORLD_CHANGE =
-  '仙石亮起；石猴从隐藏变为可见，稳稳跳到石台中央；群猴从树后走到草地边缘。';
+  'The fairy stone lights up; the stone monkey changes from being hidden to being visible and jumps steadily to the center of the stone platform; the group of monkeys walks from behind the tree to the edge of the grass.';
 export const C1_P4_STORY_AFTER =
-  '群猴看清石猴来自仙石。可还有一个问题：他会先跳过来，还是先和我们说话？';
-export const C1_P4_CONTINUE_LABEL = '决定第一次动作';
+  'The group of monkeys saw clearly that the stone monkey came from the fairy stone. But there is another question: Will he jump over first or talk to us first?';
+export const C1_P4_CONTINUE_LABEL = 'Decide on the first move';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // C1-P5 · 两种真诚的问候 — Build 2, the greeting-order choice (scene-specs
@@ -423,42 +487,62 @@ export const C1_P4_CONTINUE_LABEL = '决定第一次动作';
 
 /** Teaching-script "两种都真诚的问候" IN FULL. */
 export const C1_P5_STORY_BEFORE =
-  '石猴已经站在大家面前，可第一次见面还差一个属于他的选择。孩子把“跳一下”和“说你好”放成两个版本。第一个版本里，石猴先轻快地跳到草地上，再笑着说：“你好，我也是刚刚认识这个世界。”群猴先被他的活力吸引，随后听懂他的来意。第二个版本里，石猴先留在石台上，轻声说：“你们好，我可以过来吗？”等群猴点头，他才跳近一步。群猴先感到被尊重，随后发现他也很爱行动。两种顺序没有把原著改成两个结局：石猴都从仙石中来到花果山，也都想认识伙伴。不同的是，观众先看见他的哪一种性格。石猴认真看完两个版本，没有只选更热闹的那个。他问孩子：“哪一种更像你想介绍的我？你从动作和对白里看出了什么？”孩子必须用故事理由选择，而不是随便点一个按钮。';
+  'Stone Monkey is already standing in front of everyone, but there is still one more choice that belongs to him when they meet for the first time. The child made two versions of "jump" and "say hello". In the first version, the stone monkey jumped briskly on the grass, and then said with a smile: "Hello, I have just met this world." The monkeys were first attracted by his vitality, and then understood his purpose. In the second version, the stone monkey stayed on the stone platform and said softly: "Hello, can I come over?" When the monkeys nodded, he jumped one step closer. The monkeys first felt respected, and then discovered that he also loved taking action. The two orders did not change the original work into two endings: Stone Monkey still came from the magic stone on Flower-Fruit Mountain and wanted to meet his new friends. The difference is which side of his character the audience sees first. Stone Monkey read both versions carefully and asked: "Which one feels more like the character you want to introduce? What do the actions and dialogue show?" Choose for a story reason, not just by clicking a button.';
 
 /** 动机：石猴在选择什么？ */
 export const C1_P5_MOTIVE_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'energy-or-respect',
-    label: '选择让伙伴先感到他的活力，还是先感到被尊重',
+    label: 'Choose whether to let your partner feel alive first or to feel respected first',
     correct: true,
   },
-  { id: 'pick-louder', label: '选更热闹的那个版本', correct: false },
-  { id: 'change-ending', label: '把原著改成另一个结局', correct: false },
+  { id: 'pick-louder', label: 'Choose the livelier version', correct: false },
+  { id: 'change-ending', label: 'Change the original work to another ending', correct: false },
 ];
 
 /** “先___，所以伙伴先觉得他___”——按孩子实际保存的版本作答。 */
 export const C1_P5_SENTENCE_HOP_FIRST: JtwEvidenceOption[] = [
-  { id: 'hop-energy', label: '先跳一下，所以伙伴先觉得他充满活力', correct: true },
-  { id: 'hop-polite', label: '先跳一下，所以伙伴先觉得他很有礼貌', correct: false },
+  {
+    id: 'hop-energy',
+    label: 'Jump first, so your partner feels that he is full of energy first',
+    correct: true,
+  },
+  {
+    id: 'hop-polite',
+    label: 'He dances first, so his partner thinks he is polite first.',
+    correct: false,
+  },
 ];
 export const C1_P5_SENTENCE_SAY_FIRST: JtwEvidenceOption[] = [
-  { id: 'say-respect', label: '先轻声问好，所以伙伴先觉得他尊重大家', correct: true },
-  { id: 'say-energy', label: '先轻声问好，所以伙伴先觉得他动作很快', correct: false },
+  {
+    id: 'say-respect',
+    label: 'Say hello softly first, so your partner first feels that he respects everyone.',
+    correct: true,
+  },
+  {
+    id: 'say-energy',
+    label: 'He said hello softly first, so his partner first thought he was moving quickly.',
+    correct: false,
+  },
 ];
 
 /** 是否真的运行比较过两版。 */
 export const C1_P5_COMPARE_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'ran-both', label: '我把两种顺序都运行过，再留下现在这一版', correct: true },
-  { id: 'ran-one', label: '我只运行了一版就直接选了', correct: false },
+  {
+    id: 'ran-both',
+    label: 'I have run both sequences and left with the current version.',
+    correct: true,
+  },
+  { id: 'ran-one', label: 'I only ran one version and chose it directly.', correct: false },
 ];
 
 export const C1_P5_RESOLVED_HOP_FIRST =
-  '群猴先被石猴的活力吸引，笑着围拢过来；随后听懂他的来意，向他走近。';
+  "The group of monkeys were first attracted by the stone monkey's vitality and gathered around him with smiles. Then they understood his purpose and approached him.";
 export const C1_P5_RESOLVED_SAY_FIRST =
-  '群猴先感到被尊重，点头回礼；随后发现他也很爱行动，向他走近。';
+  'The monkeys first felt respected and nodded in return; then they discovered that he was also very action-oriented and approached him.';
 export const C1_P5_STORY_AFTER =
-  '正当大家准备互相介绍，舞台忽然播放出一个声音先出现、动作看不见的乱序版本。';
-export const C1_P5_CONTINUE_LABEL = '找出奇怪的地方';
+  'Just as everyone was about to introduce each other, the stage suddenly played an out-of-sequence version with the sound appearing first and the movements invisible.';
+export const C1_P5_CONTINUE_LABEL = "Find out what's weird";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // C1-P6 · 声音怎么从空中来了 — Twist & Debug, the stable order bug (scene-specs
@@ -470,69 +554,91 @@ export const C1_P5_CONTINUE_LABEL = '找出奇怪的地方';
 
 /** Teaching-script "声音怎么从空中来了" IN FULL. */
 export const C1_P6_STORY_BEFORE =
-  '舞台重新开始，大家先听见一句“你好”，可石台上空空的。接着，草叶摇了一下，像有什么看不见的角色跳过；直到最后，石猴才突然出现。群猴吓了一小跳，又困惑地看向四周：“刚才是谁在说话？谁在跳？”石猴也发现，这不是他想讲的出世故事。每一块动作都能执行，但顺序把原因和结果拆散了。他没有把所有积木推倒重来，而是请孩子先描述预期：“大家应该什么时候看见我？”孩子再次运行，沿着轨迹找到第一个偏离——`Say`发生时，`Show`还没有发生。孩子只移动目标积木，让角色先出现，再安排动作和对白。重跑时，群猴先看见石猴，接着看见他跳，最后听清问候。刚才的紧张变成明白：不是山风在说话，也不是看不见的影子在跳，而是新伙伴在按清楚的顺序介绍自己。';
+  'The stage restarted, and everyone heard "Hello" first, but the stone stage was empty. Then, the grass blades shook, as if some invisible character was jumping over; until finally, the stone monkey suddenly appeared. The monkeys were startled and looked around in confusion: "Who was talking just now? Who was jumping?" The stone monkey also realized that this was not the birth story he wanted to tell. Each action can be performed, but the sequence separates cause and effect. Instead of tearing down all the blocks and starting over, he asked the children to describe their expectations first: "When should everyone see me?" The children ran again and found the first deviation along the trajectory - when `Say\' happened, `Show\' had not yet happened. The child only moves the target brick, allowing the character to appear first, and then arranges the actions and dialogue. When running again, the monkeys first saw the stone monkey, then saw him jumping, and finally heard the greeting clearly. The nervousness just now turned into realization: it was not the mountain breeze talking, nor the invisible shadow dancing, but the new partner introducing himself in a clear order.';
 
 export const C1_P6_SAY_TEXT = C1_P3_SAY_TEXT;
 
 /** 预期（五段解释第 1 段）：大家应该什么时候看见我？ */
-export const C1_P6_EXPECT_QUESTION = '先说预期：大家应该什么时候看见石猴？';
+export const C1_P6_EXPECT_QUESTION =
+  'Let’s start with expectations: when should everyone see the Stone Monkey?';
 export const C1_P6_EXPECT_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'expect-show-first',
-    label: '在动作和问候之前——先看见石猴，跳和问好才有人看懂',
+    label:
+      'Before actions and greetings - see the stone monkey first, jump and say hello before anyone understands',
     correct: true,
   },
-  { id: 'expect-any-time', label: '什么时候都行，反正声音先响也一样', correct: false },
+  {
+    id: 'expect-any-time',
+    label: "It doesn't matter any time, it doesn't matter if the sound comes first anyway.",
+    correct: false,
+  },
 ];
 
 /** 实际（五段解释第 2 段）：运行 bug 之后，实际先发生了什么？ */
-export const C1_P6_ACTUAL_QUESTION = '运行之后，实际先发生了什么？';
+export const C1_P6_ACTUAL_QUESTION = 'After running it, what actually happens first?';
 export const C1_P6_ACTUAL_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'actual-voice-from-air',
-    label: '先听见「你好」，石台上却空空的——声音像从空中来',
+    label:
+      'I heard "Hello" first, but the stone platform was empty - the sound seemed to come from the air',
     correct: true,
   },
-  { id: 'actual-show-first', label: '石猴先出现，大家看着他跳和问好', correct: false },
+  {
+    id: 'actual-show-first',
+    label: 'Stone Monkey appeared first, everyone watched him jump and said hello',
+    correct: false,
+  },
 ];
 
 /** 第一次偏离（五段解释第 3 段 = 本 Part 预测）：沿轨迹点选。 */
-export const C1_P6_DEVIATION_QUESTION = '第一个观众看不懂的动作在哪里？在轨迹上点出来：';
+export const C1_P6_DEVIATION_QUESTION =
+  'Where is the first action that the audience cannot understand? Click on the track:';
 export const C1_P6_DEVIATION_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'trace-say', label: '💬 Say——声音响了，可谁都还没出现', correct: true },
-  { id: 'trace-hop', label: '🦘 Hop——草叶摇动的那一下', correct: false },
-  { id: 'trace-show', label: '👀 Show——石猴最后才出现', correct: false },
+  { id: 'trace-say', label: '💬 Say——The voice rang, but no one showed up yet', correct: true },
+  { id: 'trace-hop', label: '🦘 Hop——the moment when the blades of grass shake', correct: false },
+  { id: 'trace-show', label: '👀 Show——The Stone Monkey appears last', correct: false },
 ];
 export const C1_P6_DEVIATION_RETRY_HINT =
-  '沿轨迹从左往右找最早的那一个：Say 响起时，Show 还没有发生——最先看不懂的是哪一块？';
+  "Follow the trajectory from left to right to find the earliest one: when Say sounds, Show has not happened yet - which part is the first one that you can't understand?";
 
 /** 修改（五段解释第 4 段）：只移动目标块，不推倒重搭、不改声音。 */
-export const C1_P6_FIX_QUESTION = '你在工作区做了什么修改？';
+export const C1_P6_FIX_QUESTION = 'What changes did you make in the workspace?';
 export const C1_P6_FIX_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'move-show-front',
-    label: '只把 Show 移到 Hop 和 Say 之前——让石猴先出现',
+    label: 'Just move Show before Hop and Say - let the Stone Monkey show up first',
     correct: true,
   },
-  { id: 'rebuild-all', label: '把整条链删掉，重新搭了一遍', correct: false },
-  { id: 'change-sound', label: '把声音换掉，问题就听不见了', correct: false },
+  { id: 'rebuild-all', label: 'Delete the entire chain and build it again', correct: false },
+  {
+    id: 'change-sound',
+    label: 'Change the sound and the problem will no longer be heard.',
+    correct: false,
+  },
 ];
 
 /** 重跑结果（五段解释第 5 段）。 */
-export const C1_P6_RERUN_QUESTION = '重跑之后，观众看见了什么顺序？';
+export const C1_P6_RERUN_QUESTION = 'What sequence did the audience see after the rerun?';
 export const C1_P6_RERUN_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'rerun-see-act-hear',
-    label: '群猴先看见石猴，再看见他跳，最后听清问候',
+    label:
+      'The group of monkeys first saw the stone monkey, then saw him jumping, and finally heard the greeting clearly',
     correct: true,
   },
-  { id: 'rerun-still-air-voice', label: '还是先听见声音，石台上空空的', correct: false },
+  {
+    id: 'rerun-still-air-voice',
+    label: 'I heard the sound first. The stone platform was empty.',
+    correct: false,
+  },
 ];
 
-export const C1_P6_RESOLVED_WORLD_CHANGE = '修复之后，一只群猴从树后完全走出来。';
+export const C1_P6_RESOLVED_WORLD_CHANGE =
+  'After the restoration, a group of monkeys fully emerged from behind the tree.';
 export const C1_P6_STORY_AFTER =
-  '它回答：“你好！这次我们每一步都看懂了。”它邀请石猴设计一段更像自己的完整亮相。';
-export const C1_P6_CONTINUE_LABEL = '做我的版本';
+  'It replied: "Hello! This time we understand every step." It invited Stone Monkey to design a complete appearance that looked more like itself.';
+export const C1_P6_CONTINUE_LABEL = 'do my version';
 
 /** 故意 bug 链（scene-specs stone-monkey/arrival-debug）——与后端 starter 完全一致。 */
 export const C1_P6_BUG_CHAIN: Block[] = [
@@ -583,60 +689,88 @@ export const C1_P6_BUG_PROJECT: BlocksProject = {
 
 /** Teaching-script "把第一次亮相变成自己的作品" IN FULL. */
 export const C1_P7_STORY_BEFORE =
-  '群猴围成一个宽宽的半圆，把石台中央留给新伙伴。石猴已经学会让故事清楚发生，现在他想让这次亮相也带一点自己的性格。孩子可以让他先做一个轻快的动作，再停一停看看伙伴；也可以让他先说一句短问候，再用第二个动作表达好奇。等待不是为了拖时间，而是让观众看清两个动作之间的节奏；对白也不是抄来的口号，而是孩子为“刚来到世界、想认识朋友”的石猴写下的一句话。孩子完成版本后，先从头预测，再让同伴只看舞台、不看积木。若同伴能说出“仙石提示、石猴出现、两个动作、问候、结束”的主要顺序，作品才把故事讲清。保存后关闭作品，再重新打开，石猴仍按同样顺序完成亮相。石猴高兴的不是得到彩带，而是自己的第一次故事没有丢失，伙伴也真的看懂了他想表达什么。';
+  'The group of monkeys formed a wide semicircle, leaving the center of the stone platform for their new companions. Stone Monkey had learned to keep the story clear, and now he wanted to bring a bit of his own character to the appearance. The child can be asked to make a brisk movement first, and then stop to look at the partner; the child can also be asked to say a short greeting first, and then use the second movement to express curiosity. Waiting is not to delay time, but to allow the audience to clearly see the rhythm between the two actions; the dialogue is not a copied slogan, but a sentence written by a child for the stone monkey who "just came to the world and wanted to make friends." After the child completes the version, predict it from the beginning, and then ask the partner to only look at the stage and not the building blocks. If the companion can tell the main sequence of "immortal stone reminder, appearance of stone monkey, two actions, greetings, and end", the work will tell the story clearly. After saving and closing the work, and then reopening it, the stone monkey still completes its appearance in the same order. Shi Hou was not happy about getting the ribbon, but that his first story was not lost, and his partner really understood what he wanted to express.';
 
 /** 动机：石猴这次想要什么？ */
 export const C1_P7_MOTIVE_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'express-clearly',
-    label: '想清楚表达自己的好奇、友善或活力，让伙伴真正看懂',
+    label:
+      'Want to express your curiosity, friendliness or energy clearly so that your partner can truly understand',
     correct: true,
   },
-  { id: 'most-flashy', label: '想比谁的动作最多最热闹', correct: false },
-  { id: 'finish-fast', label: '想快点结束见面，去摘熟果子', correct: false },
+  {
+    id: 'most-flashy',
+    label: 'I want to compare who has the most moves and is the most lively',
+    correct: false,
+  },
+  {
+    id: 'finish-fast',
+    label: 'I want to end the meeting quickly and go pick ripe fruits',
+    correct: false,
+  },
 ];
 
 /** 选择理由：两个动作为什么这样选？ */
 export const C1_P7_REASON_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'reason-personality',
-    label: '因为这两个动作能让伙伴看出我想表达的性格',
+    label: 'Because these two actions can help my partners see the character I want to express.',
     correct: true,
   },
-  { id: 'reason-random', label: '随便点的，哪两个都一样', correct: false },
-  { id: 'reason-fastest', label: '因为这样最快就能做完任务', correct: false },
+  { id: 'reason-random', label: 'No matter what you order, both are the same.', correct: false },
+  {
+    id: 'reason-fastest',
+    label: 'Because this way you can complete the task as quickly as possible',
+    correct: false,
+  },
 ];
 
 /** 保存/关闭/重开检查。 */
 export const C1_P7_REOPEN_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'reopen-same',
-    label: '我保存并关闭过作品，重新打开后积木一样，重跑还是同样的亮相',
+    label:
+      'I saved and closed the work, and when I reopened it, the building blocks were the same, and the appearance was still the same when I re-ran it.',
     correct: true,
   },
-  { id: 'reopen-skipped', label: '我没有关闭重开，搭完就直接过来了', correct: false },
+  {
+    id: 'reopen-skipped',
+    label: "I didn't close it and reopen it. I came here directly after finishing the ride.",
+    correct: false,
+  },
 ];
 export const C1_P7_REOPEN_RETRY_HINT =
-  '回工作区保存，关闭作品再重新打开、重跑一遍——第一次作品不丢失才算真的完成。';
+  'Go back to the workspace and save, close the work, reopen it, and run it again - the first time the work is not lost, it is truly completed.';
 
 /** 同伴复述（本 Part 预测）：同伴只看舞台，应该复述出什么顺序？ */
-export const C1_P7_RETELL_QUESTION = '同伴只看舞台、不看积木。他们应该复述出什么主要顺序？';
+export const C1_P7_RETELL_QUESTION =
+  'The companion only looks at the stage, not the building blocks. What main sequence should they retell?';
 export const C1_P7_RETELL_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'retell-full-order',
-    label: '仙石提示 → 石猴出现 → 两个动作 → 问候 → 结束',
+    label: 'Fairy Stone Tips → Stone Monkey Appears → Two Actions → Greeting → End',
     correct: true,
   },
-  { id: 'retell-say-first', label: '先听见问候，再看见石猴出现', correct: false },
-  { id: 'retell-no-actions', label: '石猴一直站在台上，只说了一句话', correct: false },
+  {
+    id: 'retell-say-first',
+    label: 'First I heard the greeting, then saw the stone monkey appear',
+    correct: false,
+  },
+  {
+    id: 'retell-no-actions',
+    label: 'Stone Monkey stood on the stage and only said one sentence',
+    correct: false,
+  },
 ];
 export const C1_P7_RETELL_RETRY_HINT =
-  '请同伴再只看一遍舞台：最先是什么？石猴出现以后做了几个动作？问候在什么时候？';
+  'Ask your partner to look at the stage again: What comes first? How many actions did the stone monkey make after it appeared? Greetings at what time?';
 
 export const C1_P7_RESOLVED_WORLD_CHANGE =
-  '石猴完成了属于自己的亮相，群猴热烈回应，并邀请他一起探索花果山。';
-export const C1_P7_STORY_AFTER = '清泉旁传来持续的轰鸣，湿润的风从山谷吹来。';
-export const C1_P7_CONTINUE_LABEL = '跟着水声走';
+  'The stone monkey made his own appearance, and the group of monkeys responded enthusiastically and invited him to explore Flower-Fruit Mountain together.';
+export const C1_P7_STORY_AFTER =
+  'There was a continuous roar next to the clear spring, and the moist wind blew from the valley.';
+export const C1_P7_CONTINUE_LABEL = 'Follow the sound of water';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // C1-P8 · 新伙伴听见了水声 — Run 后 Retell 与章节聚合 (scene-specs
@@ -649,33 +783,45 @@ export const C1_P7_CONTINUE_LABEL = '跟着水声走';
 
 /** Teaching-script "新伙伴听见了水声" IN FULL. */
 export const C1_P8_STORY_BEFORE =
-  '石猴和群猴沿着清泉慢慢往山里走。阳光穿过叶子，在地上落下摇晃的亮斑；越靠近山谷，石头越湿，空气里细小的水珠也越多。大家回头望向山顶，还能看见仙石在晨光里安静发亮。短短一段路上，他们把刚才发生的事重新排成五张因果卡：因为仙石发出动静，所以大家停下来观察；因为石猴想让伙伴安心，所以先让大家看见自己；程序按顺序运行，结果群猴看懂了他的动作和问候；后来，伙伴邀请他一起探索花果山。石猴听着孩子讲回，终于知道自己的第一段故事不是几个分开的动作，而是一串互相连接的原因和结果。前方的轰鸣越来越响。转过树林，一道白色水帘从高处落下，水雾在阳光里闪着光。群猴停在湿石外，没有冲进去。石猴也先观察水流、落脚处和帘子后若隐若现的亮点。新伙伴已经完成了第一次见面；接下来的问题，是谁愿意看清水帘后面究竟有什么。';
+  "The stone monkey and the group of monkeys slowly walked toward the mountain along the clear spring. The sun shines through the leaves, leaving swaying bright spots on the ground; the closer you get to the valley, the wetter the stones become, and the more tiny water droplets there are in the air. Everyone looked back to the top of the mountain and could still see the fairy stones shining quietly in the morning light. In just a short period of time, they rearranged what happened just now into five cause and effect cards: because the fairy stone made a noise, everyone stopped and observed; because the stone monkey wanted to reassure his partners, so he let everyone see him first; the program ran in sequence, and the monkeys understood his movements and greetings; later, his partners invited him to explore Flower-Fruit Mountain. Shihou listened to the child's story and finally realized that his first story was not a few separate actions, but a series of interconnected causes and results. The roar ahead was getting louder and louder. After turning around the woods, a white water curtain fell from a high place, and the water mist shone in the sun. The group of monkeys stopped outside the wet stone and did not rush in. The stone monkey also first observed the water flow, the footing and the looming bright spots behind the curtain. The new partners have completed their first meeting; the next question is who is willing to see what is behind the water curtain.";
 
 export const C1_P8_CLASSIC_CARD =
-  '原著仍只到第一回：仙石孕育出石猴，他刚刚认识花果山。水帘洞只是下一章的线索——还没有人穿过那道水帘。';
+  'The original work is still only up to the first chapter: the fairy stone gave birth to the stone monkey, and he just met Flower-Fruit Mountain. Water Curtain Cave is just a clue to the next chapter - no one has passed through the water curtain yet.';
 
 /** 原创对白（教学脚本 Part 8）。 */
-export const C1_P8_DIALOGUE_MONKEYS = '我们已经知道你是谁了。你愿意和我们一起找水声吗？';
-export const C1_P8_DIALOGUE_STONE_MONKEY = '愿意。先看清路线，再决定怎样过去。';
+export const C1_P8_DIALOGUE_MONKEYS =
+  'We already know who you are. Would you like to find the sound of water with us?';
+export const C1_P8_DIALOGUE_STONE_MONKEY =
+  'willing. Look at the route first and then decide how to get there.';
 
 /** 人物动机：石猴为什么同行、又为什么先观察？ */
 export const C1_P8_MOTIVE_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'accepted-then-observe',
-    label: '因为伙伴接纳了他，所以一起同行；又因为水声一直响，所以决定先观察路线',
+    label:
+      'Because his partner accepted him, they walked together; and because the sound of water kept making, he decided to observe the route first.',
     correct: true,
   },
-  { id: 'rush-for-prize', label: '想第一个冲进水帘，抢到里面的奖励', correct: false },
-  { id: 'scared-go-back', label: '他害怕水声，想赶快跑回仙石里躲起来', correct: false },
+  {
+    id: 'rush-for-prize',
+    label: 'I want to be the first to rush into the water curtain and grab the rewards inside.',
+    correct: false,
+  },
+  {
+    id: 'scared-go-back',
+    label:
+      'He was afraid of the sound of water and wanted to run back and hide in the fairy stone.',
+    correct: false,
+  },
 ];
 
 /** 五张因果卡——本章的五个节点，按故事先后排列。 */
 export const C1_P8_CAUSE_CARDS: JtwEvidenceOption[] = [
-  { id: 'stone-stir', label: '🔔 仙石动静', correct: true },
-  { id: 'monkey-appears', label: '🐵 石猴出现', correct: true },
-  { id: 'partners-see', label: '👀 伙伴看见', correct: true },
-  { id: 'first-hello', label: '💬 第一次问好', correct: true },
-  { id: 'hear-water', label: '🌊 听见水声', correct: true },
+  { id: 'stone-stir', label: '🔔 Immortal Stone Movement', correct: true },
+  { id: 'monkey-appears', label: '🐵 Stone monkey appears', correct: true },
+  { id: 'partners-see', label: '👀 Partner sees', correct: true },
+  { id: 'first-hello', label: '💬 Hello for the first time', correct: true },
+  { id: 'hear-water', label: '🌊 Hear the sound of water', correct: true },
 ];
 export const C1_P8_CAUSE_CARD_ORDER = [
   'stone-stir',
@@ -687,36 +833,40 @@ export const C1_P8_CAUSE_CARD_ORDER = [
 
 /** Retell：用"因为—所以—结果—后来"连接至少四个节点；只念积木名不通过。 */
 export const C1_P8_RETELL_QUESTION =
-  '把这一章讲回来：用"因为—所以—结果—后来"至少连起四个节点。';
+  'Let’s bring this chapter back: Connect at least four nodes with “because-so-result-later”.';
 export const C1_P8_RETELL_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'linked-four-nodes',
     label:
-      '因为仙石发出动静，所以石猴先让大家看见自己；结果伙伴看懂了他的动作和问好、接纳了他；后来大家一起听见了水声',
+      'Because the fairy stone made a noise, the stone monkey first let everyone see him. As a result, his friends understood his movements, greeted him, and accepted him. Later, everyone heard the sound of water.',
     correct: true,
   },
   {
     id: 'block-names-only',
-    label: 'Chime、Show、Hop、Say、End——把积木的名字按顺序念一遍',
+    label: 'Chime, Show, Hop, Say, End - read the names of the building blocks in order',
     correct: false,
   },
-  { id: 'two-nodes-only', label: '石猴出现了，后来大家听见了水声', correct: false },
+  {
+    id: 'two-nodes-only',
+    label: 'The stone monkey appeared, and then everyone heard the sound of water',
+    correct: false,
+  },
 ];
 export const C1_P8_RETELL_RETRY_HINT =
-  '只念积木名或只连两件事都不够——用"因为—所以—结果—后来"把仙石动静、石猴出现、伙伴看见、第一次问好、听见水声里至少四个节点连起来。';
+  'Just saying the name of the building block or even two things is not enough - use "because-so-result-later" to connect at least four nodes of the movement of the fairy stone, the appearance of the stone monkey, the sight of the partner, the first greeting, and the sound of the water.';
 
 /** C1 出世印 — the server-aggregated chapter seal. */
 export const C1_P8_SEAL_ID = 'jtw-s1-c1-birth-seal';
-export const C1_P8_SEAL_TITLE = '出世印';
-export const C1_P8_SEAL_LINE = '我能把故事动作按先后排清楚。';
+export const C1_P8_SEAL_TITLE = 'birth seal';
+export const C1_P8_SEAL_LINE = "I can put the story's actions in order.";
 
 export const C1_P8_RESOLVED_WORLD_CHANGE =
-  '视角沿清泉移向瀑布：湿石一块块亮起来，水帘上闪出细小的亮点。没有谁自动跳进下一章。';
+  'The perspective moves along the clear spring to the waterfall: the wet stones light up piece by piece, and tiny bright spots shine on the water curtain. No one automatically jumps to the next chapter.';
 export const C1_P8_STORY_AFTER =
-  '群猴安全停在瀑布外，石猴先观察水流和落脚处。本章"第一次见面"的问题已经完整解决。';
-export const C1_P8_CONTINUE_NOW_LABEL = '现在去看水帘';
-export const C1_P8_CONTINUE_LATER_LABEL = '以后继续';
-export const C1_P8_LIGHT_SEAL_LABEL = '点亮出世印';
+  'The group of monkeys stopped safely outside the waterfall. The stone monkey first observed the water flow and where to stand. The "first meeting" issue in this chapter has been completely resolved.';
+export const C1_P8_CONTINUE_NOW_LABEL = 'Now go see the water curtain';
+export const C1_P8_CONTINUE_LATER_LABEL = 'continue later';
+export const C1_P8_LIGHT_SEAL_LABEL = 'Light up the birth seal';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // C2-P1 · 水声把大家带到哪里 — chapter two's Read & Why entry (scene-specs
@@ -730,71 +880,90 @@ export const C1_P8_LIGHT_SEAL_LABEL = '点亮出世印';
 
 /** Child-facing story text — teaching-script C2 故事卡A "沿着水声走" IN FULL, two screens. */
 export const C2_P1_STORY_BEFORE: readonly [string, string] = [
-  '天气热了，群猴沿着清凉的溪水往上找。越往山谷深处走，水声越响，石头越湿，空气里还飘着细细的水雾。',
-  '转过一块大石，一道像白色帘子一样的瀑布挡在面前。',
+  'The weather is getting hot, and a group of monkeys are looking up along the cool stream. The deeper we go into the valley, the louder the sound of water becomes, the wetter the stones become, and the fine mist of water still floats in the air.',
+  'Turning around a big rock, a waterfall like a white curtain stood in front of me.',
 ];
 
 export const C2_P1_CLASSIC_CARD =
-  '原著还在第一回：石猴刚刚出世，尚未获得“孙悟空”这个名字，也没有取经的伙伴。水帘后面的故事，谁都还没有见过。';
+  'The original work is still in the first chapter: Stone Monkey has just been born, has not yet received the name "Sun Wukong", and has no companions to learn from it. No one has seen the story behind the water curtain.';
 
 /** 故事—程序桥（因果桥）：环境线索对应后续移动停点；水帘回应属于 when_bump。 */
 export const C2_P1_STORY_BRIDGE =
-  '这些环境线索，之后会变成一段一段移动的停点；而水帘真正的回应，要等石猴真的碰到它（On Bump）才会发生。';
+  'These environmental clues will then become moving stops; the real response of the water curtain will not happen until the stone monkey actually touches it (On Bump).';
 
 /** 人物动机：石猴为什么先观察（不是害怕，也不是抢奖励）。 */
 export const C2_P1_MOTIVE_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'observe-for-partners',
-    label: '他想让伙伴看清发生了什么，并找到一条可以走的路线',
+    label: 'He wanted his partners to see what was going on and find a route they could take',
     correct: true,
   },
-  { id: 'afraid-of-water', label: '他害怕水声，不敢再往前走', correct: false },
-  { id: 'grab-reward', label: '他想第一个冲进去，抢到里面的奖励', correct: false },
+  {
+    id: 'afraid-of-water',
+    label: 'He was afraid of the sound of water and did not dare to go any further',
+    correct: false,
+  },
+  {
+    id: 'grab-reward',
+    label: 'He wanted to be the first to rush in and grab the rewards inside.',
+    correct: false,
+  },
 ];
 
 /** 三条 Read 证据（水声变大、石头变湿、水雾变浓）——“看见洞口”必须被排除。 */
 export const C2_P1_CLUE_OPTIONS: JtwEvidenceOption[] = [
-  { id: 'water-louder', label: '水声变大', correct: true },
-  { id: 'stones-wet', label: '石头变湿', correct: true },
-  { id: 'mist-thicker', label: '水雾变浓', correct: true },
-  { id: 'see-cave-mouth', label: '看见洞口', correct: false },
+  { id: 'water-louder', label: 'The sound of water becomes louder', correct: true },
+  { id: 'stones-wet', label: 'stones get wet', correct: true },
+  { id: 'mist-thicker', label: 'The mist becomes thicker', correct: true },
+  { id: 'see-cave-mouth', label: 'see the hole', correct: false },
 ];
 export const C2_P1_CLUE_REJECT_HINT =
-  '洞口藏在水帘后面，画面里谁也没有看见它——它不能当作证据。';
+  'The entrance to the cave is hidden behind a curtain of water, and no one can see it in the picture—it cannot be used as evidence.';
 
 /** “因为___，所以石猴先___”句子的结尾选项。 */
 export const C2_P1_SO_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'stop-observe-route',
-    label: '停在湿石外观察，帮伙伴找一条可走的路线',
+    label: 'Stop outside the wet rocks to observe and help your friends find a feasible route.',
     correct: true,
   },
-  { id: 'jump-in-now', label: '马上跳进水帘里', correct: false },
-  { id: 'send-partners-first', label: '让伙伴先冲进去试试', correct: false },
+  { id: 'jump-in-now', label: 'Jump into the water curtain immediately', correct: false },
+  {
+    id: 'send-partners-first',
+    label: 'Let your partner rush in first and give it a try',
+    correct: false,
+  },
 ];
 
-export const C2_P1_PREDICTION_QUESTION = '现在已经知道水帘后面有洞吗？';
+export const C2_P1_PREDICTION_QUESTION =
+  'Do you now know that there is a hole behind the water curtain?';
 export const C2_P1_PREDICTION_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'not-known-yet',
-    label: '还不知道——水帘是合上的，画面里没有露出洞口',
+    label:
+      'I don’t know yet—the water curtain is closed, and there is no hole exposed in the picture.',
     correct: true,
   },
-  { id: 'already-known', label: '已经知道了——洞口就亮在画面里', correct: false },
+  {
+    id: 'already-known',
+    label: 'Already know - the entrance to the cave is in the picture',
+    correct: false,
+  },
 ];
 export const C2_P1_PREDICTION_RETRY_HINT =
-  '再看看画面：水帘合着，洞口露出来了吗？答案要从画面里找。';
+  'Look at the picture again: with the water curtain closed, is the hole exposed? The answer can be found in the picture.';
 
 export const C2_P1_RESOLVED_WORLD_CHANGE =
-  '水声、湿石、水雾三类线索从近到远一一点亮，大家的视线最后停在那道还关着的水帘上。';
-export const C2_P1_STORY_AFTER = '伙伴们没有急着往前冲，先讨论：谁去探路？';
-export const C2_P1_CONTINUE_LABEL = '听一听大家的约定';
+  "The three clues of water sound, wet stones, and water mist lit up one by one from near to far, and everyone's eyes finally stopped on the still closed water curtain.";
+export const C2_P1_STORY_AFTER =
+  'The partners did not rush forward. They discussed first: Who will explore the path?';
+export const C2_P1_CONTINUE_LABEL = "Listen to everyone's agreement";
 
 /** 从近到远点亮的三类线索（resolved_world_change 的顺序）。 */
 export const C2_P1_CLUE_LIGHT_SEQUENCE: ReadonlyArray<{ id: string; label: string }> = [
-  { id: 'water-louder', label: '水声' },
-  { id: 'stones-wet', label: '湿石' },
-  { id: 'mist-thicker', label: '水雾' },
+  { id: 'water-louder', label: 'Sound of water' },
+  { id: 'stones-wet', label: 'wet stone' },
+  { id: 'mist-thicker', label: 'water mist' },
 ];
 
 /**
@@ -846,76 +1015,90 @@ export const C2_P1_PREVIEW_PROJECT: BlocksProject = {
 
 /** Child-facing story text — teaching-script C2 故事卡B "瀑布前的约定" IN FULL. */
 export const C2_P2_STORY_BEFORE =
-  '群猴想知道水帘后面有什么，却不知道怎样安全进去。石猴仔细看了看湿石、高台和入口：“我先去看清楚。如果里面安全，我会回来告诉大家。”他不是只为了被夸奖；他既好奇，也答应为伙伴找路。';
+  "The monkeys wanted to know what was behind the water curtain, but they didn't know how to get in safely. The stone monkey looked carefully at the wet stone, the high platform and the entrance: \"I'll go check it out first. If it's safe inside, I'll come back and tell everyone.\" He didn't just want to be praised; he was curious and promised to find a way for his companions.";
 
 /** 原创对白 — the two dialogue lines the motive evidence is drawn from. */
 export const C2_P2_DIALOGUE: readonly [string, string] = [
-  '群猴：“水帘后面会不会有路？”',
-  '石猴：“我先看清楚，再回来告诉你们。”',
+  'Group of monkeys: "Is there a road behind the water curtain?"',
+  'Stone Monkey: "I\'ll see it clearly first and then come back and tell you."',
 ];
 
 export const C2_P2_CLASSIC_CARD =
-  '原著还在第一回：群猴在瀑布前约定，谁能进去看清楚、再平安出来，就拜他为王。石猴此刻还没有“孙悟空”这个名字，取经的伙伴也都还没有出现。';
+  'The original work is still in the first chapter: A group of monkeys made an agreement in front of a waterfall that whoever can go in to see clearly and come out safely will be crowned king. At this moment, Stone Monkey does not have the name "Sun Wukong", and none of his companions have yet appeared.';
 
 /** 因果桥：四格约定分别由去程、碰撞回应、回程 Debug 和 Retell 证据实现。 */
 export const C2_P2_STORY_BRIDGE =
-  '这四格约定，之后会一格一格变成程序证据：去程的移动完成“进去”，碰到水帘的回应（On Bump）完成“看清”，回程的 Debug 完成“回来”，最后的讲回完成“分享”。';
+  'These four grids of agreement will later be turned into program evidence one by one: the movement on the outbound journey completes "going in", the response to the water curtain (On Bump) completes "seeing clearly", the Debug on the return journey completes "coming back", and the final speaking back completes "sharing".';
 
 /** 两条同时成立的动机（好奇里面 + 回来分享）——“被夸奖”“最快”都被排除。 */
 export const C2_P2_MOTIVE_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'curious-see-inside',
-    label: '他想看清水帘后面究竟有什么（“我先看清楚”）',
+    label: 'He wanted to see what was behind the clear water curtain ("I\'ll see clearly first")',
     correct: true,
   },
   {
     id: 'promise-return-share',
-    label: '他答应回来告诉大家，为伙伴找一条安全的路（“再回来告诉你们”）',
+    label:
+      'He promised to come back and tell everyone and find a safe way for his companions ("Come back and tell you")',
     correct: true,
   },
-  { id: 'want-praise', label: '他只想被大家夸奖', correct: false },
-  { id: 'be-fastest', label: '他想当最快冲进去的那一个', correct: false },
+  { id: 'want-praise', label: 'He just wants to be praised by everyone', correct: false },
+  { id: 'be-fastest', label: 'He wants to be the fastest one to rush in.', correct: false },
 ];
 export const C2_P2_MOTIVE_REJECT_HINT =
-  '再读一遍对白：石猴说的是“先看清楚”和“回来告诉你们”——“被夸奖”和“最快”都不在他的话里。';
+  'Read the dialogue again: Stone Monkey said "see clearly first" and "come back and tell you" - "being praised" and "fastest" were not in his words.';
 
 /** 四张约定卡（正确顺序：进去 → 看清 → 回来 → 分享）。 */
 export const C2_P2_AGREEMENT_CARDS: JtwEvidenceOption[] = [
-  { id: 'card-enter', label: '进去', correct: true },
-  { id: 'card-see-clear', label: '看清', correct: true },
-  { id: 'card-return', label: '回来', correct: true },
-  { id: 'card-share', label: '分享', correct: true },
+  { id: 'card-enter', label: 'go in', correct: true },
+  { id: 'card-see-clear', label: 'see clearly', correct: true },
+  { id: 'card-return', label: 'return', correct: true },
+  { id: 'card-share', label: 'share', correct: true },
 ];
 export const C2_P2_AGREEMENT_ORDER = ['card-enter', 'card-see-clear', 'card-return', 'card-share'];
 
 /** 为什么“进去”不能直接等于完成约定。 */
-export const C2_P2_ENTER_QUESTION = '为什么只做到“进去”，还不算完成约定？';
+export const C2_P2_ENTER_QUESTION =
+  'Why is it that just "going in" doesn\'t count as completing the agreement?';
 export const C2_P2_ENTER_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'enter-only-first-cell',
-    label: '“进去”只是第一格——还要看清里面、回来、把发现分享给伙伴，约定才算完成',
+    label:
+      '"Going in" is just the first step - you have to see clearly inside, come back, and share your findings with your partners, then the agreement is complete.',
     correct: true,
   },
-  { id: 'enter-is-enough', label: '进去就算完成了，后面的事会自己发生', correct: false },
-  { id: 'enter-bravest', label: '因为进去最勇敢，别的三格都不重要', correct: false },
+  {
+    id: 'enter-is-enough',
+    label: 'Once you go in, it’s done, and the rest will happen on its own.',
+    correct: false,
+  },
+  {
+    id: 'enter-bravest',
+    label: 'Because it’s the bravest to go in, and the other three spaces are not important.',
+    correct: false,
+  },
 ];
 
-export const C2_P2_PREDICTION_QUESTION = '如果石猴进去后不回来，伙伴能安全跟上吗？';
+export const C2_P2_PREDICTION_QUESTION =
+  "If the Stone Monkey doesn't come back after entering, can his companions follow him safely?";
 export const C2_P2_PREDICTION_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'cannot-follow-safely',
-    label: '不能——没有人回来说清路线和里面的情况，伙伴不知道怎么走才安全',
+    label:
+      'No - no one has come back to clarify the route and the conditions inside. My friends don’t know how to walk safely.',
     correct: true,
   },
-  { id: 'can-just-jump', label: '能——大家跟着跳进去就行了', correct: false },
+  { id: 'can-just-jump', label: 'Yes - everyone just jumps in.', correct: false },
 ];
 export const C2_P2_PREDICTION_RETRY_HINT =
-  '再看看四格约定：少了“回来”和“分享”，伙伴手里就没有路线，只能乱猜。';
+  'Let’s look at the four-square agreement: without “come back” and “share”, the partner will have no route and can only guess randomly.';
 
 export const C2_P2_RESOLVED_WORLD_CHANGE =
-  '四格约定“进去→看清→回来→分享”固定在舞台侧边，变成后面每一步的证据轨——之后每完成一步，就点亮对应的一格。';
-export const C2_P2_STORY_AFTER = '石猴捡起几片叶子放在湿石上，开始把三段湿石路一段一段摆清楚。';
-export const C2_P2_CONTINUE_LABEL = '先把路线摆清楚';
+  'The four-frame agreement "Go in → See clearly → Come back → Share" is fixed on the side of the stage and becomes the evidence track for each subsequent step - after each step is completed, the corresponding square is lit.';
+export const C2_P2_STORY_AFTER =
+  'The stone monkey picked up a few leaves and placed them on the wet stone, and began to lay out the three sections of the wet stone path one by one.';
+export const C2_P2_CONTINUE_LABEL = 'Let’s lay out the route first';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // C2-P3 · 三段湿石路 — off-screen planning before Code (scene-specs
@@ -932,30 +1115,39 @@ export const C2_P2_CONTINUE_LABEL = '先把路线摆清楚';
 /** Child-facing story text — teaching-script C2 Story Screen 3 (Part 3
  *  离屏规划：湿石路线) IN FULL, never compressed. */
 export const C2_P3_STORY_BEFORE: readonly [string, string] = [
-  '地板网格摆出起点、两块湿石、高台和水帘入口。孩子使用三张方向卡规划右2 → 上1 → 右2，每走一段都放终点贴纸并说明下一步为什么转向。',
-  '不看积木先画/排完整路线；同伴指出若把“上1”放到最后会停在哪里。',
+  'The floor grid is arranged to form the starting point, two wet stones, a raised platform and a water curtain entrance. The child uses three direction cards to plan right 2 → up 1 → right 2. At each step, he puts an end point sticker and explains why he turns next.',
+  'Draw/arrange the complete route without looking at the blocks; your partner points out where it will stop if you put "Up 1" at the end.',
 ];
 
 /** 因果桥：三片叶子各标一个停点，对应三段移动。 */
 export const C2_P3_STORY_BRIDGE =
-  '圆叶=Move Right 2，尖叶=Move Up 1，长叶=Move Right 2——每片叶子都标着一段移动的停点。路线卡摆对顺序，之后的程序才知道先走哪一段。';
+  'Round leaves = Move Right 2, pointed leaves = Move Up 1, long leaves = Move Right 2 - each leaf is marked with a stop point for movement. Once the route cards are placed in the right order, the subsequent program will know which section to go first.';
 
 /** 人物动机：石猴要把每一段停点讲清楚，让伙伴能预测而不是乱跳。 */
 export const C2_P3_MOTIVE_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'explain-each-stop',
-    label: '他要把每一段的停点讲清楚，让伙伴能先预测、而不是乱跳',
+    label:
+      'He needs to clearly explain the stopping points of each paragraph so that his partners can predict them first instead of jumping around randomly.',
     correct: true,
   },
-  { id: 'jump-fast-alone', label: '他只想自己跳得快，伙伴跟不跟得上没关系', correct: false },
-  { id: 'rush-in-first', label: '他想先冲进水帘，路线回来再慢慢想', correct: false },
+  {
+    id: 'jump-fast-alone',
+    label: 'He just wants to dance fast, and it doesn’t matter whether his partner can keep up.',
+    correct: false,
+  },
+  {
+    id: 'rush-in-first',
+    label: 'He wanted to rush into the water curtain first and then think about the route later.',
+    correct: false,
+  },
 ];
 
 /** 三张路线卡（正确顺序：圆叶 → 尖叶 → 长叶 = 右2 → 上1 → 右2）。 */
 export const C2_P3_ROUTE_CARDS: JtwEvidenceOption[] = [
-  { id: 'card-round-leaf', label: '🍃 圆叶——右2', correct: true },
-  { id: 'card-point-leaf', label: '🌿 尖叶——上1', correct: true },
-  { id: 'card-long-leaf', label: '🍂 长叶——右2', correct: true },
+  { id: 'card-round-leaf', label: '🍃 Round leaves - 2 from the right', correct: true },
+  { id: 'card-point-leaf', label: '🌿 Pointed leaves - Part 1', correct: true },
+  { id: 'card-long-leaf', label: '🍂 Long leaves - 2 from the right', correct: true },
 ];
 export const C2_P3_ROUTE_CARD_ORDER = ['card-round-leaf', 'card-point-leaf', 'card-long-leaf'];
 
@@ -970,9 +1162,9 @@ export const C2_P3_TARGET_STOPS: ReadonlyArray<{
   leaf: string;
   label: string;
 }> = [
-  { cell: '4-8', leaf: '🍃 圆叶', label: '第二块湿石' },
-  { cell: '4-7', leaf: '🌿 尖叶', label: '高台' },
-  { cell: '6-7', leaf: '🍂 长叶', label: '水帘入口' },
+  { cell: '4-8', leaf: '🍃 round leaves', label: 'second wet stone' },
+  { cell: '4-7', leaf: '🌿 pointed leaves', label: 'high platform' },
+  { cell: '6-7', leaf: '🍂 long leaves', label: 'water curtain entrance' },
 ];
 export const C2_P3_TARGET_STOP_CELLS = C2_P3_TARGET_STOPS.map((stop) => stop.cell);
 
@@ -980,40 +1172,56 @@ export const C2_P3_TARGET_STOP_CELLS = C2_P3_TARGET_STOPS.map((stop) => stop.cel
 export const C2_P3_STONE_CELLS = C2_STONE_CELLS;
 
 export const C2_P3_FOOTPRINT_HINT =
-  '再看看叶子标出的停点：第一段右2停在圆叶，上1跳上尖叶的高台，最后右2停在长叶的水帘入口——按到达顺序放三个脚印。';
+  'Let’s look at the stopping points marked by the leaves: in the first section, the right 2 stops at the round leaf, the upper 1 jumps onto the high platform of the pointed leaf, and finally the right 2 stops at the entrance of the water curtain of the long leaf - place three footprints in the order of arrival.';
 
 /**
  * 错误版（把上1放到最后）：第二段右2离开湿石路，冲到水帘入口下面的水面
  * （6-8）就停住了——它到不了水帘入口，两版终点因此不同。
  */
 export const C2_P3_WRONG_VERSION_STOPS: ReadonlyArray<{ cell: string; label: string }> = [
-  { cell: '4-8', label: '第二块湿石' },
-  { cell: '6-8', label: '落进水面（湿石路外）' },
+  { cell: '4-8', label: 'second wet stone' },
+  { cell: '6-8', label: 'Falling into the water (outside the wet stone road)' },
 ];
 
-export const C2_P3_WRONG_STOP_QUESTION = '把“上1”放到最后，第二段右2会停在哪里？';
+export const C2_P3_WRONG_STOP_QUESTION =
+  'Put "upper 1" at the end, where will the right 2 of the second paragraph stop?';
 export const C2_P3_WRONG_STOP_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'wrong-second-into-water',
-    label: '冲出湿石路，落在水帘入口下面的水面上——到不了高台，也到不了入口',
+    label:
+      "I rushed out of the wet stone road and landed on the water below the entrance of the water curtain - I couldn't reach the high platform or the entrance.",
     correct: true,
   },
-  { id: 'wrong-still-platform', label: '还是稳稳停在高台上', correct: false },
-  { id: 'wrong-reach-entrance', label: '直接停在水帘入口，跟原来一样', correct: false },
+  { id: 'wrong-still-platform', label: 'Or stop firmly on the high platform', correct: false },
+  {
+    id: 'wrong-reach-entrance',
+    label: 'Stop directly at the water curtain entrance, just like before',
+    correct: false,
+  },
 ];
 
-export const C2_P3_DEVIATION_QUESTION = '两版比较，第一次偏离发生在第几段？';
+export const C2_P3_DEVIATION_QUESTION =
+  'Comparing the two versions, in which paragraph does the first deviation occur?';
 export const C2_P3_DEVIATION_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'deviation-second-segment',
-    label: '第二段——应该上1跳上高台，错误版却继续右2冲向水面',
+    label:
+      'The second paragraph - should go up 1 to jump to the high platform, but the wrong version continues to the right 2 and rush towards the water.',
     correct: true,
   },
-  { id: 'deviation-first-segment', label: '第一段——两版从第一步就不一样', correct: false },
-  { id: 'deviation-third-segment', label: '第三段——只有最后一段不同', correct: false },
+  {
+    id: 'deviation-first-segment',
+    label: 'The first paragraph - the two versions are different from the first step',
+    correct: false,
+  },
+  {
+    id: 'deviation-third-segment',
+    label: 'Third paragraph - only the last paragraph is different',
+    correct: false,
+  },
 ];
 export const C2_P3_DEVIATION_RETRY_HINT =
-  '从头一段一段对：两版的第一段都是右2、都停在圆叶——最早不一样的是哪一段？';
+  'Match each paragraph from the beginning: the first paragraph of both versions is 2 on the right and both stop at the round leaf - which paragraph is the first to be different?';
 
 /** 只读目标链（display only —— 本 Part 不运行，排序卡不冒充真实 Blocks 项目）。 */
 export const C2_P3_TARGET_CHAIN: Block[] = [
@@ -1025,9 +1233,10 @@ export const C2_P3_TARGET_CHAIN: Block[] = [
 ];
 
 export const C2_P3_RESOLVED_WORLD_CHANGE =
-  '三个预测停点沿着湿石路依次亮起：圆叶、尖叶、长叶各亮一下。水帘仍然合着，谁也没有真的走过去。';
-export const C2_P3_STORY_AFTER = '路线说得通了，但还没有真实运行——下一步，让程序带石猴真的走一遍。';
-export const C2_P3_CONTINUE_LABEL = '让石猴真的走';
+  'Three prediction stops light up in sequence along the wet stone road: round leaves, pointed leaves, and long leaves. The water curtain was still closed, and no one really walked past.';
+export const C2_P3_STORY_AFTER =
+  'The route makes sense, but it hasn’t actually been run yet—the next step is to let the program take Stone Monkey for a real walk.';
+export const C2_P3_CONTINUE_LABEL = 'Let the stone monkey really go';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // C2-P4 · 刚好到达，不多也不少 — chapter two's main Build (scene-specs
@@ -1045,14 +1254,14 @@ export const C2_P3_CONTINUE_LABEL = '让石猴真的走';
 /** Child-facing story text — teaching-script C2 Story Screen 4 (Part 4
  *  Build 1：搭出三段路线) IN FULL, never compressed. */
 export const C2_P4_STORY_BEFORE: readonly [string, string, string] = [
-  'starter只预建Start和End。孩子从6个候选块中选择并放入Move Right 2 → Move Up 1 → Move Right 2，形成5块主脚本；一个方向或顺序错误都会停在错误湿石上。',
-  '孩子实际工作量：选择3块、排列3块、预测3个停点、至少运行1次；不是改单个数字。',
-  'Build成功：运行轨迹与三张终点贴纸一致，石猴准确到达水帘，但水帘暂时没有打开。',
+  'The starter only pre-builds Start and End. The child selects from 6 candidate blocks and places them in Move Right 2 → Move Up 1 → Move Right 2, forming a 5-block main script; one wrong direction or order will end up on the wrong wet stone.',
+  "The child's actual workload: select 3 blocks, arrange 3 blocks, predict 3 stopping points, run at least 1 time; not change a single number.",
+  'Build successful: The running trajectory is consistent with the three endpoint stickers. The stone monkey reaches the water curtain accurately, but the water curtain is not opened yet.',
 ];
 
 /** 因果桥：共享三段路线在这里拆成五块一步移动，由孩子主导（scene-specs 目标五块）。 */
 export const C2_P4_STORY_BRIDGE =
-  '三段共享路线 右2→上1→右2 在这里拆成五块一步移动：Right 1、Right 1、Up 1、Right 1、Right 1——两条路线等价，但五块都由你亲手排，圆叶、尖叶、长叶三个停点仍然可以观察。脚印和停点一致只证明“到达”；水帘仍落着，还不能说发现了洞穴。';
+  'The three-section shared route, Right 2 → Up 1 → Right 2, is divided into five pieces and moved in one step: Right 1, Right 1, Up 1, Right 1, Right 1 - the two routes are equivalent, but the five pieces are arranged by you personally, and the three stopping points of round leaves, pointed leaves and long leaves can still be observed. The fact that the footprints are consistent with the stopping point only proves "arrival"; the water curtain is still down, so it cannot be said that the cave has been discovered.';
 
 /** 起点与目标（与 C2-P3 网格合同一致：石猴 2/8，入口 6-7）。 */
 export const C2_P4_START = C2_P3_START;
@@ -1078,48 +1287,69 @@ export const C2_P4_TARGET_TRACE = ['3-8', '4-8', '4-7', '5-7', '6-7'] as const;
 /** The wet-stone route walker lives in `journeyWestC2Route.ts` (file-organization rule). */
 
 /** 预测 A：最后少一个 Right，石猴会停在哪里？ */
-export const C2_P4_FEWER_QUESTION = '最后少一个 Right，石猴会停在哪里？';
+export const C2_P4_FEWER_QUESTION =
+  'If there is one missing Right at the end, where will the Stone Monkey stop?';
 export const C2_P4_FEWER_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'fewer-stop-5-7',
-    label: '停在 5-7——高台的边上，还差一格，脚底碰不到水帘入口',
+    label:
+      'Stopped at 5-7 - the edge of the high platform, one space away, the soles of your feet cannot touch the entrance to the water curtain.',
     correct: true,
   },
-  { id: 'fewer-still-entrance', label: '还是能到入口——差一格没有关系', correct: false },
-  { id: 'fewer-into-water', label: '会掉进水里', correct: false },
+  {
+    id: 'fewer-still-entrance',
+    label: "You can still reach the entrance - it doesn't matter if you miss it by one space",
+    correct: false,
+  },
+  { id: 'fewer-into-water', label: 'Will fall into the water', correct: false },
 ];
 export const C2_P4_FEWER_RETRY_HINT =
-  '沿着脚印数一数：右1、右1、上1、右1 之后石猴在 5-7——离入口 6-7 还差一格，碰不到就不算到达。';
+  "Count along the footprints: Right 1, Right 1, Up 1, Right 1. Then the stone monkey is at 5-7 - one space away from the entrance 6-7. If you can't touch it, you won't have arrived.";
 
 /** 预测 B：多一个 Right，石猴会越过哪里？ */
-export const C2_P4_EXTRA_QUESTION = '多一个 Right，石猴会越过哪里？';
+export const C2_P4_EXTRA_QUESTION = 'With one more Right, where will the Stone Monkey cross?';
 export const C2_P4_EXTRA_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'extra-passes-entrance',
-    label: '越过 6-7 的水帘入口格，冲到 7-7——刚好碰到就应该停下',
+    label:
+      'Cross the water curtain entrance grid at 6-7 and rush to 7-7 - you should stop when you hit it.',
     correct: true,
   },
-  { id: 'extra-stops-entrance', label: '还是停在入口格，多的一格自己消失', correct: false },
-  { id: 'extra-goes-back', label: '会自动退回高台', correct: false },
+  {
+    id: 'extra-stops-entrance',
+    label: 'Still stop at the entrance grid, the extra grid will disappear by itself',
+    correct: false,
+  },
+  {
+    id: 'extra-goes-back',
+    label: 'Will automatically return to the high platform',
+    correct: false,
+  },
 ];
 export const C2_P4_EXTRA_RETRY_HINT =
-  '程序不会自己停：多一个 Right 就多走一格，石猴会越过 6-7 的入口格——“刚好”才是到达。';
+  'The program will not stop on its own: one more Right will move one more square, and the Stone Monkey will cross the entrance squares 6-7 - "just right" to reach it.';
 
 /** 证据：到达 ≠ 发现洞穴（水帘仍落着，回应链还没接入）。 */
-export const C2_P4_ARRIVAL_QUESTION = '运行成功了。现在能说“发现水帘洞”了吗？';
+export const C2_P4_ARRIVAL_QUESTION =
+  'The operation was successful. Can we now say "discovered Water Curtain Cave"?';
 export const C2_P4_ARRIVAL_OPTIONS: JtwEvidenceOption[] = [
   {
     id: 'arrival-only-reached',
-    label: '不能——脚印只证明石猴到达了入口格，水帘仍落着，还没有任何回应',
+    label:
+      'No - the footprints only prove that the stone monkey has reached the entrance grid, the water curtain is still down, and there is no response yet',
     correct: true,
   },
-  { id: 'arrival-cave-found', label: '能——到了入口就等于发现了洞穴', correct: false },
+  {
+    id: 'arrival-cave-found',
+    label: 'Yes - reaching the entrance is equivalent to discovering a cave.',
+    correct: false,
+  },
 ];
 export const C2_P4_ARRIVAL_RETRY_HINT =
-  '再看看舞台：水帘分开了吗？洞口露出来了吗？到达只回答了“怎样到达”——“碰到以后”还没有发生。';
+  'Look at the stage again: has the water curtain separated? Is the cave entrance visible? Arrival only answers "how to arrive"; the collision response has not happened yet.';
 
 export const C2_P4_RESOLVED_WORLD_CHANGE =
-  '五个脚印沿湿石路稳定显示：3-8、4-8、4-7、5-7、6-7，一步一个。石猴的脚底刚好碰到水帘入口格，不多也不少——可水帘的回应链还没有接入。';
+  "Five footprints showed steadily along the wet stone path: 3-8, 4-8, 4-7, 5-7, 6-7, one step at a time. The soles of the stone monkey's feet just touched the entrance grid of the water curtain, no more and no less - but the response chain of the water curtain was not connected yet.";
 export const C2_P4_STORY_AFTER =
-  '石猴到达了，水帘却没有分开。下一条线索：必须连接“碰到以后”的回应。';
-export const C2_P4_CONTINUE_LABEL = '让水帘听见碰撞';
+  'The stone monkey arrived, but the water curtain did not part. Next clue: The "after encounter" response must be connected.';
+export const C2_P4_CONTINUE_LABEL = 'Let the water curtain hear the collision';

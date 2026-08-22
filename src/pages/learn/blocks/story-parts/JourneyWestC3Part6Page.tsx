@@ -297,15 +297,15 @@ export function JourneyWestC3Part6Page({
   const completed = Boolean(savedEntry);
   const resolved = Boolean(
     storyRead &&
-      version &&
-      expectationDone &&
-      bugRunDone &&
-      breakFound &&
-      fixChosen &&
-      buildDone &&
-      fixRunDone &&
-      positionDiff.length === 1 &&
-      peerCorrect,
+    version &&
+    expectationDone &&
+    bugRunDone &&
+    breakFound &&
+    fixChosen &&
+    buildDone &&
+    fixRunDone &&
+    positionDiff.length === 1 &&
+    peerCorrect,
   );
 
   const runBug = useCallback(async () => {
@@ -424,7 +424,7 @@ export function JourneyWestC3Part6Page({
       >
         <p className="text-[16px] font-bold text-ink">{C3_P6_LOCKED_HINT}</p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -434,9 +434,10 @@ export function JourneyWestC3Part6Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c3-p6">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第三章 一叶木筏求师路 · Part 6 · Debug
+          Journey to the West · Chapter 3 One Leaf Raft’s Journey to Seeking a Master · Part 6 ·
+          Debug
         </p>
-        <h1 className="text-[28px] font-black text-ink">木筏跳了位置</h1>
+        <h1 className="text-[28px] font-black text-ink">The raft jumped out of position</h1>
       </header>
 
       {/* ── story_before：教学脚本 Part 6 全文，两屏 ─────────────────────── */}
@@ -460,7 +461,9 @@ export function JourneyWestC3Part6Page({
               onClick={() => {
                 setScreenIndex(1);
                 setScreensRead((current) =>
-                  current.includes(C3_P6_SCREEN_IDS[1]) ? current : [...current, C3_P6_SCREEN_IDS[1]],
+                  current.includes(C3_P6_SCREEN_IDS[1])
+                    ? current
+                    : [...current, C3_P6_SCREEN_IDS[1]],
                 );
               }}
             >
@@ -468,15 +471,15 @@ export function JourneyWestC3Part6Page({
             </button>
           )}
           <span className="text-[12px] font-bold text-ink-soft" data-testid="jtw-c3p6-story-count">
-            {screensRead.length} / {C3_P6_SCREEN_IDS.length} 段
+            {screensRead.length} / {C3_P6_SCREEN_IDS.length} part
           </span>
         </div>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C3_P6_CLASSIC_CARD}
         </aside>
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C3_P6_STORY_BRIDGE}
         </aside>
       </section>
@@ -505,7 +508,11 @@ export function JourneyWestC3Part6Page({
       </section>
 
       {/* ── ②错误版真实运行 ───────────────────────────────────────────── */}
-      <section className="space-y-4" data-testid="jtw-c3p6-bug-run" data-ran={bugRunDone ? '1' : '0'}>
+      <section
+        className="space-y-4"
+        data-testid="jtw-c3p6-bug-run"
+        data-ran={bugRunDone ? '1' : '0'}
+      >
         <h2 className="text-[15px] font-bold text-ink">{C3_P6_BUG_RUN_TITLE}</h2>
         <p className="text-[13px] leading-6 text-ink-soft">{C3_P6_BUG_RUN_NOTE}</p>
         <JourneyWestC3Stage
@@ -551,8 +558,9 @@ export function JourneyWestC3Part6Page({
                 data-testid="jtw-c3p6-bug-break"
                 data-boundary={`${bugBreak.from}-${bugBreak.to}`}
               >
-                第一处断开：Page {bugBreak.from} 的 {bugBreak.exitCell} 离开，Page {bugBreak.to} 却从{' '}
-                {bugBreak.enterCell} 出现——起点是 {jtwC3CellLabel(JTW_C3_P6_WRONG_START_CELL)}，不是{' '}
+                The first disconnection: Page {bugBreak.from} of {bugBreak.exitCell} Leave,Page{' '}
+                {bugBreak.to} But from {bugBreak.enterCell} Emerge – the starting point is{' '}
+                {jtwC3CellLabel(JTW_C3_P6_WRONG_START_CELL)},no{' '}
                 {jtwC3CellLabel(JTW_C3_P6_TARGET_START_CELL)}。
               </p>
             )}
@@ -585,7 +593,10 @@ export function JourneyWestC3Part6Page({
             )}
           </>
         ) : (
-          <p className="text-[13px] font-semibold text-ink-soft" data-testid="jtw-c3p6-break-locked">
+          <p
+            className="text-[13px] font-semibold text-ink-soft"
+            data-testid="jtw-c3p6-break-locked"
+          >
             {C3_P6_BREAK_RUN_FIRST_HINT}
           </p>
         )}
@@ -656,7 +667,10 @@ export function JourneyWestC3Part6Page({
             </span>
           )}
           {buildDone ? (
-            <span className="text-[13px] font-bold text-brand-mint" data-testid="jtw-c3p6-build-done">
+            <span
+              className="text-[13px] font-bold text-brand-mint"
+              data-testid="jtw-c3p6-build-done"
+            >
               {C3_P6_BUILD_DONE_LABEL}
             </span>
           ) : (
@@ -692,7 +706,11 @@ export function JourneyWestC3Part6Page({
       </section>
 
       {/* ── ⑥修复版真实跨页运行 ───────────────────────────────────────── */}
-      <section className="space-y-4" data-testid="jtw-c3p6-run" data-reached={fixRunDone ? '1' : '0'}>
+      <section
+        className="space-y-4"
+        data-testid="jtw-c3p6-run"
+        data-reached={fixRunDone ? '1' : '0'}
+      >
         <h2 className="text-[15px] font-bold text-ink">{C3_P6_RUN_TITLE}</h2>
         <p className="text-[13px] leading-6 text-ink-soft">{C3_P6_RUN_NOTE}</p>
         <JourneyWestC3Stage
@@ -718,7 +736,11 @@ export function JourneyWestC3Part6Page({
           )}
         </div>
         {fixBoundaries.length > 0 && (
-          <div className="space-y-2" data-testid="jtw-c3p6-fix-boundaries-panel" data-trace={trace.join('-')}>
+          <div
+            className="space-y-2"
+            data-testid="jtw-c3p6-fix-boundaries-panel"
+            data-trace={trace.join('-')}
+          >
             <p className="text-[13px] font-bold text-ink">
               {C3_P6_FIXED_TRACE_TITLE} · {trace.map((page) => `Page ${page}`).join(' → ')}
             </p>
@@ -795,7 +817,7 @@ export function JourneyWestC3Part6Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -804,12 +826,12 @@ export function JourneyWestC3Part6Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C3_P6_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C3_P6_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

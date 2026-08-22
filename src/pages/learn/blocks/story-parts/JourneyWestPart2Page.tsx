@@ -104,10 +104,16 @@ export function JourneyWestPart2Page({
   // friendly pointer back instead of a runnable part.
   if (!unlocked && !completed) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center" data-testid="jtw-p2-locked">
-        <p className="text-[16px] font-bold text-ink">先完成 Part 1「清晨的花果山」，石头才会打开。</p>
+      <div
+        className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center"
+        data-testid="jtw-p2-locked"
+      >
+        <p className="text-[16px] font-bold text-ink">
+          The stone will open after you complete Part 1 "Flower_FRUIT_MOUNTAIN__ in the Morning"
+          first.
+        </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -117,9 +123,11 @@ export function JourneyWestPart2Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c1-p2">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第一章 石猴出世 · Part 2
+          Journey to the West · Chapter 1 The Stone Monkey is Born · Part 2
         </p>
-        <h1 className="text-[28px] font-black text-ink">石猴出世运行示范</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          Stone Monkey Birth Operation Demonstration
+        </h1>
       </header>
 
       {/* ── story_before + classic card + motive ────────────────────── */}
@@ -134,7 +142,7 @@ export function JourneyWestPart2Page({
 
       {/* ── story cards in order ────────────────────────────────────── */}
       <OrderCards
-        title="按故事顺序点四张卡：先发生什么，后发生什么？"
+        title="Click on the four cards in story order: What happens first, what happens next?"
         options={C1_P2_STORY_CARDS}
         order={cardOrder}
         onChange={setCardOrder}
@@ -144,7 +152,7 @@ export function JourneyWestPart2Page({
 
       {/* ── first / last block ──────────────────────────────────────── */}
       <section data-testid="jtw-p2-first-last">
-        <h2 className="mb-2 text-[15px] font-bold text-ink">哪一块最先运行？</h2>
+        <h2 className="mb-2 text-[15px] font-bold text-ink">Which piece runs first?</h2>
         <div className="flex flex-wrap gap-2">
           {C1_P2_FIRST_BLOCK_OPTIONS.map((option) => (
             <Choice
@@ -155,7 +163,7 @@ export function JourneyWestPart2Page({
             />
           ))}
         </div>
-        <h2 className="mb-2 mt-4 text-[15px] font-bold text-ink">哪一块最后运行？</h2>
+        <h2 className="mb-2 mt-4 text-[15px] font-bold text-ink">Which piece runs last?</h2>
         <div className="flex flex-wrap gap-2">
           {C1_P2_LAST_BLOCK_OPTIONS.map((option) => (
             <Choice
@@ -193,7 +201,9 @@ export function JourneyWestPart2Page({
 
       {/* ── the real demo run ───────────────────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-[15px] font-bold text-ink">现在按下真正的 Go，看顺序怎么发生</h2>
+        <h2 className="text-[15px] font-bold text-ink">
+          Now press real Go and watch the sequence happen
+        </h2>
         <JourneyWestArrivalDemo onRunDone={() => setRan(true)} sleep={demoSleep} />
       </section>
 
@@ -209,7 +219,7 @@ export function JourneyWestPart2Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"

@@ -103,15 +103,20 @@ export function JourneyWestPart3Page() {
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">树叶正在沙沙作响…</p>;
+    return <p className="p-8 text-center text-ink-soft">The leaves are rustling…</p>;
   }
 
   if (!unlocked && !completed) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center" data-testid="jtw-p3-locked">
-        <p className="text-[16px] font-bold text-ink">先看完 Part 2 的出世示范，再来排练顺序。</p>
+      <div
+        className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center"
+        data-testid="jtw-p3-locked"
+      >
+        <p className="text-[16px] font-bold text-ink">
+          Watch the birth demonstration in Part 2 first, and then rehearse the sequence.
+        </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -123,9 +128,9 @@ export function JourneyWestPart3Page() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c1-p3">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第一章 石猴出世 · Part 3
+          Journey to the West · Chapter 1 The Stone Monkey is Born · Part 3
         </p>
-        <h1 className="text-[28px] font-black text-ink">树叶后的顺序排练</h1>
+        <h1 className="text-[28px] font-black text-ink">sequence rehearsal after leaves</h1>
       </header>
 
       {/* ── story_before：完整儿童正文 ──────────────────────────────── */}
@@ -135,7 +140,9 @@ export function JourneyWestPart3Page() {
 
       {/* ── 动机证据 ────────────────────────────────────────────────── */}
       <section data-testid="jtw-p3-motive">
-        <h2 className="mb-2 text-[15px] font-bold text-ink">石猴为什么愿意慢下来排练？</h2>
+        <h2 className="mb-2 text-[15px] font-bold text-ink">
+          Why is Stone Monkey willing to slow down and rehearse?
+        </h2>
         <div className="flex flex-col gap-2">
           {C1_P3_MOTIVE_OPTIONS.map((option) => (
             <Choice
@@ -150,7 +157,7 @@ export function JourneyWestPart3Page() {
 
       {/* ── 四卡排序 ────────────────────────────────────────────────── */}
       <OrderCards
-        title="把四张排练卡摆成石猴心里的顺序"
+        title="Arrange the four rehearsal cards in Stone Monkey's planned order"
         options={C1_P3_STORY_CARDS}
         order={cardOrder}
         onChange={setCardOrder}
@@ -165,7 +172,7 @@ export function JourneyWestPart3Page() {
           data-testid="jtw-p3-swap-lab"
         >
           <h2 className="text-[15px] font-bold text-ink">
-            像那只调皮的群猴一样，交换两片叶子试试：
+            Like that naughty monkey, try exchanging two leaves:
           </h2>
           <ol
             className="mt-3 flex flex-wrap gap-2"
@@ -199,7 +206,7 @@ export function JourneyWestPart3Page() {
               setSwapTried(true);
             }}
           >
-            {swapped ? '换回原来的顺序' : '交换 Hop 和 Say'}
+            {swapped ? 'Change back to original order' : 'Swap Hop and Say'}
           </button>
 
           {swapTried && (
@@ -261,7 +268,8 @@ export function JourneyWestPart3Page() {
       {/* ── 预置只读链（不运行，不算 Build） ─────────────────────────── */}
       <section data-testid="jtw-p3-preset-chain">
         <h2 className="mb-2 text-[15px] font-bold text-ink">
-          真正的舞台上已经放好了这条链（只读，下一个 Part 才轮到你搭）：
+          This chain has been placed on the real stage (read-only, it will be your turn to build it
+          in the next Part):
         </h2>
         <div className="flex flex-wrap items-center gap-1">
           {C1_P3_PRESET_CHAIN.map((block, index) => (
@@ -288,7 +296,7 @@ export function JourneyWestPart3Page() {
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -297,12 +305,12 @@ export function JourneyWestPart3Page() {
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C1_P3_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C1_P3_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

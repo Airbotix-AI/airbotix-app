@@ -46,12 +46,16 @@ function renderPage() {
 
 async function completeEvidenceAndPreview() {
   // Environment evidence (pick 3 of 5) + the two true observe reasons.
-  fireEvent.click(screen.getByRole('button', { name: '大海' }));
-  fireEvent.click(screen.getByRole('button', { name: '果树' }));
-  fireEvent.click(screen.getByRole('button', { name: '仙石' }));
-  fireEvent.click(screen.getByRole('button', { name: '石缝里发出光' }));
-  fireEvent.click(screen.getByRole('button', { name: '石头里传来“咚”的声音' }));
-  fireEvent.click(screen.getByRole('button', { name: '停下来，躲在叶子后认真观察' }));
+  fireEvent.click(screen.getByRole('button', { name: 'sea' }));
+  fireEvent.click(screen.getByRole('button', { name: 'fruit trees' }));
+  fireEvent.click(screen.getByRole('button', { name: 'magic stone' }));
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Light shines from the cracks in the rocks' }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'A "dong" sound came from the stone' }));
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Stop, hide behind the leaves and observe carefully' }),
+  );
   // Watch the read-only preview run (real BlocksRunner, instant sleep).
   fireEvent.click(screen.getByTestId('jtw-p1-run'));
   await waitFor(() => expect(screen.getByTestId('jtw-p1-prediction')).toBeInTheDocument());
@@ -70,14 +74,18 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestPartPage · C1-P1 清晨的花果山', () => {
+describe('JourneyWestPartPage · C1-P1 Huaguoshan in the early morning', () => {
   it('ships the full child-facing story text and the classic card', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c1-p1')).toBeInTheDocument());
     for (const paragraph of C1_P1_STORY_BEFORE) {
       expect(screen.getByText(paragraph)).toBeInTheDocument();
     }
-    expect(screen.getByText(/原著第一回里，花果山的仙石先孕育出石猴/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /In the opening chapter of the classic novel, the magic stone on Flower-Fruit Mountain gives birth to the Stone Monkey\. He is not called Sun Wukong yet, and he has not met the pilgrims\./i,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('keeps the stone monkey invisible before, during and after the preview run', async () => {
@@ -99,13 +107,21 @@ describe('JourneyWestPartPage · C1-P1 清晨的花果山', () => {
     expect(screen.getByTestId('jtw-p1-continue')).toBeDisabled();
 
     // Wrong (not picture-grounded) prediction → gentle retry, still locked.
-    fireEvent.click(screen.getByRole('button', { name: /已经出现了/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('再看看画面');
+    fireEvent.click(
+      screen.getByRole('button', { name: /Already appeared, standing on the stone platform/i }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Look again. Can you see the Stone Monkey on the platform yet?',
+    );
     expect(screen.getByTestId('jtw-p1-continue')).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: /还没有——石台上没有石猴/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Not yet - there is no stone monkey on the stone platform, he is still hidden in the stone/i,
+      }),
+    );
     expect(screen.getByTestId('jtw-p1-resolved')).toBeInTheDocument();
-    expect(screen.getByText('群猴决定安静等一等。')).toBeInTheDocument();
+    expect(screen.getByText('The monkeys decided to wait quietly.')).toBeInTheDocument();
     expect(screen.getByTestId('jtw-p1-continue')).toBeEnabled();
   });
 
@@ -113,7 +129,11 @@ describe('JourneyWestPartPage · C1-P1 清晨的花果山', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-p1-continue')).toBeInTheDocument());
     await completeEvidenceAndPreview();
-    fireEvent.click(screen.getByRole('button', { name: /还没有——石台上没有石猴/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Not yet - there is no stone monkey on the stone platform, he is still hidden in the stone/i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-p1-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
@@ -152,9 +172,15 @@ describe('JourneyWestPartPage · C1-P1 清晨的花果山', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('jtw-p1-resolved')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: '大海' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: '清泉' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: '果树' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'sea' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'clear spring' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'fruit trees' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
     expect(screen.getByTestId('jtw-p1-continue')).toBeEnabled();
   });
 

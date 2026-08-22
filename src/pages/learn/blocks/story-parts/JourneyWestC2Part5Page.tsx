@@ -18,20 +18,28 @@ const CURTAIN_ASSET =
 const CAVE_ASSET = '/story-blocks/journey-to-the-west/characters/cave-entrance/revealed-v01.png';
 
 const STORY_BEFORE = [
-  '石猴的五个脚印刚好停在水帘前。他伸手碰到轰响的水流，可水帘还像一扇关着的门。路线只回答了“怎样到达”，现在程序还要回答“碰到以后会发生什么”。',
-  '石猴想起和伙伴的约定：进去以后要看清里面，也要回来把发现讲明白。水帘后隐约有一条石桥，里面的地面没有积水，还有石座和清清的水。这些证据能不能说明伙伴也适合进来？',
+  'The five footprints of the stone monkey stopped just in front of the water curtain. He reached out and touched the roaring water, but the water curtain was still like a closed door. The route only answers "how to get there", and now the program also needs to answer "what will happen after encountering it".',
+  'Stone Monkey remembered the agreement he made with his companions: after entering, he must see clearly what was inside, and he must also come back and explain his findings clearly. There is a stone bridge vaguely behind the water curtain. There is no water on the ground inside, there are stone seats and clear water. Does this evidence indicate that partners are also suitable to come in?',
 ] as const;
 
 const EVIDENCE = [
-  { id: 'bridge', label: '石桥可以走', correct: true },
-  { id: 'dry-ground', label: '地面干爽', correct: true },
-  { id: 'stone-seat', label: '里面有石座', correct: true },
-  { id: 'clear-water', label: '有清水', correct: true },
-  { id: 'fastest', label: '石猴跑得最快', correct: false },
+  { id: 'bridge', label: 'You can walk on the stone bridge', correct: true },
+  { id: 'dry-ground', label: 'The ground is dry', correct: true },
+  { id: 'stone-seat', label: 'There is a stone seat inside', correct: true },
+  { id: 'clear-water', label: 'There is clear water', correct: true },
+  { id: 'fastest', label: 'The stone monkey runs the fastest', correct: false },
 ] as const;
 const PREDICTIONS = [
-  { id: 'nothing-readable', label: '只剩空的崖面，看不到洞里的居住证据', correct: true },
-  { id: 'cave-visible', label: '洞口会自己出现，Show 不需要连接', correct: false },
+  {
+    id: 'nothing-readable',
+    label: 'Only the empty cliff face remains, with no evidence of habitation in the cave.',
+    correct: true,
+  },
+  {
+    id: 'cave-visible',
+    label: 'The hole will appear by itself, Show does not require a connection',
+    correct: false,
+  },
 ] as const;
 
 interface BuildStatus {
@@ -66,7 +74,7 @@ function Stage({ resolved }: { resolved: boolean }) {
     >
       <img
         src={BASE_ASSET}
-        alt="湿石路尽头的干崖面和空洞口"
+        alt="Dry cliff face and hollow mouth at the end of wet stone road"
         className="absolute inset-0 h-full w-full object-cover"
       />
       <img
@@ -78,7 +86,7 @@ function Stage({ resolved }: { resolved: boolean }) {
       {!resolved && (
         <img
           src={CURTAIN_ASSET}
-          alt="合着的水帘"
+          alt="closed water curtain"
           data-testid="jtw-c2p5-curtain"
           className="absolute right-[5%] top-[3%] h-[68%] w-[49%] object-contain"
         />
@@ -86,7 +94,7 @@ function Stage({ resolved }: { resolved: boolean }) {
       {resolved && (
         <img
           src={CAVE_ASSET}
-          alt="暖光洞口，里面有石桥、干地、石座和清水"
+          alt="Warm light cave entrance, with stone bridge, dry ground, stone base and clear water inside"
           data-testid="jtw-c2p5-cave"
           className="absolute right-[12%] top-[12%] h-[61%] w-[38%] object-contain"
         />
@@ -132,7 +140,7 @@ export function JourneyWestC2Part5Page() {
     setCreating(true);
     try {
       const { id } = await createBlocksProject({
-        title: '西游记 · 水帘分开以后',
+        title: 'Journey to the West · After the water curtain separates',
         template: 'blocks_jtw_c2_p5',
       });
       navigate(`/learn/blocks/${id}`);
@@ -157,16 +165,19 @@ export function JourneyWestC2Part5Page() {
     },
   });
 
-  if (progress.isLoading) return <p className="p-8 text-center text-ink-soft">水帘正在落下…</p>;
+  if (progress.isLoading)
+    return <p className="p-8 text-center text-ink-soft">The water curtain is falling...</p>;
   if (!unlocked && !saved) {
     return (
       <div
         className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center"
         data-testid="jtw-c2p5-locked"
       >
-        <p className="font-bold text-ink">先完成 Part 4 的五块路线，才能连接碰撞回应。</p>
+        <p className="font-bold text-ink">
+          Complete the five-block route in Part 4 before you can connect to Collision Response.
+        </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -175,9 +186,9 @@ export function JourneyWestC2Part5Page() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c2-p5">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第二章 · Part 5 · Build 2
+          Journey to the West · Chapter 2 · Part 5 · Build 2
         </p>
-        <h1 className="text-[28px] font-black text-ink">水帘分开以后</h1>
+        <h1 className="text-[28px] font-black text-ink">After the water curtain is separated</h1>
       </header>
       <section className="space-y-4" data-testid="jtw-c2p5-story">
         {STORY_BEFORE.map((text) => (
@@ -186,8 +197,9 @@ export function JourneyWestC2Part5Page() {
           </p>
         ))}
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <strong>故事—程序桥：</strong> 石猴路线产生真实碰撞；水帘的 On Bump 运行 Hide，洞口自己的
-          On Bump 运行 Show，Chime 给出听觉和可见反馈。
+          <strong>Story—Program Bridge:</strong> The stone monkey route produces real collisions;
+          the water curtain's On Bump runs Hide, and the cave entrance's own On Bump runs Show and
+          Chime gives audible and visible feedback.
         </aside>
       </section>
       <Stage resolved={resolved || Boolean(saved)} />
@@ -196,10 +208,11 @@ export function JourneyWestC2Part5Page() {
         data-testid="jtw-c2p5-build"
         data-build-state={buildDone ? 'done' : 'pending'}
       >
-        <h2 className="font-bold text-ink">在真正的工作区连接两个回应</h2>
+        <h2 className="font-bold text-ink">Connect two responses in real workspace</h2>
         <p className="mt-2 text-[14px] leading-7 text-ink-soft">
-          路线已经搭好。把 Hide 放进水帘的 On Bump 轨，把 Show 放进洞口自己的 On Bump
-          轨；核对角色归属，先预测，再按 Go、保存。
+          The route has been set. Put Hide into the water curtain's On Bump track, and put Show into
+          the hole's own On Bump track. Track; check the role ownership, predict first, then press
+          Go and save.
         </p>
         <button
           type="button"
@@ -208,14 +221,18 @@ export function JourneyWestC2Part5Page() {
           disabled={creating}
           onClick={() => void openStudio()}
         >
-          {buildDone ? '再看我的碰撞回应' : build.data?.projectId ? '继续连接 →' : '开始连接 →'}
+          {buildDone
+            ? 'Look at my collision response again'
+            : build.data?.projectId
+              ? 'Continue to connect →'
+              : 'Start connecting →'}
         </button>
         {buildDone && (
           <span
             className="ml-3 text-[13px] font-bold text-brand-mint"
             data-testid="jtw-c2p5-build-done"
           >
-            ✓ 两条 On Bump 轨已真实运行
+            ✓ Two On Bump tracks are actually running
           </span>
         )}
       </section>
@@ -223,7 +240,8 @@ export function JourneyWestC2Part5Page() {
         <section className="space-y-5 rounded-2xl border border-brand-sky/40 bg-wash-sky p-5">
           <div>
             <h2 className="mb-2 font-bold text-ink">
-              如果只 Hide 水帘，却没有 Show 洞口，伙伴会看到什么？
+              If you only hide the water curtain but don't show the hole, what will your partner
+              see?
             </h2>
             <div className="flex flex-col gap-2">
               {PREDICTIONS.map((option) => (
@@ -237,7 +255,9 @@ export function JourneyWestC2Part5Page() {
             </div>
           </div>
           <div data-testid="jtw-c2p5-evidence">
-            <h2 className="mb-2 font-bold text-ink">选出至少三条“适合伙伴进入”的证据</h2>
+            <h2 className="mb-2 font-bold text-ink">
+              Select at least three pieces of evidence that are “suitable for partners to enter”
+            </h2>
             <div className="flex flex-wrap gap-2">
               {EVIDENCE.map((option) => (
                 <button
@@ -266,16 +286,19 @@ export function JourneyWestC2Part5Page() {
           data-testid="jtw-c2p5-resolved"
         >
           <p className="leading-7 text-ink">
-            石猴碰到水帘，两条 On Bump 轨同时回应：水帘隐藏，洞口显出暖光，Chime 响起。
+            When the stone monkey touches the water curtain, the two On Bump tracks respond at the
+            same time: the water curtain hides, the cave entrance shows a warm light, and Chime
+            sounds.
           </p>
           <p className="mt-2 font-semibold text-ink">
-            石猴确认了石桥、干地、石座和清水，决定按约定沿原路回去告诉伙伴。
+            The stone monkey confirmed the stone bridge, dry land, stone base and clear water, and
+            decided to go back along the original road as agreed to tell his companions.
           </p>
         </section>
       )}
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -284,7 +307,7 @@ export function JourneyWestC2Part5Page() {
           disabled={(!resolved && !saved) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          沿原路回去
+          Go back along the same path
         </button>
       </footer>
     </div>

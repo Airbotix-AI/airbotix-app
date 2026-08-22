@@ -45,9 +45,9 @@ import { Choice } from './partUi';
 const PART_ID = 'jtw-s1-c2-p7';
 const NEXT_PART_ID = 'jtw-s1-c2-p8';
 const RERUN_LABELS = {
-  idle: '▶ 重开以后再跑一次',
-  running: '重跑中…',
-  again: '▶ 再跑一次',
+  idle: '▶ Run again after reopening',
+  running: 'Running again…',
+  again: '▶Run again',
 } as const;
 
 export function JourneyWestC2Part7Page({
@@ -150,7 +150,11 @@ export function JourneyWestC2Part7Page({
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">伙伴们正在水边等你的路线…</p>;
+    return (
+      <p className="p-8 text-center text-ink-soft">
+        Friends are waiting for your route by the water...
+      </p>
+    );
   }
 
   if (!unlocked && !completed) {
@@ -160,10 +164,10 @@ export function JourneyWestC2Part7Page({
         data-testid="jtw-c2p7-locked"
       >
         <p className="text-[16px] font-bold text-ink">
-          先在 Part 6 把回程修好，再来把这条路线变成大家的路。
+          First fix the return trip in Part 6, and then make this route a road for everyone.
         </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -173,9 +177,10 @@ export function JourneyWestC2Part7Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c2-p7">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第二章 水帘洞的约定 · Part 7 · Personal Ship
+          Journey to the West · Chapter 2 The Agreement of Water Curtain Cave · Part 7 · Personal
+          Ship
         </p>
-        <h1 className="text-[28px] font-black text-ink">把发现变成大家的路</h1>
+        <h1 className="text-[28px] font-black text-ink">Make discovery the path for everyone</h1>
       </header>
 
       {/* ── story_before：教学脚本 C2 Part 7 全文 + 动机 + 因果桥 ─────────── */}
@@ -187,11 +192,11 @@ export function JourneyWestC2Part7Page({
         ))}
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
           <p>
-            <span className="font-bold">石猴为什么要设计路线：</span>
+            <span className="font-bold">Why does Stone Monkey design a route:</span>
             {C2_P7_MOTIVE}
           </p>
           <p className="mt-2">
-            <span className="font-bold">故事—程序桥：</span>
+            <span className="font-bold">Story—Program Bridge:</span>
             {C2_P7_STORY_BRIDGE}
           </p>
         </aside>
@@ -203,10 +208,15 @@ export function JourneyWestC2Part7Page({
         data-testid="jtw-c2p7-build"
         data-build-state={buildDone ? 'done' : build.data?.projectId ? 'in_progress' : 'none'}
       >
-        <h2 className="text-[15px] font-bold text-ink">去真正的工作区设计你的进入路线</h2>
+        <h2 className="text-[15px] font-bold text-ink">
+          Go to the real workspace and design your entry route
+        </h2>
         <p className="mt-1 text-[13px] text-ink-soft">
-          留在左岸的 2/8，或者把石猴拖到右岸的 12/9——两岸的路线不一样，块数也不一样。把这一岸需要的一步移动块按顺序接上，末尾放一块 Wait
-          1 或 Wait 2，再挑一句洞口的发现对白。水帘和洞口的 On Bump 轨一块都不能删。
+          2/8 to stay on the left bank, or 12/9 to drag the stone monkey to the right bank - the
+          routes on both banks are different, and so are the number of blocks. Connect the one-step
+          movement blocks needed on this side in order, and put a Wait block at the end 1 or Wait 2,
+          and then pick a sentence of discovery dialogue at the entrance of the cave. Neither the
+          water curtain nor the On Bump track at the entrance can be deleted.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
@@ -217,30 +227,31 @@ export function JourneyWestC2Part7Page({
             onClick={() => void openStudio()}
           >
             {creating
-              ? '正在打开你的舞台…'
+              ? 'Opening your stage...'
               : buildDone
-                ? '再看看我的路线'
+                ? 'Look at my route again'
                 : build.data?.projectId
-                  ? '继续设计 →'
-                  : '开始设计 →'}
+                  ? 'Continue designing →'
+                  : 'Start designing →'}
           </button>
           {buildDone && (
             <span
               className="text-[13px] font-bold text-brand-mint"
               data-testid="jtw-c2p7-build-done"
             >
-              ✓ 路线已保存，并在工作区真实运行过
+              ✓ The route has been saved and actually run in the workspace
             </span>
           )}
           {!buildDone && build.data?.projectId && (
             <span className="text-[13px] font-semibold text-ink-soft">
-              还不成立：检查起点在不在某一岸、这一岸的每一步、末尾的 Wait，以及两条 On Bump 轨。
+              Not yet established: check whether the starting point is on a certain bank, each step
+              of this bank, the Wait at the end, and the two On Bump tracks.
             </span>
           )}
         </div>
         {createError && (
           <p className="mt-2 text-[13px] font-semibold text-brand-coral" role="alert">
-            没能打开工作区，请再试一次。
+            Failed to open workspace, please try again.
           </p>
         )}
       </section>
@@ -250,10 +261,10 @@ export function JourneyWestC2Part7Page({
           {/* ── 从保存的作品读回：起点、路线、等待、对白、版本号 ─────────── */}
           <section className="space-y-3" data-testid="jtw-c2p7-design">
             <h2 className="text-[15px] font-bold text-ink">
-              你保存的设计（从作品里读回来的，不是页面猜的）：
+              The design you saved (read from the work, not guessed by the page):
             </h2>
             <p className="text-[14px] font-semibold text-ink" data-testid="jtw-c2p7-side">
-              起点：{design.side.label}
+              starting point:{design.side.label}
             </p>
             <div className="flex flex-wrap items-center gap-1" data-testid="jtw-c2p7-route">
               {routeChips.map((block, index) => (
@@ -279,18 +290,21 @@ export function JourneyWestC2Part7Page({
                   )}
                 >
                   <span className="mr-1 text-[12px] font-black text-ink-soft">
-                    第{index + 1}步
+                    No.{index + 1}step
                   </span>
                   {cell}
-                  {cell === design.side.knockCell ? ' · 刚好碰到水帘' : ''}
+                  {cell === design.side.knockCell ? ' · Just touching the water curtain' : ''}
                 </li>
               ))}
             </ol>
             <p className="text-[13px] font-semibold text-ink-soft">
-              <span data-testid="jtw-c2p7-wait">等待 {design.waitN} 拍</span> ·{' '}
-              <span data-testid="jtw-c2p7-line">洞口对白「{design.evidenceLine}」</span> ·{' '}
+              <span data-testid="jtw-c2p7-wait">wait {design.waitN} beat</span> ·{' '}
+              <span data-testid="jtw-c2p7-line">
+                Dialogue at the entrance of the cave "{design.evidenceLine}」
+              </span>{' '}
+              ·{' '}
               <span data-testid="jtw-c2p7-saved-version">
-                保存版本 #{build.data.savedVersion}
+                Save version #{build.data.savedVersion}
               </span>
             </p>
           </section>
@@ -322,7 +336,8 @@ export function JourneyWestC2Part7Page({
           {predictionDone && (
             <section className="space-y-4" data-testid="jtw-c2p7-rerun-section">
               <h2 className="text-[15px] font-bold text-ink">
-                这一页是刚从服务器重新打开的作品。再跑一次，看结果是不是一样：
+                This page was just reopened from the server. Run it again and see if the results are
+                the same:
               </h2>
               <JourneyWestC2EntryStage
                 page={build.data.page}
@@ -341,8 +356,8 @@ export function JourneyWestC2Part7Page({
                   data-consistent={rerunOk}
                 >
                   {rerunOk
-                    ? `重开后重跑一致：石猴停在 ${rerun.endCell}，水帘隐藏、洞口显现，洞口说出同一句发现。`
-                    : '这一次的结果和保存的设计对不上——回工作区检查路线，再重跑一次。'}
+                    ? `Consistent rerun after restart: Stone Monkey stopped at ${rerun.endCell}, the water curtain hides, the cave entrance appears, and the cave entrance says the same sentence of discovery.`
+                    : 'This time the results did not match the saved design - go back to the workspace to check the route and run again.'}
                 </p>
               )}
             </section>
@@ -383,7 +398,7 @@ export function JourneyWestC2Part7Page({
         >
           <img
             src={JTW_MONKEY_FRIENDS_SPRITE}
-            alt="三只群猴跟着石猴的路线走到洞口"
+            alt="The three group of monkeys followed the stone monkey's path to the entrance of the cave."
             data-testid="jtw-c2p7-friends"
             className="mb-3 w-full max-w-sm"
           />
@@ -394,7 +409,7 @@ export function JourneyWestC2Part7Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -403,12 +418,12 @@ export function JourneyWestC2Part7Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C2_P7_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C2_P7_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

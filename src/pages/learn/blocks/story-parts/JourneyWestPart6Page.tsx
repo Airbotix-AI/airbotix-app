@@ -174,7 +174,7 @@ function JourneyWestBugPreview({
       >
         <img
           src={JTW_C1_BACKGROUND_ASSET}
-          alt="花果山的石台：乱序的亮相就要重演了"
+          alt="The stone platform of Flower-Fruit Mountain: the out-of-sequence appearance is about to happen again"
           className="absolute inset-0 h-full w-full object-cover"
         />
         <img
@@ -201,7 +201,8 @@ function JourneyWestBugPreview({
 
       <div>
         <p className="mb-2 text-[13px] font-semibold text-ink-soft">
-          bug 复现轨道（只读）——这不是修好的版本，先完整看一遍它哪里出了问题：
+          Bug recurrence track (read-only) - This is not a fixed version, take a complete look at
+          what went wrong with it first:
         </p>
         <div className="flex flex-wrap items-center gap-1" data-testid="jtw-p6-bug-chain">
           {blocks.map((block, index) => (
@@ -223,7 +224,7 @@ function JourneyWestBugPreview({
         onClick={() => void run()}
         data-testid="jtw-p6-run"
       >
-        {running ? '运行中…' : ran ? '▶ 再复现一次' : '▶ 运行这个 bug'}
+        {running ? 'Running…' : ran ? '▶ Repeat it again' : '▶ run this bug'}
       </button>
     </div>
   );
@@ -297,7 +298,7 @@ export function JourneyWestPart6Page({
     setCreateError(false);
     try {
       const { id } = await createBlocksProject({
-        title: '西游记 · 修好乱序的亮相',
+        title: 'Journey to the West · Fix out-of-order appearances',
         template: 'blocks_jtw_c1_p6',
       });
       navigate(`/learn/blocks/${id}`);
@@ -329,15 +330,20 @@ export function JourneyWestPart6Page({
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">乱序的舞台正在重演…</p>;
+    return <p className="p-8 text-center text-ink-soft">The chaotic stage is happening again...</p>;
   }
 
   if (!unlocked && !completed) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center" data-testid="jtw-p6-locked">
-        <p className="text-[16px] font-bold text-ink">先在 Part 5 选好你的问候方式，再来修这段乱序的故事。</p>
+      <div
+        className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center"
+        data-testid="jtw-p6-locked"
+      >
+        <p className="text-[16px] font-bold text-ink">
+          First choose your greeting method in Part 5, and then fix this out-of-order story.
+        </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -347,9 +353,9 @@ export function JourneyWestPart6Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c1-p6">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第一章 石猴出世 · Part 6 · Debug
+          Journey to the West · Chapter 1 The Stone Monkey is Born · Part 6 · Debug
         </p>
-        <h1 className="text-[28px] font-black text-ink">声音怎么从空中来了</h1>
+        <h1 className="text-[28px] font-black text-ink">Why did the sound come from the air?</h1>
       </header>
 
       {/* ── story_before：完整儿童正文 ──────────────────────────────── */}
@@ -374,7 +380,7 @@ export function JourneyWestPart6Page({
 
       {/* ── bug 复现：真实 Runner 运行乱序链 ────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-[15px] font-bold text-ink">运行这个 bug（只读复现）</h2>
+        <h2 className="text-[15px] font-bold text-ink">Run this bug (read-only reproduction)</h2>
         <JourneyWestBugPreview onRunDone={() => setBugRan(true)} sleep={previewSleep} />
       </section>
 
@@ -424,11 +430,14 @@ export function JourneyWestPart6Page({
             data-testid="jtw-p6-build"
             data-build-state={buildDone ? 'done' : build.data?.projectId ? 'in_progress' : 'none'}
           >
-            <h2 className="text-[15px] font-bold text-ink">去真正的工作区修好顺序</h2>
+            <h2 className="text-[15px] font-bold text-ink">
+              Go to the real workspace and fix the order
+            </h2>
             <p className="mt-1 text-[13px] text-ink-soft">
-              工作区里的程序就是这条 bug。先按 Go 跑一遍它，再只移动 Show、Hop、Say
-              三块，把顺序修成先出现、再动作、后问候，然后重跑保存。不许删掉重搭，
-              也不许改声音或端点——没有任何按钮会替你修好。
+              The program in the workspace has this bug. First press Go to run it through, then move
+              only Show, Hop, Say Three pieces, change the order to appear first, then action, then
+              greeting, then rerun and save. It is not allowed to delete and re-match. You're also
+              not allowed to change the sounds or endpoints - no buttons will fix it for you.
             </p>
             <div className="mt-4 flex items-center gap-3">
               <button
@@ -439,35 +448,36 @@ export function JourneyWestPart6Page({
                 onClick={() => void openStudio()}
               >
                 {creating
-                  ? '正在打开乱序的舞台…'
+                  ? 'Opening the chaotic stage...'
                   : buildDone
-                    ? '再看看我的修复'
+                    ? 'Take another look at my fix'
                     : build.data?.projectId
-                      ? '继续修复 →'
-                      : '开始修复 →'}
+                      ? 'Continue to repair →'
+                      : 'Start repair →'}
               </button>
               {buildDone && (
                 <span
                   className="text-[13px] font-bold text-brand-mint"
                   data-testid="jtw-p6-build-done"
                 >
-                  ✓ bug 已复现，顺序已修好并重跑过
+                  ✓ The bug has been reproduced, the sequence has been fixed and rerun
                 </span>
               )}
               {!buildDone && build.data?.projectId && (
                 <span className="text-[13px] font-semibold text-ink-soft">
-                  顺序还没修成目标链，或还没先跑 bug 再重跑保存。
+                  The sequence has not been fixed to the target chain, or the bug has not been run
+                  before re-running and saving.
                 </span>
               )}
             </div>
             {buildDone && build.data && build.data.projectDiff.length > 0 && (
               <p className="mt-2 text-[12px] font-semibold text-ink-soft" data-testid="jtw-p6-diff">
-                真实修改记录：{build.data.projectDiff.join(' · ')}
+                Real modification record:{build.data.projectDiff.join(' · ')}
               </p>
             )}
             {createError && (
               <p className="mt-2 text-[13px] font-semibold text-brand-coral" role="alert">
-                没能打开工作区，请再试一次。
+                Failed to open workspace, please try again.
               </p>
             )}
           </section>
@@ -520,7 +530,7 @@ export function JourneyWestPart6Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -529,12 +539,12 @@ export function JourneyWestPart6Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C1_P6_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C1_P6_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

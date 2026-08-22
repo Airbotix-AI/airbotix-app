@@ -55,10 +55,7 @@ function renderPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/learn/story/journey-west/jtw-s1-c2-p3']}>
         <Routes>
-          <Route
-            path="/learn/story/journey-west/:partId"
-            element={<JourneyWestC2Part3Page />}
-          />
+          <Route path="/learn/story/journey-west/:partId" element={<JourneyWestC2Part3Page />} />
           <Route path="/learn/story/journey-west" element={<div data-testid="jtw-map-stub" />} />
         </Routes>
       </MemoryRouter>
@@ -67,28 +64,40 @@ function renderPage() {
 }
 
 function pickMotive() {
-  fireEvent.click(screen.getByRole('button', { name: /他要把每一段的停点讲清楚/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /He needs to clearly explain the stopping points of each paragraph so that his partners can predict them first instead of jumping around randomly\./i,
+    }),
+  );
 }
 
 /** Tap the route cards into the exact 圆叶→尖叶→长叶 (右2→上1→右2) order. */
 function orderRouteCards() {
-  fireEvent.click(screen.getByRole('button', { name: /圆叶——右2/ }));
-  fireEvent.click(screen.getByRole('button', { name: /尖叶——上1/ }));
-  fireEvent.click(screen.getByRole('button', { name: /长叶——右2/ }));
+  fireEvent.click(screen.getByRole('button', { name: /🍃 Round leaves - 2 from the right/i }));
+  fireEvent.click(screen.getByRole('button', { name: /🌿 Pointed leaves - Part 1/i }));
+  fireEvent.click(screen.getByRole('button', { name: /🍂 Long leaves - 2 from the right/i }));
 }
 
 /** Place the three prediction footprints on the leaf stops in visit order. */
 function placeFootprints() {
-  fireEvent.click(screen.getByRole('button', { name: '格子 横4 竖8' }));
-  fireEvent.click(screen.getByRole('button', { name: '格子 横4 竖7' }));
-  fireEvent.click(screen.getByRole('button', { name: '格子 横6 竖7' }));
+  fireEvent.click(screen.getByRole('button', { name: 'grid horizontal4 vertical8' }));
+  fireEvent.click(screen.getByRole('button', { name: 'grid horizontal4 vertical7' }));
+  fireEvent.click(screen.getByRole('button', { name: 'grid horizontal6 vertical7' }));
 }
 
 /** Toggle the comparison and answer both comparison questions correctly. */
 function compareVersions() {
   fireEvent.click(screen.getByTestId('jtw-c2p3-compare-toggle'));
-  fireEvent.click(screen.getByRole('button', { name: /冲出湿石路，落在水帘入口下面的水面上/ }));
-  fireEvent.click(screen.getByRole('button', { name: /第二段——应该上1跳上高台/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /I rushed out of the wet stone road and landed on the water below the entrance of the water curtain - I couldn't reach the high platform or the entrance\./i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /The second paragraph - should go up 1 to jump to the high platform, but the wrong version continues to the right 2 and rush towards the water\./i,
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -104,11 +113,15 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestC2Part3Page · C2-P3 三段湿石路', () => {
+describe('JourneyWestC2Part3Page · C2-P3 three sections of wet stone road', () => {
   it('ships the full Story Screen 3 text, the leaf-marked stage and the read-only target chain', async () => {
     // Contract: the target order is exactly 圆叶→尖叶→长叶 (右2→上1→右2) and
     // the read-only chain matches the scene spec op by op.
-    expect(C2_P3_ROUTE_CARD_ORDER).toEqual(['card-round-leaf', 'card-point-leaf', 'card-long-leaf']);
+    expect(C2_P3_ROUTE_CARD_ORDER).toEqual([
+      'card-round-leaf',
+      'card-point-leaf',
+      'card-long-leaf',
+    ]);
     expect(C2_P3_TARGET_CHAIN.map((block) => `${block.op}${block.n ?? ''}`)).toEqual([
       'when_flag',
       'move_right2',
@@ -155,20 +168,20 @@ describe('JourneyWestC2Part3Page · C2-P3 三段湿石路', () => {
     expect(screen.queryByTestId('jtw-part-c2-p3')).not.toBeInTheDocument();
   });
 
-  it('opens the footprint grid ONLY for the exact 圆叶→尖叶→长叶 order', async () => {
+  it('opens the footprint grid ONLY for the exact round leaf → pointed leaf → long leaf order', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c2-p3')).toBeInTheDocument());
     pickMotive();
 
     // Wrong order: 长叶 first — no grid, continue locked.
-    fireEvent.click(screen.getByRole('button', { name: /长叶——右2/ }));
-    fireEvent.click(screen.getByRole('button', { name: /尖叶——上1/ }));
-    fireEvent.click(screen.getByRole('button', { name: /圆叶——右2/ }));
+    fireEvent.click(screen.getByRole('button', { name: /🍂 Long leaves - 2 from the right/i }));
+    fireEvent.click(screen.getByRole('button', { name: /🌿 Pointed leaves - Part 1/i }));
+    fireEvent.click(screen.getByRole('button', { name: /🍃 Round leaves - 2 from the right/i }));
     expect(screen.queryByTestId('jtw-c2p3-grid')).not.toBeInTheDocument();
     expect(screen.getByTestId('jtw-c2p3-continue')).toBeDisabled();
 
     // Replayable tap-to-order: clear and re-order into the target route.
-    fireEvent.click(screen.getByRole('button', { name: '重新排' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reorder' }));
     orderRouteCards();
     expect(screen.getByTestId('jtw-c2p3-grid')).toBeInTheDocument();
   });
@@ -180,15 +193,19 @@ describe('JourneyWestC2Part3Page · C2-P3 三段湿石路', () => {
     orderRouteCards();
 
     // Wrong prediction: second footprint dropped into the water at 6-8.
-    fireEvent.click(screen.getByRole('button', { name: '格子 横4 竖8' }));
-    fireEvent.click(screen.getByRole('button', { name: '格子 横6 竖8' }));
-    fireEvent.click(screen.getByRole('button', { name: '格子 横6 竖7' }));
-    expect(screen.getByRole('status')).toHaveTextContent('按到达顺序放三个脚印');
+    fireEvent.click(screen.getByRole('button', { name: 'grid horizontal4 vertical8' }));
+    fireEvent.click(screen.getByRole('button', { name: 'grid horizontal6 vertical8' }));
+    fireEvent.click(screen.getByRole('button', { name: 'grid horizontal6 vertical7' }));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Let’s look at the stopping points marked by the leaves: in the first section, the right 2 stops at the round leaf, the upper 1 jumps onto the high platform of the pointed leaf, and finally the right 2 stops at the entrance of the water curtain of the long leaf - place three footprints in the order of arrival.',
+    );
     expect(screen.queryByTestId('jtw-c2p3-compare')).not.toBeInTheDocument();
     expect(screen.getByTestId('jtw-c2p3-continue')).toBeDisabled();
 
     // Replay the footprints onto the leaf stops in order — comparison opens.
-    fireEvent.click(screen.getByRole('button', { name: '重放脚印' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'replay footprints' }),
+    );
     placeFootprints();
     expect(screen.getByTestId('jtw-c2p3-compare')).toBeInTheDocument();
   });
@@ -211,22 +228,40 @@ describe('JourneyWestC2Part3Page · C2-P3 三段湿石路', () => {
     fireEvent.click(screen.getByTestId('jtw-c2p3-compare-toggle'));
     expect(screen.getByTestId('jtw-c2p3-compare-track')).toHaveAttribute('data-version', 'wrong');
     expect(
-      Array.from(
-        screen.getByTestId('jtw-c2p3-compare-track').querySelectorAll('[data-stop]'),
-      ).map((s) => s.getAttribute('data-stop')),
+      Array.from(screen.getByTestId('jtw-c2p3-compare-track').querySelectorAll('[data-stop]')).map(
+        (s) => s.getAttribute('data-stop'),
+      ),
     ).toEqual(['4-8', '6-8']);
-    expect(screen.getByTestId('jtw-c2p3-compare-track')).toHaveTextContent('到不了水帘入口');
+    expect(screen.getByTestId('jtw-c2p3-compare-track')).toHaveTextContent(
+      /Stopped - can't reach the water curtain entrance/i,
+    );
 
     // Wrong deviation pick → retry hint, continue stays locked.
-    fireEvent.click(screen.getByRole('button', { name: /冲出湿石路，落在水帘入口下面的水面上/ }));
-    fireEvent.click(screen.getByRole('button', { name: /第一段——两版从第一步就不一样/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('最早不一样的是哪一段');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I rushed out of the wet stone road and landed on the water below the entrance of the water curtain - I couldn't reach the high platform or the entrance\./i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /The first paragraph - the two versions are different from the first step/i,
+      }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Match each paragraph from the beginning: the first paragraph of both versions is 2 on the right and both stop at the round leaf - which paragraph is the first to be different?',
+    );
     expect(screen.getByTestId('jtw-c2p3-continue')).toBeDisabled();
     expect(screen.queryByTestId('jtw-c2p3-resolved')).not.toBeInTheDocument();
 
     // The grounded second-segment answer resolves the part.
-    fireEvent.click(screen.getByRole('button', { name: /第二段——应该上1跳上高台/ }));
-    expect(screen.getByTestId('jtw-c2p3-resolved')).toHaveTextContent('水帘仍然合着');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /The second paragraph - should go up 1 to jump to the high platform, but the wrong version continues to the right 2 and rush towards the water\./i,
+      }),
+    );
+    expect(screen.getByTestId('jtw-c2p3-resolved')).toHaveTextContent(
+      'Three prediction stops light up in sequence along the wet stone road: round leaves, pointed leaves, and long leaves. The water curtain was still closed, and no one really walked past.',
+    );
     const litLeaves = screen.getByTestId('jtw-c2p3-leaves').querySelectorAll('[data-lit="true"]');
     expect(litLeaves).toHaveLength(3);
     expect(screen.getByTestId('jtw-c2p3-continue')).toBeEnabled();
@@ -281,21 +316,24 @@ describe('JourneyWestC2Part3Page · C2-P3 三段湿石路', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('jtw-c2p3-resolved')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /他要把每一段的停点讲清楚/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      screen.getByRole('button', {
+        name: /He needs to clearly explain the stopping points of each paragraph so that his partners can predict them first instead of jumping around randomly\./i,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
     // The saved order re-renders with position badges; footprints restore too.
-    expect(screen.getByRole('button', { name: /1.*圆叶——右2/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /3.*长叶——右2/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '格子 横4 竖8' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: '格子 横6 竖7' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      screen.getByRole('button', { name: /1 .*Round leaves - 2 from the right/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /3 .*Long leaves - 2 from the right/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'grid horizontal4 vertical8' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByRole('button', { name: 'grid horizontal6 vertical7' }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('jtw-c2p3-continue')).toBeEnabled();
   });
 });

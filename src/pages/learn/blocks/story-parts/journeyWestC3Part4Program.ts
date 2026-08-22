@@ -31,7 +31,8 @@ export const C3_P4_LESSON_ID = 'jtw-s1-c3-p4';
 export const C3_P4_PART_ID = 'jtw-s1-c3-p4';
 export const C3_P4_NEXT_PART_ID = 'jtw-s1-c3-p5';
 export const C3_P4_TEMPLATE_ID = 'blocks_jtw_c3_p4';
-export const C3_P4_PROJECT_TITLE = '西游记 · 让海中央既有故事又有出口';
+export const C3_P4_PROJECT_TITLE =
+  'Journey to the West · Let the middle of the sea have both a story and an outlet';
 
 /** How many recent projects the part page scans for the child's build. */
 export const C3_P4_RECENT_PROJECTS_TO_SCAN = 8;
@@ -42,20 +43,23 @@ export const C3_P4_TARGET_TRACE: readonly number[] = [1, JTW_C3_SEA_PAGE, JTW_C3
 // ─── story_before — teaching script C3 Part 4 · Build 1, IN FULL ─────────────
 
 export const C3_P4_STORY_SCREENS: readonly [string, string] = [
-  'Page 2 一开始只有木筏、海上的背景和一个空的脚本槽。你要自己选出并排好四块：海风、前进、停顿和出口，再在 Page 目标里选择 3；运行的时候检查风声、移动、停顿和转场是不是都出现了。Page 1 与 Page 3 保留短示范链，让你比较三个页面各自承担的故事作用。',
-  '你实际要做的事：选择 4 块、排列 4 块、设定 1 个页面目标、预测木筏在 Page 2 的哪一格离开，再从 Page 1 完整运行一次。搭成功的意思不是"摆得好看"，而是：Page 2 不再是空过场，实际轨迹是 1 → 2 → 3，Page 3 稳定结束。',
+  'Page 2 It starts with a raft, a sea background, and an empty script slot. You need to select and arrange four blocks yourself: sea breeze, forward, pause and exit, and then select 3 in the Page target; when running, check whether the wind sound, movement, pause and transition all appear. Keep short demonstration links for Page 1 and Page 3, allowing you to compare the story roles each of the three pages plays.',
+  'What you actually do: select 4 tiles, arrange 4 tiles, set 1 page goal, predict where on Page 2 the raft will leave, and do the full run from Page 1. Success does not mean "looking good", but: Page 2 is no longer an empty cutscene, the actual trajectory is 1 → 2 → 3, and Page 3 ends stably.',
 ];
-export const C3_P4_SCREEN_IDS: readonly [string, string] = ['part-4-build-brief', 'part-4-workload'];
-export const C3_P4_NEXT_SCREEN_LABEL = '再读下一段';
-export const C3_P4_PREV_SCREEN_LABEL = '回上一段';
+export const C3_P4_SCREEN_IDS: readonly [string, string] = [
+  'part-4-build-brief',
+  'part-4-workload',
+];
+export const C3_P4_NEXT_SCREEN_LABEL = 'Read the next paragraph';
+export const C3_P4_PREV_SCREEN_LABEL = 'Go back to the previous paragraph';
 
 /** 原著小卡片 — 三页仍是教学压缩，不是原著只有三片海。 */
 export const C3_P4_CLASSIC_CARD =
-  '原著第一回里，美猴王漂洋求师走了很久，跨海、访人间、再渡海。课程把这段路压成三页来讲；"海中央"是我们给中间那一段起的名字，原著里没有页码。';
+  'In the first chapter of the original work, the Monkey King traveled across the ocean to seek guidance for a long time, crossing the sea, visiting the world, and then crossing the sea again. The course divides this section into three pages; "Middle of the Sea" is the name we gave to the middle section, and there are no page numbers in the original work.';
 
 /** 故事—程序桥（teaching script C3）。 */
 export const C3_P4_STORY_BRIDGE =
-  '三个 Page 代表旅程的三个可读阶段；每页的动作、Wait 和声音让这个地点有内容，Page 目标把下一段接上去。只有出口而没有内容，这一页就只是一个空过场。';
+  'The three Pages represent the three readable stages of the journey; the actions, waits, and sounds of each page give the location content, and the Page goal connects the next paragraph. With only an exit but no content, this page is just an empty cutscene.';
 
 // ─── 四块的不同职责（"辨认声音、移动、停顿和出口的不同职责"） ────────────────
 
@@ -72,10 +76,10 @@ export interface C3P4RoleSlot {
 
 /** The four jobs, offered for every row — so a row is a real choice, not a lid. */
 export const C3_P4_ROLE_OPTIONS: readonly JtwEvidenceOption[] = [
-  { id: 'role-sea-wind', label: '让观众听见这是一段有风的海', correct: true },
-  { id: 'role-forward', label: '让木筏真的向前走了一段', correct: true },
-  { id: 'role-pause', label: '让他停下来看清方向', correct: true },
-  { id: 'role-exit', label: '把这一段交给下一页', correct: true },
+  { id: 'role-sea-wind', label: 'Let the audience hear that this is a windy sea', correct: true },
+  { id: 'role-forward', label: 'Let the raft really move forward for a while', correct: true },
+  { id: 'role-pause', label: 'Ask him to stop and look at the direction', correct: true },
+  { id: 'role-exit', label: 'Pass this paragraph to the next page', correct: true },
 ];
 
 export const C3_P4_ROLE_SLOTS: readonly C3P4RoleSlot[] = [
@@ -105,9 +109,10 @@ export const C3_P4_ROLE_SLOTS: readonly C3P4RoleSlot[] = [
   },
 ];
 
-export const C3_P4_ROLE_TITLE = '这四块各自在做什么？给每一块选一个职责。';
+export const C3_P4_ROLE_TITLE =
+  'What are these four blocks doing? Choose a responsibility for each piece.';
 export const C3_P4_ROLE_RETRY_HINT =
-  '再想一遍：声音只被听见，移动才改变位置，Wait 什么都不改只让时间过去，Page 上的数字决定下一页。';
+  'Think about it again: the sound is only heard, the position is changed when moving, Wait does not change anything and only lets time pass, and the number on Page determines the next page.';
 
 /** Every slot answered? */
 export function c3p4RolesAnswered(roles: Readonly<Record<string, string>>): boolean {
@@ -147,13 +152,25 @@ export const C3_P4_EXIT_CELL = `${JTW_C3_PAGE2_START_CELL.gx + JTW_C3_SEA_LEG}-$
 export const C3_P4_START_CELL = `${JTW_C3_PAGE2_START_CELL.gx}-${JTW_C3_PAGE2_START_CELL.gy}`;
 
 export const C3_P4_PREDICTION_QUESTION =
-  '按 Go 之前先说清楚：木筏会在海中央的哪一格离开这一页？';
+  "Let's be clear before you press Go: Where in the middle of the ocean will the raft leave this page?";
 export const C3_P4_PREDICTION_OPTIONS: readonly JtwEvidenceOption[] = [
-  { id: 'predict-exit-6-8', label: `${C3_P4_EXIT_CELL}——从 ${C3_P4_START_CELL} 向右走 4 格`, correct: true },
-  { id: 'predict-exit-2-8', label: `${C3_P4_START_CELL}——他在原地等风停`, correct: false },
-  { id: 'predict-exit-far-edge', label: '19-8——木筏会一直冲到画面最右边', correct: false },
+  {
+    id: 'predict-exit-6-8',
+    label: `${C3_P4_EXIT_CELL}--from ${C3_P4_START_CELL} Go right 4 spaces`,
+    correct: true,
+  },
+  {
+    id: 'predict-exit-2-8',
+    label: `${C3_P4_START_CELL}——He waited for the wind to subside.`,
+    correct: false,
+  },
+  {
+    id: 'predict-exit-far-edge',
+    label: '19-8 - The raft will rush all the way to the far right of the screen',
+    correct: false,
+  },
 ];
-export const C3_P4_PREDICTION_RETRY_HINT = `木筏从 ${C3_P4_START_CELL} 出发，Right ${JTW_C3_SEA_LEG} 就是向右 ${JTW_C3_SEA_LEG} 格；Wait 只让时间过去，一格都不多走。`;
+export const C3_P4_PREDICTION_RETRY_HINT = `raft from ${C3_P4_START_CELL} Let's go, Right ${JTW_C3_SEA_LEG} Just to the right ${JTW_C3_SEA_LEG} Grid; Wait only lets time pass without moving a single grid.`;
 
 export function c3p4PredictionDone(prediction: string | null): boolean {
   return C3_P4_PREDICTION_OPTIONS.find((option) => option.id === prediction)?.correct === true;
@@ -165,35 +182,41 @@ export function c3p4StoryRead(screens: readonly string[]): boolean {
 
 // ─── 工作区文案 ──────────────────────────────────────────────────────────────
 
-export const C3_P4_BUILD_TITLE = '去真正的工作区，把海中央这一页搭出来';
+export const C3_P4_BUILD_TITLE =
+  'Go to the real workspace and build this page in the middle of the sea';
 export const C3_P4_BUILD_NOTE =
-  'Page 2 的脚本槽里只有一个 Start。四块都要你自己从积木托盘里选出来、按顺序接上，再把 📄 Page 上的数字点成 3——没有任何"自动装好"的按钮。Page 1 和 Page 3 的示范链只能看，删掉任何一块这个 Part 都不算完成。';
-export const C3_P4_OPEN_STUDIO_NEW = '开始搭建 →';
-export const C3_P4_OPEN_STUDIO_RESUME = '继续搭建 →';
-export const C3_P4_OPEN_STUDIO_DONE = '再看看我的海路';
-export const C3_P4_OPEN_STUDIO_BUSY = '正在准备三页海路…';
-export const C3_P4_BUILD_DONE_LABEL = '✓ 五块主脚本已搭好并在工作区真实运行过';
-export const C3_P4_BUILD_PENDING_LABEL = '链还没有精确搭好，或还没在工作区按过 Go 并保存。';
-export const C3_P4_TARGET_CHAIN_TITLE = '目标：Page 2 的五块主脚本';
-export const C3_P4_SAVED_CHAIN_TITLE = '你保存的 Page 2 主脚本（从作品里读回来的，不是页面猜的）';
-export const C3_P4_DEMO_TITLE = '三页各做各的事（Page 1 / Page 3 是只读示范链）';
+  'There is only one Start in the script slot of Page 2. You have to select the four pieces from the building block tray, connect them in order, and then click the number on the 📄 Page to 3 - there is no "auto-assemble" button. The demonstration chain on Page 1 and Page 3 can only be viewed. If you delete any piece, the Part will not be considered complete.';
+export const C3_P4_OPEN_STUDIO_NEW = 'Start building →';
+export const C3_P4_OPEN_STUDIO_RESUME = 'Continue building →';
+export const C3_P4_OPEN_STUDIO_DONE = 'Look at my sea route again';
+export const C3_P4_OPEN_STUDIO_BUSY = 'Three pages of sea routes are being prepared...';
+export const C3_P4_BUILD_DONE_LABEL =
+  '✓ Five main scripts have been set up and actually run in the workspace';
+export const C3_P4_BUILD_PENDING_LABEL =
+  'The chain has not been set up accurately, or Go has not been pressed in the workspace and saved.';
+export const C3_P4_TARGET_CHAIN_TITLE = 'Target: Five blocks of main script for Page 2';
+export const C3_P4_SAVED_CHAIN_TITLE =
+  'The main script of Page 2 you saved (read from the work, not guessed by the page)';
+export const C3_P4_DEMO_TITLE =
+  'Each of the three pages does their own thing (Page 1 / Page 3 are read-only demonstration links)';
 
 /** The chain a finished build must carry, for the read-only "target" strip. */
 export const C3_P4_TARGET_CHAIN: readonly Block[] = JTW_C3_SEA_TARGET;
 
 // ─── 跨页运行（studio 的 runner 一次只跑一页，所以这一段在 Part 页面上跑） ────
 
-export const C3_P4_RUN_TITLE = '从 Page 1 真实跑一次三页路线';
+export const C3_P4_RUN_TITLE = 'From Page 1 Really run a three-page route';
 export const C3_P4_RUN_NOTE =
-  '工作区的 Go 一次只跑一页。这里用同一个解释器把你保存的作品从 Page 1 一页一页跑下去，把每一页真实的进入格、离开格和出口页号量出来——只在编辑器里摆对、没有真的跑过，这个 Part 不算完成。';
-export const C3_P4_RUN_LABEL = '▶ 从 Page 1 跑到 Page 3';
-export const C3_P4_RUN_AGAIN_LABEL = '再跑一次';
-export const C3_P4_RUN_BUSY_LABEL = '木筏正在走…';
-export const C3_P4_RUN_LOCKED_HINT = '先把 Page 2 的五块搭好并在工作区保存，才能跑这条完整路线。';
-export const C3_P4_EXPECTED_TRACE_TITLE = '预期路线';
-export const C3_P4_ACTUAL_TRACE_TITLE = '实际脚印';
+  'Go in the workspace only runs one page at a time. Here, use the same interpreter to run the work you saved from Page 1 page by page, and measure the actual entry grid, exit grid, and exit page number of each page - this Part is not considered complete as long as it is set correctly in the editor and has not been actually run.';
+export const C3_P4_RUN_LABEL = '▶ Run from Page 1 to Page 3';
+export const C3_P4_RUN_AGAIN_LABEL = 'run again';
+export const C3_P4_RUN_BUSY_LABEL = 'The raft is going…';
+export const C3_P4_RUN_LOCKED_HINT =
+  'You must first build the five pieces of Page 2 and save them in the workspace before you can run this complete route.';
+export const C3_P4_EXPECTED_TRACE_TITLE = 'intended route';
+export const C3_P4_ACTUAL_TRACE_TITLE = 'actual footprints';
 export const C3_P4_TRACE_MISMATCH_HINT =
-  '这一次没有走成 1 → 2 → 3。回到工作区检查 Page 2 的出口数字，再跑一次。';
+  'This time it didn’t go 1 → 2 → 3. Go back to the workspace and check the exit numbers for Page 2 and run again.';
 
 /**
  * Did a REAL cross-page run of the SAVED project reach the far shore? The trace
@@ -228,16 +251,16 @@ export function c3p4PredictionMatchedRun(run: PageFlowRunResult | null): boolean
 // ─── resolved / story_after / continue ───────────────────────────────────────
 
 export const C3_P4_RESOLVED_WORLD_CHANGE =
-  '把木筏送回家的那个循环消失了：它经过一段有风声、有前进、也有停顿的海路，稳稳靠上了彼岸的浅滩，山林里的歌声第一次传下来。';
+  'The cycle that brought the raft home disappeared: it passed through a sea route with wind, progress, and pauses, and landed firmly on the shoal on the other side. For the first time, the songs in the mountains and forests came down.';
 export const C3_P4_STORY_AFTER =
-  '路线接通了。接下来由你选择星夜还是晨雾，来表达这段旅程的中间一程。';
-export const C3_P4_CONTINUE_LABEL = '选择海的样子';
+  'The route is connected. Next, it’s up to you to choose the starry night or the morning fog to express the middle part of this journey.';
+export const C3_P4_CONTINUE_LABEL = 'Choose the shape of the sea';
 
 /** 远行印 — C3's seal. P4 lights HALF of it; the seal itself is C3-P8's. */
-export const C3_P4_HALF_SEAL_LABEL = '远行印 · 亮了一半';
+export const C3_P4_HALF_SEAL_LABEL = 'Long journey seal · Half brightened';
 export const C3_P4_HALF_SEAL_NOTE =
-  '海中央有故事了，可木筏跨页时还没有站对位置。远行印要等这一章八个 Part 都完成、由服务端聚合以后才真的点亮，这里只是记着你已经走到一半。';
+  'There is a story in the middle of the sea, but the raft is not in the right position when it crosses the page. The Journey Seal will not be lit until all eight parts of this chapter are completed and aggregated by the server. This is just to remember that you are halfway there.';
 
 export const C3_P4_LOCKED_HINT =
-  '先在第三章 Part 3 用出口卡说清楚数字怎样带路，再来亲手搭海中央这一页。';
-export const C3_P4_LOADING_HINT = '木筏正在海中央等你…';
+  'First, use the exit card to explain how numbers lead the way in Chapter 3, and then come to the page in the middle of the sea.';
+export const C3_P4_LOADING_HINT = 'The raft is waiting for you in the middle of the sea...';

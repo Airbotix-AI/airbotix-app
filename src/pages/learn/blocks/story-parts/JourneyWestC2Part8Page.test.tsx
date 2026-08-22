@@ -6,11 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Block, BlocksProject, Page } from '../blocksModel';
-import {
-  JTW_C2_P7_EVIDENCE_LINES,
-  JTW_C2_P7_SIDES,
-  type JtwEntrySide,
-} from '../jtwPersonalEntry';
+import { JTW_C2_P7_EVIDENCE_LINES, JTW_C2_P7_SIDES, type JtwEntrySide } from '../jtwPersonalEntry';
 import {
   JTW_C2_ACTOR_FREE_BACKGROUND,
   JTW_C2_CAVE_SPRITE,
@@ -162,7 +158,12 @@ function mockSavedWork(page: Page | null) {
     return;
   }
   listProjects.mockResolvedValue([
-    { id: PROJECT_ID, title: '西游记 · Find the Water Curtain Cave', kind: 'blocks', status: 'active' },
+    {
+      id: PROJECT_ID,
+      title: 'Journey to the West · Find the Water Curtain Cave',
+      kind: 'blocks',
+      status: 'active',
+    },
   ]);
   loadProject.mockResolvedValue({
     project: entryProject(page),
@@ -203,13 +204,13 @@ function orderCauseCards() {
 }
 
 const CARD_LABELS: Record<string, string> = {
-  'water-clue': '水声线索',
-  'falls-agreement': '瀑布约定',
-  'exact-route': '精确路线',
-  'curtain-response': '水帘回应',
-  'fixed-return': '修好回程',
-  'friends-enter': '带伙伴进入',
-  'monkey-king': '成为猴王',
+  'water-clue': '🌊 Water sound clues',
+  'falls-agreement': '🤝 Waterfall Promise',
+  'exact-route': '👣 Exact route',
+  'curtain-response': '✨Shui Curtain’s response',
+  'fixed-return': '🔧 Repair the return journey',
+  'friends-enter': '🐒 Bring a partner in',
+  'monkey-king': '👑 Become the Monkey King',
 };
 
 /** Drive the Part to the point where 点亮水帘洞印 is armed. */
@@ -220,7 +221,11 @@ async function walkToResolved() {
   await waitFor(() =>
     expect(screen.getByTestId('jtw-c2p8-run-result')).toHaveAttribute('data-consistent', 'true'),
   );
-  fireEvent.click(screen.getByRole('button', { name: /因为大家在瀑布前约好/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Because everyone made an appointment in front of the waterfall/i,
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -242,13 +247,17 @@ describe('C2-P8 · story, cards and the saved-work gate', () => {
     expect(await screen.findByTestId('jtw-c2p8-locked')).toBeInTheDocument();
   });
 
-  it('reads 故事卡D, the classic card and the waterfall promise in full', async () => {
+  it('reads story card D, the classic card and the waterfall promise in full', async () => {
     mockSavedWork(entryPage(LEFT));
     renderPart();
     const story = await screen.findByTestId('jtw-c2p8-story');
-    expect(story).toHaveTextContent('勇敢不是只往前跳，也包括回来、说明和带伙伴走对路');
-    expect(story).toHaveTextContent('称号来自守约与带路，不是随机奖励');
-    expect(story).toHaveTextContent('我先看清楚，再回来告诉你们');
+    expect(story).toHaveTextContent(
+      'Not only did the stone monkey successfully enter, but he also returned the same way, explained his discovery clearly, and then led the group of monkeys in together. The monkeys remembered the promise made before the waterfall and elected him to be the Monkey King. Being brave is not just about jumping forward, but also about coming back, explaining, and leading your partners on the right path.',
+    );
+    expect(story).toHaveTextContent(
+      'In the first chapter of the original work, the stone monkey passed through the waterfall, discovered Water Curtain Cave, returned and led a group of monkeys in, and was later promoted as the monkey king; the title comes from keeping promises and leading the way, not a random reward.',
+    );
+    expect(story).toHaveTextContent('Let me see it clearly first and then come back and tell you.');
   });
 
   it('points back at Part 7 when no saved entry route exists, and keeps the seal shut', async () => {
@@ -302,7 +311,7 @@ describe('C2-P8 · the saved P7 work really runs', () => {
     mockSavedWork(entryPage(LEFT));
     renderPart();
     await screen.findByTestId('jtw-c2p8-saved-chain');
-    expect(screen.getByTestId('jtw-c2p8-side')).toHaveTextContent('左岸');
+    expect(screen.getByTestId('jtw-c2p8-side')).toHaveTextContent(/left bank/i);
     expect(screen.getByTestId('jtw-c2p8-saved-version')).toHaveTextContent(`#${SAVED_VERSION}`);
     expect(screen.getByTestId('jtw-c2p8-stage')).toHaveAttribute(
       'data-world-state',
@@ -320,9 +329,7 @@ describe('C2-P8 · the saved P7 work really runs', () => {
     expect(screen.getByTestId('jtw-c2p8-stone-monkey')).toHaveAttribute('data-gx', '6');
     expect(screen.getByTestId('jtw-c2p8-stone-monkey')).toHaveAttribute('data-gy', '7');
     expect(screen.queryByTestId('jtw-c2p8-curtain')).not.toBeInTheDocument();
-    expect(screen.getByTestId('jtw-c2p8-said-line')).toHaveTextContent(
-      JTW_C2_P7_EVIDENCE_LINES[0],
-    );
+    expect(screen.getByTestId('jtw-c2p8-said-line')).toHaveTextContent(JTW_C2_P7_EVIDENCE_LINES[0]);
     expect(screen.getByTestId('jtw-c2p8-run-result')).toHaveAttribute('data-consistent', 'true');
   });
 
@@ -330,7 +337,9 @@ describe('C2-P8 · the saved P7 work really runs', () => {
     mockSavedWork(entryPage(RIGHT));
     renderPart();
     await screen.findByTestId('jtw-c2p8-saved-chain');
-    expect(screen.getByTestId('jtw-c2p8-side')).toHaveTextContent('右岸');
+    expect(screen.getByTestId('jtw-c2p8-side')).toHaveTextContent(
+      /right bank/i,
+    );
     expect(screen.getByTestId('jtw-c2p8-knock')).toHaveTextContent(RIGHT.knockCell);
     orderCauseCards();
     fireEvent.click(screen.getByTestId('jtw-c2p8-rerun'));
@@ -359,10 +368,20 @@ describe('C2-P8 · retell, server seal and continue', () => {
     orderCauseCards();
     fireEvent.click(screen.getByTestId('jtw-c2p8-rerun'));
     await screen.findByTestId('jtw-c2p8-retell');
-    fireEvent.click(screen.getByRole('button', { name: /把积木的名字按顺序念一遍/ }));
-    expect(await screen.findByRole('status')).toHaveTextContent('只念积木名');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Move Right, Move Up, On Bump, Hide, Show, Wait, End/i,
+      }),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Just saying the name of the building blocks',
+    );
     expect(screen.getByTestId('jtw-c2p8-light-seal')).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /石猴进了水帘洞，后来他就成了美猴王/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Stone Monkey entered Water Curtain Cave and later he became the Monkey King/i,
+      }),
+    );
     expect(screen.getByTestId('jtw-c2p8-light-seal')).toBeDisabled();
   });
 
@@ -410,11 +429,11 @@ describe('C2-P8 · retell, server seal and continue', () => {
     renderPart();
     const seal = await screen.findByTestId('jtw-c2p8-seal');
     expect(seal).toHaveAttribute('data-lit', 'false');
-    expect(seal).toHaveTextContent('还缺 1 项证据');
+    expect(seal).toHaveTextContent(/1 item of evidence/i);
     expect(screen.queryByTestId('jtw-c2p8-continue-now')).toBeInTheDocument();
   });
 
-  it('lights 水帘洞印 only from the server, then offers both continue buttons', async () => {
+  it('lights Water Curtain Cave Seal only from the server, then offers both continue buttons', async () => {
     fetchProgress.mockResolvedValue({
       ...P7_DONE,
       completed: [
@@ -432,19 +451,21 @@ describe('C2-P8 · retell, server seal and continue', () => {
           },
         },
       ],
-      chapter_seals: [
-        { seal_id: C2_P8_SEAL_ID, chapter_code: 'C2', lit: true, missing: [] },
-      ],
+      chapter_seals: [{ seal_id: C2_P8_SEAL_ID, chapter_code: 'C2', lit: true, missing: [] }],
     });
     mockSavedWork(entryPage(LEFT));
     renderPart();
     const seal = await screen.findByTestId('jtw-c2p8-seal');
     expect(seal).toHaveAttribute('data-lit', 'true');
-    expect(seal).toHaveTextContent('水帘洞印');
-    expect(seal).toHaveTextContent('美猴王');
-    expect(seal).toHaveTextContent('我会规划多段路线');
+    expect(seal).toHaveTextContent('Water Curtain Cave print');
+    expect(seal).toHaveTextContent('Monkey King');
+    expect(seal).toHaveTextContent(
+      'I will plan multiple routes, and also let one character encounter another character and get a response.',
+    );
     // The C2 ending is restored after a refresh — no auto-advance into C3.
-    expect(screen.getByTestId('jtw-c2p8-resolved')).toHaveTextContent('望向海边');
+    expect(screen.getByTestId('jtw-c2p8-resolved')).toHaveTextContent(
+      /looked at the seaside/i,
+    );
     expect(screen.getByTestId('jtw-c2p8-continue-now')).toBeInTheDocument();
 
     // 以后继续 saves the resume position server-side and stays on the ending.

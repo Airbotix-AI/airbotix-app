@@ -96,7 +96,13 @@ async function findRouteBuild(kidId: string): Promise<RouteBuildStatus> {
       // Unreadable/legacy project — keep scanning.
     }
   }
-  return { projectId: null, programMatches: false, runCompleted: false, placedBlocks: [], trace: [] };
+  return {
+    projectId: null,
+    programMatches: false,
+    runCompleted: false,
+    placedBlocks: [],
+    trace: [],
+  };
 }
 
 /** The waterfall Before stage: the monkey at 2/8 and the closed curtain; when
@@ -110,7 +116,7 @@ function RouteStage({ resolved }: { resolved: boolean }) {
     >
       <img
         src={JTW_C2_BACKGROUND_ASSET}
-        alt="瀑布前的湿石路：石猴站在左边的起点，白色水帘仍然合着，等着一条五块的真实路线"
+        alt="Wet stone path in front of the waterfall: The stone monkey stands at the starting point on the left, the white water curtain still closed, waiting for a five-piece real route"
         className="absolute inset-0 h-full w-full object-cover"
       />
       {/* 石猴在起点 2/8 — the real walk happens in the Studio run. */}
@@ -140,8 +146,8 @@ function RouteStage({ resolved }: { resolved: boolean }) {
               resolved ? 'border-brand-mint/70 bg-wash-mint' : 'border-hairline bg-canvas-pure/90',
             )}
           >
-            👣 第{index + 1}步 · {cell}
-            {cell === C2_P4_ENTRANCE_CELL ? '（入口）' : ''}
+            👣 No.{index + 1}step · {cell}
+            {cell === C2_P4_ENTRANCE_CELL ? '(Entrance)' : ''}
           </li>
         ))}
       </ol>
@@ -205,7 +211,7 @@ export function JourneyWestC2Part4Page() {
     setCreateError(false);
     try {
       const { id } = await createBlocksProject({
-        title: '西游记 · 刚好到达，不多也不少',
+        title: 'Journey to the West · Just arrived, no more, no less',
         template: 'blocks_jtw_c2_p4',
       });
       navigate(`/learn/blocks/${id}`);
@@ -239,7 +245,9 @@ export function JourneyWestC2Part4Page() {
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">湿石路正等着真实的脚印…</p>;
+    return (
+      <p className="p-8 text-center text-ink-soft">The wet stone road awaits real footprints…</p>
+    );
   }
 
   if (!unlocked && !completed) {
@@ -249,10 +257,11 @@ export function JourneyWestC2Part4Page() {
         data-testid="jtw-c2p4-locked"
       >
         <p className="text-[16px] font-bold text-ink">
-          先在 Part 3 把三段湿石路的停点摆清楚，再来搭真实的路线。
+          First, clear the stopping points of the three sections of wet stone road in Part 3, and
+          then take the real route.
         </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -262,9 +271,9 @@ export function JourneyWestC2Part4Page() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c2-p4">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第二章 水帘洞的约定 · Part 4 · Build 1
+          Journey to the West · Chapter 2 The Agreement of Water Curtain Cave · Part 4 · Build 1
         </p>
-        <h1 className="text-[28px] font-black text-ink">刚好到达，不多也不少</h1>
+        <h1 className="text-[28px] font-black text-ink">Just arrived, no more, no less</h1>
       </header>
 
       {/* ── story_before：教学脚本 Story Screen 4 全文 + 因果桥 ─────────── */}
@@ -275,7 +284,7 @@ export function JourneyWestC2Part4Page() {
           </p>
         ))}
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C2_P4_STORY_BRIDGE}
         </aside>
       </section>
@@ -289,11 +298,14 @@ export function JourneyWestC2Part4Page() {
         data-testid="jtw-c2p4-build"
         data-build-state={buildDone ? 'done' : build.data?.projectId ? 'in_progress' : 'none'}
       >
-        <h2 className="text-[15px] font-bold text-ink">去真正的工作区搭五块路线</h2>
+        <h2 className="text-[15px] font-bold text-ink">
+          Take the five-pack route to the real work area
+        </h2>
         <p className="mt-1 text-[13px] text-ink-soft">
-          工作区里只有 Start 和 End——五块一步移动都由你放，Left、Down 和 Wait
-          是能运行的干扰块。先逐块预测停点，再按 Go 真实运行并保存；把三块合并成右2
-          也不能通过，没有任何按钮会替你完成。
+          There are only Start and End in the workspace - you can move them in five steps, Left,
+          Down and Wait. is a functioning interference block. First predict the stopping points
+          block by block, then press Go to actually run and save; merge the three blocks into right
+          2 You can't pass either, no button will do it for you.
         </p>
         <div className="mt-4 flex items-center gap-3">
           <button
@@ -304,30 +316,30 @@ export function JourneyWestC2Part4Page() {
             onClick={() => void openStudio()}
           >
             {creating
-              ? '正在准备湿石路…'
+              ? 'Preparing for wet stone road…'
               : buildDone
-                ? '再看看我的路线'
+                ? 'Look at my route again'
                 : build.data?.projectId
-                  ? '继续搭建 →'
-                  : '开始搭建 →'}
+                  ? 'Continue building →'
+                  : 'Start building →'}
           </button>
           {buildDone && (
             <span
               className="text-[13px] font-bold text-brand-mint"
               data-testid="jtw-c2p4-build-done"
             >
-              ✓ 五块路线已搭好并真实运行过
+              ✓ The Wukuai route has been built and actually run
             </span>
           )}
           {!buildDone && build.data?.projectId && (
             <span className="text-[13px] font-semibold text-ink-soft">
-              路线还没有精确完成，或还没运行保存。
+              The route has not been completed accurately or a save has not been run.
             </span>
           )}
         </div>
         {createError && (
           <p className="mt-2 text-[13px] font-semibold text-brand-coral" role="alert">
-            没能打开工作区，请再试一次。
+            Failed to open workspace, please try again.
           </p>
         )}
       </section>
@@ -336,7 +348,7 @@ export function JourneyWestC2Part4Page() {
       {buildDone && build.data && (
         <section data-testid="jtw-c2p4-route-readback">
           <h2 className="mb-2 text-[15px] font-bold text-ink">
-            你保存的路线（从作品里读回来的，不是页面猜的）：
+            The route you saved (read from the work, not guessed from the page):
           </h2>
           <div className="flex flex-wrap items-center gap-1">
             <BlockChip block={{ op: 'when_flag' }} inChain isLast={false} />
@@ -352,9 +364,11 @@ export function JourneyWestC2Part4Page() {
                 data-stop={cell}
                 className="rounded-2xl border border-hairline bg-canvas-pure px-4 py-2 text-[14px] font-semibold text-ink"
               >
-                <span className="mr-1 text-[12px] font-black text-ink-soft">第{index + 1}步</span>
+                <span className="mr-1 text-[12px] font-black text-ink-soft">
+                  No.{index + 1}step
+                </span>
                 {cell}
-                {cell === C2_P4_ENTRANCE_CELL ? ' · 水帘入口' : ''}
+                {cell === C2_P4_ENTRANCE_CELL ? ' · Water curtain entrance' : ''}
               </li>
             ))}
           </ol>
@@ -446,7 +460,7 @@ export function JourneyWestC2Part4Page() {
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -455,12 +469,12 @@ export function JourneyWestC2Part4Page() {
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C2_P4_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C2_P4_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>
