@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 
 import { formatAud } from '@/lib/money';
 import type { AvailableClass } from './availableClasses';
+import { formatClassDateLabel } from './classTime';
 
 export interface PlannedTimetableClass {
   slug: string;
@@ -27,58 +28,12 @@ interface TimetableRow {
 }
 
 const OPEN_NOW = 'Open for booking';
-const MONTH_NAMES = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-const AUSTRALIAN_STATE_TIME_ZONES: Record<string, string> = {
-  ACT: 'Australia/Sydney',
-  NSW: 'Australia/Sydney',
-  NT: 'Australia/Darwin',
-  QLD: 'Australia/Brisbane',
-  SA: 'Australia/Adelaide',
-  TAS: 'Australia/Hobart',
-  VIC: 'Australia/Melbourne',
-  WA: 'Australia/Perth',
-};
-
-const DEFAULT_CLASS_TIME_ZONE = 'Australia/Brisbane';
-
 // Keep this slug contract aligned with the marketing timetable. Both surfaces
 // use the same transparent course-sticker artwork rather than course covers.
 const courseStickerPath = (slug: string) => `/media/course-stickers/${slug}.webp`;
 
 const STICKER_CLASS =
   'pointer-events-none absolute -bottom-3 -right-3 z-0 h-24 w-24 rotate-3 select-none object-contain opacity-30 saturate-125 transition-all duration-300 group-hover:rotate-0 group-hover:scale-105 group-hover:opacity-40';
-
-const dateLabel = (iso: string, state?: string) => {
-  const date = new Date(iso);
-  const timeZone = (state && AUSTRALIAN_STATE_TIME_ZONES[state]) || DEFAULT_CLASS_TIME_ZONE;
-  const dateParts = new Intl.DateTimeFormat('en-AU', {
-    day: 'numeric',
-    month: 'numeric',
-    timeZone,
-  }).formatToParts(date);
-  const day = dateParts.find((part) => part.type === 'day')?.value ?? String(date.getDate());
-  const monthIndex = Number(dateParts.find((part) => part.type === 'month')?.value ?? 1) - 1;
-
-  return `${day} ${MONTH_NAMES[monthIndex]} · ${date.toLocaleTimeString('en-AU', {
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZone,
-  })}`;
-};
 
 const periodRank = (label: string, termYears: number[]) => {
   if (label === OPEN_NOW) return 0;
@@ -142,7 +97,7 @@ function BookableCell({ items, slug }: { items: AvailableClass[]; slug: string }
               Seats open
             </span>
             <p className="mt-3 text-[13px] font-bold text-ink">
-              {dateLabel(item.starts_at, item.venue?.state)}
+              {formatClassDateLabel(item.starts_at, item.venue?.state ?? '')}
             </p>
             {item.venue?.suburb && <p className="mt-1 text-[12px] text-slate2">{item.venue.suburb}</p>}
             <p className="mt-2 text-[12px] font-bold text-ink">
