@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-22 (changed: simpler Creator Passport stamp collection)
+
+### Changed
+
+- Reduced the child stamp wall to quiet white cards with smaller circular artwork, one concise
+  evidence rule, one status and one project link. Removed stamp numbers, full-card colour washes,
+  heavy glow and duplicated status treatment so the five capabilities scan as one collection.
+
 ## 2026-08-22 (changed: collectible Creator Passport stamp artwork)
 
 ### Changed

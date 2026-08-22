@@ -167,26 +167,15 @@ export function CreatorPassportStampArt({
           <stop offset="1" stopColor={palette.pop} />
         </linearGradient>
       </defs>
-      <path
-        d="m80 4 10 9 13-5 6 12 14-1 2 14 13 4-3 14 11 8-7 12 8 12-10 9 4 13-13 5-1 14-14-1-6 12-13-5-10 9-10-9-13 5-6-12-14 1-2-14-13-4 3-14-11-8 7-12-8-12 10-9-4-13 13-5 1-14 14 1 6-12 13 5 10-9Z"
-        fill={`url(#${gradientId})`}
-      />
-      <circle cx="80" cy="80" r="61" fill={palette.light} stroke="#fff" strokeWidth="4" />
-      <circle
-        cx="80"
-        cy="80"
-        r="53"
-        fill={palette.main}
-        stroke={palette.dark}
-        strokeWidth="3"
-        strokeDasharray="3 7"
-      />
+      <circle cx="80" cy="80" r="68" fill={`url(#${gradientId})`} />
+      <circle cx="80" cy="80" r="59" fill={palette.light} stroke="#fff" strokeWidth="4" />
+      <circle cx="80" cy="80" r="50" fill={palette.main} />
       <CapabilityGlyph code={code} dark={palette.dark} pop={palette.pop} />
       {earned && (
-        <g transform="translate(111 111)">
-          <circle cx="16" cy="16" r="18" fill={palette.dark} stroke="#fff" strokeWidth="4" />
+        <g transform="translate(112 112)">
+          <circle cx="15" cy="15" r="17" fill={palette.dark} stroke="#fff" strokeWidth="4" />
           <path
-            d="m7 16 6 6L25 9"
+            d="m7 15 5 5 11-11"
             fill="none"
             stroke="#fff"
             strokeWidth="5"

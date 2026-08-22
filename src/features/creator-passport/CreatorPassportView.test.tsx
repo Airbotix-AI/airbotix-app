@@ -64,6 +64,7 @@ describe('CreatorPassportView', () => {
     ).toHaveAttribute('src', '/media/creator-passport/creator-passport-hero-v1.webp');
     expect(screen.getAllByText('Idea Builder')).toHaveLength(2);
     expect(screen.getAllByTestId('creator-passport-stamp')).toHaveLength(5);
+    expect(screen.queryByText('STAMP 01')).not.toBeInTheDocument();
     expect(
       screen
         .getAllByTestId('creator-passport-stamp-art')
@@ -100,7 +101,7 @@ describe('CreatorPassportView', () => {
       </MemoryRouter>,
     );
     const capabilitySection = screen
-      .getByRole('heading', { name: 'Capability stamps' })
+      .getByRole('heading', { name: 'Your capability stamps' })
       .closest('section')!;
     const ideaCard = within(capabilitySection)
       .getByRole('heading', { name: 'Idea Builder' })

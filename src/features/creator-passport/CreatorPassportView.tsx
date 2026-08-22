@@ -57,18 +57,12 @@ export function CreatorPassportView({
         aria-labelledby="capability-heading"
         className="rounded-[28px] border border-hairline bg-canvas-pure p-4 shadow-card-soft sm:p-6 lg:rounded-[32px]"
       >
-        <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="font-handwritten text-2xl font-bold text-brand-bubblegum">
-              Your stamp collection
-            </p>
-            <h2 id="capability-heading" className="section-heading">
-              Capability stamps
-            </h2>
-          </div>
-          <p className="max-w-md text-[13px] font-semibold leading-5 text-ink-soft sm:text-right">
-            Every colourful stamp opens the project, your explanation and your teacher&apos;s check.
-            Attendance alone never earns one.
+        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <h2 id="capability-heading" className="section-heading">
+            Your capability stamps
+          </h2>
+          <p className="text-[12px] font-semibold text-ink-soft sm:text-right">
+            Earned with project evidence — never attendance alone.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
