@@ -100,6 +100,12 @@ export const JTW_C3_ARRIVAL_CHAIN: readonly Block[] = [
   { op: 'end' },
 ];
 
+const JTW_C3_LEGACY_ARRIVAL_CHAIN: readonly Block[] = [
+  { op: 'when_flag' },
+  { op: 'say', text: '山林里有歌声，我顺着它走。' },
+  { op: 'end' },
+];
+
 /** Page 2's raft chain — the same leg, so the deck stays under his feet. */
 export const JTW_C3_RAFT_CHAIN: readonly Block[] = [
   { op: 'when_flag' },
@@ -183,10 +189,17 @@ export function jtwC3ArrivalPageIntact(page: Page | undefined): boolean {
     stageIntact(page, JTW_C3_PAGE3_START_CELL, JTW_C3_PAGE3_START_CELL) &&
     actorOf(page, JTW_C3_MONKEY_KING_ID)?.scripts.length === 1 &&
     actorOf(page, JTW_C3_RAFT_ID)?.scripts.length === 0 &&
-    blocksEqual(
-      scriptOf(page, JTW_C3_MONKEY_KING_ID, JTW_C3_P4_SCRIPT_IDS.arrival)?.blocks,
-      JTW_C3_ARRIVAL_CHAIN,
-    )
+    (() => {
+      const blocks = scriptOf(
+        page,
+        JTW_C3_MONKEY_KING_ID,
+        JTW_C3_P4_SCRIPT_IDS.arrival,
+      )?.blocks;
+      return (
+        blocksEqual(blocks, JTW_C3_ARRIVAL_CHAIN) ||
+        blocksEqual(blocks, JTW_C3_LEGACY_ARRIVAL_CHAIN)
+      );
+    })()
   );
 }
 

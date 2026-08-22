@@ -426,6 +426,7 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
     scriptId: 'stone-monkey-arrival-debug',
     asset: STONE_MONKEY_ASSET,
     start: { gx: 8, gy: 9, size: 3, rot: 0 },
+    allowedSayText: ['Hello, I just came here.', '你好，我刚刚来到这里。'],
     target: [
       { op: 'when_flag' },
       { op: 'hide' },

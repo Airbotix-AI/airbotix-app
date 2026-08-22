@@ -102,6 +102,15 @@ describe('jtwC3SeaBuild — the C3-P4 three-page contract', () => {
     expect(storyMissionProgramMatches(BUILT, JTW_C3_P4_LESSON_ID)).toBe(true);
   });
 
+  it('keeps previously saved Chinese arrival lines compatible', () => {
+    const legacy = structuredClone(BUILT);
+    legacy.pages[2].characters[0].scripts[0].blocks[1] = {
+      op: 'say',
+      text: '山林里有歌声，我顺着它走。',
+    };
+    expect(jtwC3SeaBuildComplete(legacy)).toBe(true);
+  });
+
   it('rejects the shipped starter — an empty slot is not a build', () => {
     expect(jtwC3SeaBuildComplete(STARTER)).toBe(false);
   });

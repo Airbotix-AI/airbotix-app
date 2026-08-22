@@ -1997,6 +1997,16 @@ describe('Journey to the West C1-P6 order-debug contract', () => {
     ).toBe(true);
   });
 
+  it('keeps the previously saved Chinese greeting compatible', () => {
+    const legacySay = { op: 'say', text: '你好，我刚刚来到这里。' };
+    expect(
+      storyMissionProgramMatches(
+        p6Project([...prefix, show, hop, legacySay, end]),
+        'jtw-s1-c1-p6',
+      ),
+    ).toBe(true);
+  });
+
   it('rejects the shipped bug order and every partial reorder', () => {
     // The starter's bug (Say → Hop → Show) never passes as-is.
     expect(
