@@ -64,7 +64,7 @@ export const JTW_C3_P4_SCRIPT_IDS = {
 } as const;
 
 /** The preset arrival clue Page 3 says — the same line C3-P2 already ships. */
-export const JTW_C3_ARRIVAL_CLUE = '山林里有歌声，我顺着它走。';
+export const JTW_C3_ARRIVAL_CLUE = 'I hear a song in the forest. I will follow it.';
 
 /** Where Page 1's beached raft waits — exactly where the Page 1 walk ends. */
 export const JTW_C3_P4_PAGE1_RAFT_CELL = {

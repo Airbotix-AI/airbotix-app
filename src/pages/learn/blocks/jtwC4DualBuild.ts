@@ -21,6 +21,13 @@ export const JTW_C4_NAME_TARGET: readonly Block[] = [
   { op: 'end' },
 ]
 
+const JTW_C4_ENGLISH_NAME_TARGET: readonly Block[] = [
+  { op: 'when_flag' },
+  { op: 'show' },
+  { op: 'say', text: 'I am Sun Wukong' },
+  { op: 'end' },
+]
+
 export const JTW_C4_SKILL_TARGET: readonly Block[] = [
   { op: 'when_tap' },
   { op: 'hop', n: 2 },
@@ -53,6 +60,30 @@ export const JTW_C4_P5_SKILL_TARGETS = {
 } as const satisfies Readonly<Record<string, readonly Block[]>>
 export type JtwC4P5Version = keyof typeof JTW_C4_P5_SKILL_TARGETS
 
+const JTW_C4_P6_ENGLISH_SKILL_TARGETS = {
+  hop: [
+    { op: 'when_tap' },
+    { op: 'hop', n: 2 },
+    { op: 'say', text: 'I waited for an invitation' },
+    { op: 'end' },
+  ],
+  turn: [
+    { op: 'when_tap' },
+    { op: 'turn_left', n: 2 },
+    { op: 'wait', n: 1 },
+    { op: 'say', text: 'Home is that way' },
+    { op: 'end' },
+  ],
+  reappear: [
+    { op: 'when_tap' },
+    { op: 'hide' },
+    { op: 'wait', n: 1 },
+    { op: 'show' },
+    { op: 'say', text: 'Now look here' },
+    { op: 'end' },
+  ],
+} as const satisfies Readonly<Record<JtwC4P5Version, readonly Block[]>>
+
 export const JTW_C4_P7_SKILL_TARGETS = {
   hop: [
     { op: 'when_tap' },
@@ -80,6 +111,10 @@ function exactScript(actual: readonly Block[] | undefined, expected: readonly Bl
   )
 }
 
+function nameScriptMatches(actual: readonly Block[] | undefined): boolean {
+  return exactScript(actual, JTW_C4_NAME_TARGET) || exactScript(actual, JTW_C4_ENGLISH_NAME_TARGET)
+}
+
 export function jtwC4DualBuildMatches(project: BlocksProject): boolean {
   if (project.lessonId !== JTW_C4_P4_LESSON_ID || project.pages.length !== 1) return false
   const page = project.pages[0]
@@ -94,7 +129,7 @@ export function jtwC4DualBuildMatches(project: BlocksProject): boolean {
   }
   const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
   const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
-  return exactScript(name, JTW_C4_NAME_TARGET) && exactScript(skill, JTW_C4_SKILL_TARGET)
+  return nameScriptMatches(name) && exactScript(skill, JTW_C4_SKILL_TARGET)
 }
 
 export function jtwC4P5Choice(project: BlocksProject): string | null {
@@ -109,7 +144,7 @@ export function jtwC4P5Choice(project: BlocksProject): string | null {
   ) return null
   const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
   const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
-  if (!exactScript(name, JTW_C4_NAME_TARGET)) return null
+  if (!nameScriptMatches(name)) return null
   return Object.entries(JTW_C4_P5_SKILL_TARGETS)
     .find(([, target]) => exactScript(skill, target))?.[0] ?? null
 }
@@ -131,10 +166,11 @@ export function jtwC4P6Version(project: BlocksProject): JtwC4P5Version | null {
     return null
   const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
   const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
-  if (!exactScript(name, JTW_C4_NAME_TARGET)) return null
+  if (!nameScriptMatches(name)) return null
   return (
     (Object.entries(JTW_C4_P5_SKILL_TARGETS) as [JtwC4P5Version, readonly Block[]][]).find(
-      ([, target]) => exactScript(skill, target),
+      ([version, target]) =>
+        exactScript(skill, target) || exactScript(skill, JTW_C4_P6_ENGLISH_SKILL_TARGETS[version]),
     )?.[0] ?? null
   )
 }
@@ -162,7 +198,7 @@ export function jtwC4P7Version(project: BlocksProject): JtwC4P5Version | null {
     return null;
   const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks;
   const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks;
-  if (!exactScript(name, JTW_C4_NAME_TARGET)) return null;
+  if (!nameScriptMatches(name)) return null;
   return (
     (Object.entries(JTW_C4_P7_SKILL_TARGETS) as [JtwC4P5Version, readonly Block[]][]).find(
       ([, target]) => exactScript(skill, target),

@@ -89,6 +89,15 @@ describe('JtW C4-P5 expression choice contract', () => {
     expect(jtwC4P5Choice(built)).toBe('reappear')
   })
 
+  it('accepts the English name chain supplied by the backend starter', () => {
+    const built = project()
+    built.lessonId = 'jtw-s1-c4-p5'
+    built.pages[0].id = 'jtw-c4-p5-page'
+    built.pages[0].characters[0].scripts[0].blocks[2] = { op: 'say', text: 'I am Sun Wukong' }
+    built.pages[0].characters[0].scripts[1].blocks = [{ op: 'when_tap' }, { op: 'hop', n: 2 }, { op: 'say', text: '我等到邀请了' }, { op: 'end' }]
+    expect(jtwC4P5Choice(built)).toBe('hop')
+  })
+
   it('rejects a P4 carry-over and a deleted name chain', () => {
     const built = project()
     built.lessonId = 'jtw-s1-c4-p5'
@@ -117,6 +126,21 @@ describe('JtW C4-P6 wrong-trigger repair', () => {
       candidate.pages[0].characters[0].scripts[1].blocks[0] = { op: 'when_flag' }
       expect(jtwC4P6BuildMatches(candidate)).toBe(false)
     }
+  })
+
+  it('accepts the English carried action group after repairing only its trigger', () => {
+    const candidate = project()
+    candidate.lessonId = 'jtw-s1-c4-p6'
+    candidate.pages[0].id = 'jtw-c4-p6-page'
+    candidate.pages[0].characters[0].scripts[0].blocks[2] = { op: 'say', text: 'I am Sun Wukong' }
+    candidate.pages[0].characters[0].scripts[1].blocks = [
+      { op: 'when_tap' },
+      { op: 'hop', n: 2 },
+      { op: 'say', text: 'I waited for an invitation' },
+      { op: 'end' },
+    ]
+    expect(jtwC4P6Version(candidate)).toBe('hop')
+    expect(jtwC4P6BuildMatches(candidate)).toBe(true)
   })
 
   it('rejects deleting, reordering or changing the carried action group', () => {
