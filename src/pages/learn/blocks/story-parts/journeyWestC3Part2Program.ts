@@ -39,20 +39,20 @@ const SEA_LEG = 4;
 // ─── story_before — teaching script C3 故事卡C + Part 2, IN FULL ─────────────
 
 export const C3_P2_STORY_SCREENS: readonly [string, string] = [
-  '原著里的寻找经历了很长时间、不同地方和不止一次渡海。课程把这段漫长旅程压缩成三张故事页面：离开花果山、经过海上与人间、到达师门所在的山。三页是讲故事的方法，不是说原著只有三片真的海。',
-  'starter 为 Page 1→2、Page 2→1、Page 3 师门。先排预期 1→2→3，再 Go。运行后脚印保留实际 1→2→1。孩子圈第一次偏离的 Page 2。',
+  "The search in the original book took a long time, different places and more than one sea crossing. The course compresses this long journey into three story pages: leaving Flower-Fruit Mountain, passing through the sea and the world, and arriving at the mountain where the teacher's gate is located. Three pages is a way of telling a story, not that the original work only has three real seas.",
+  'The starters are Page 1→2, Page 2→1, and Page 3 divisions. Arrange expected 1→2→3 first, then Go. After running the footprint remains actual 1→2→1. Page 2 of the first deviation from the circle of children.',
 ];
 export const C3_P2_SCREEN_IDS: readonly [string, string] = ['story-card-c', 'part-2-hook'];
-export const C3_P2_NEXT_SCREEN_LABEL = '再读下一段';
-export const C3_P2_PREV_SCREEN_LABEL = '回上一段';
+export const C3_P2_NEXT_SCREEN_LABEL = 'Read the next paragraph';
+export const C3_P2_PREV_SCREEN_LABEL = 'Go back to the previous paragraph';
 
 /** Classic Card — 三页是教学压缩，不是原著只有三片海。 */
 export const C3_P2_CLASSIC_CARD =
-  '原著第一回中，美猴王漂洋求师走了很久，跨海、访人间、再渡海。课程用三张页面把这段路讲清楚；这是讲故事的方法，不是说原著只有三天、三片海。';
+  'In the first chapter of the original work, the Monkey King traveled across the ocean to seek guidance for a long time, crossing seas, visiting the world, and crossing seas again. The course uses three pages to explain this journey clearly; this is a way of telling a story, not that the original work only has three days and three seas.';
 
 /** 故事—程序桥（teaching script C3）：出口数字把下一段接上去。 */
 export const C3_P2_STORY_BRIDGE =
-  '三个 Page 代表旅程的三个可读阶段；每页的动作、Wait 和声音让这个地点有内容，页面出口上的数字把下一段接上去。数字写错的时候，程序照样跑得动，故事却接不下去。';
+  'The three Pages represent the three readable stages of the journey; the actions, waits and sounds of each page give this location content, and the numbers on the page exit connect the next paragraph. When the numbers are written incorrectly, the program can still run, but the story cannot continue.';
 
 // ─── The three-page starter — shipped as-is, never repaired here ─────────────
 
@@ -70,7 +70,7 @@ export const C3_P2_SCRIPT_IDS = {
 } as const;
 
 /** The preset arrival clue Page 3 says (teaching script 故事卡D: 山林里的歌声). */
-export const C3_P2_ARRIVAL_CLUE = '山林里有歌声，我顺着它走。';
+export const C3_P2_ARRIVAL_CLUE = "I hear singing in the forest. I'll follow it.";
 
 /** Where Page 1's beached raft waits — exactly where the Page 1 walk ends. */
 export const C3_P2_PAGE1_RAFT_CELL = {
@@ -162,11 +162,7 @@ export const C3_P2_STARTER_PROJECT: BlocksProject = {
         monkeyKing(JTW_C3_PAGE3_START_CELL, [
           {
             id: C3_P2_SCRIPT_IDS.arrival,
-            blocks: [
-              { op: 'when_flag' },
-              { op: 'say', text: C3_P2_ARRIVAL_CLUE },
-              { op: 'end' },
-            ],
+            blocks: [{ op: 'when_flag' }, { op: 'say', text: C3_P2_ARRIVAL_CLUE }, { op: 'end' }],
           },
         ]),
         raft(JTW_C3_PAGE3_START_CELL, []),
@@ -184,79 +180,95 @@ export const C3_P2_DEVIATION_PAGE = 2;
 // ─── 预期路线：三张页面卡 + 两张出口箭头 ─────────────────────────────────────
 
 export const C3_P2_PAGE_CARDS: readonly JtwEvidenceOption[] = [
-  { id: 'page-1-home-shore', label: '花果山海岸', correct: true },
-  { id: 'page-2-open-sea', label: '海上中段', correct: true },
-  { id: 'page-3-far-forest', label: '彼岸山林', correct: true },
+  { id: 'page-1-home-shore', label: 'Flower-Fruit Mountain coast', correct: true },
+  { id: 'page-2-open-sea', label: 'middle section of sea', correct: true },
+  { id: 'page-3-far-forest', label: 'The mountains and forests on the other side', correct: true },
 ];
 export const C3_P2_PAGE_CARD_ORDER: readonly string[] = [
   'page-1-home-shore',
   'page-2-open-sea',
   'page-3-far-forest',
 ];
-export const C3_P2_PAGE_CARD_TITLE = '先把“应该走的路”摆出来：三张页面卡按顺序排好';
+export const C3_P2_PAGE_CARD_TITLE =
+  'First lay out the “path you should take”: arrange the three page cards in order';
 
 export const C3_P2_EXIT_CARDS: readonly JtwEvidenceOption[] = [
-  { id: 'exit-1-to-2', label: 'Page 1 的出口 → 2', correct: true },
-  { id: 'exit-2-to-3', label: 'Page 2 的出口 → 3', correct: true },
-  { id: 'exit-2-to-1', label: 'Page 2 的出口 → 1', correct: false },
-  { id: 'exit-3-to-1', label: 'Page 3 的出口 → 1', correct: false },
+  { id: 'exit-1-to-2', label: 'Page 1 Exit → 2', correct: true },
+  { id: 'exit-2-to-3', label: 'Page 2 Exit → 3', correct: true },
+  { id: 'exit-2-to-1', label: 'Page 2 Exit → 1', correct: false },
+  { id: 'exit-3-to-1', label: 'Page 3 Exit → 1', correct: false },
 ];
 export const C3_P2_EXIT_CARD_ORDER: readonly string[] = ['exit-1-to-2', 'exit-2-to-3'];
-export const C3_P2_EXIT_CARD_TITLE = '再摆两张出口箭头：预期路线上的两个出口分别写几？';
+export const C3_P2_EXIT_CARD_TITLE =
+  'Place two more exit arrows: How many are the two exits on the expected route?';
 export const C3_P2_EXIT_REJECT_HINT =
-  '预期路线是 1 → 2 → 3：第三页是终点，它不再送木筏去别的页；把木筏送回 1 的出口正是我们要找的问题，不是计划。';
+  'The expected route is 1 → 2 → 3: the third page is the end point, and it no longer sends the raft to other pages; sending the raft back to the exit of 1 is the problem we are looking for, not the plan.';
 
 // ─── 预测（运行之前，从出口积木上的数字读出来） ──────────────────────────────
 
 export const C3_P2_PREDICTION_QUESTION =
-  '按 Go 之前再看一眼 Page 2 出口积木上的数字：木筏离开海中央以后，真的会到彼岸山林吗？';
+  'Take another look before pressing Go Page 2 Numbers on the exit blocks: After the raft leaves the middle of the sea, will it really reach the mountains and forests on the other side?';
 export const C3_P2_PREDICTION_OPTIONS: readonly JtwEvidenceOption[] = [
   {
     id: 'predict-back-to-page-1',
-    label: '不会——那块出口写着 1，木筏会被送回花果山海岸',
+    label: 'No - the exit says 1 and the raft will be sent back to the Flower-Fruit Mountain coast',
     correct: true,
   },
-  { id: 'predict-reaches-page-3', label: '会——故事总会自己往下一页走', correct: false },
-  { id: 'predict-stays-on-page-2', label: '木筏会停在海中央，哪一页都不去', correct: false },
+  {
+    id: 'predict-reaches-page-3',
+    label: 'Yes - the story will always move on to the next page by itself',
+    correct: false,
+  },
+  {
+    id: 'predict-stays-on-page-2',
+    label: 'The raft will stop in the middle of the sea and will not go to any page',
+    correct: false,
+  },
 ];
 export const C3_P2_PREDICTION_RETRY_HINT =
-  '出口积木上的数字就是下一页的页码。Page 2 那一块写的是 1，1 是哪一页？';
+  'The number on the exit block is the page number of the next page. Page 2 That block says 1. Which page is 1 on?';
 
 // ─── 第一次偏离（只有真的跑过一次才打开） ────────────────────────────────────
 
 export const C3_P2_DEVIATION_QUESTION =
-  '对着两排脚印圈出第一次偏离：哪一页的出口第一次和“应该走的路”不一样？';
+  'Circle the first deviation between the two rows of footprints: Which page\'s exit is different from the "supposed path" for the first time?';
 export const C3_P2_DEVIATION_OPTIONS: readonly JtwEvidenceOption[] = [
-  { id: 'page-1-home-shore', label: 'Page 1 花果山海岸', correct: false },
-  { id: 'page-2-open-sea', label: 'Page 2 海上中段', correct: true },
-  { id: 'page-3-far-forest', label: 'Page 3 彼岸山林', correct: false },
+  { id: 'page-1-home-shore', label: 'Page 1 · Flower-Fruit Mountain coast', correct: false },
+  { id: 'page-2-open-sea', label: 'Page 2 Middle section of the sea', correct: true },
+  {
+    id: 'page-3-far-forest',
+    label: 'Page 3 The mountains and forests on the other side',
+    correct: false,
+  },
 ];
 export const C3_P2_DEVIATION_RETRY_HINT =
-  '一页一页对着看：Page 1 的出口写 2，木筏确实到了海中央，这一步没错；彼岸山林这次根本没有跑到。最早不一样的是哪一页的出口？';
+  "Look at each page: write 2 on the exit of Page 1. The raft has indeed reached the middle of the sea. This step is correct; the mountains and forests on the other side have not reached it at all this time. Which page's exit is the first to be different?";
 export const C3_P2_RUN_FIRST_HINT =
-  '先按一次 Go，把真的脚印跑出来，再来圈第一次偏离——只用眼睛猜哪一页不算证据。';
+  'Press Go once to run out the real footprints, and then circle the first deviation - just guessing which page with your eyes does not count as evidence.';
 
 // ─── 运行区文案 ──────────────────────────────────────────────────────────────
 
-export const C3_P2_RUN_LABEL = '▶ Go（原样运行 starter）';
-export const C3_P2_RUN_AGAIN_LABEL = '再跑一次';
-export const C3_P2_RUN_BUSY_LABEL = '木筏正在走…';
+export const C3_P2_RUN_LABEL = '▶ Go (run starter as is)';
+export const C3_P2_RUN_AGAIN_LABEL = 'run again';
+export const C3_P2_RUN_BUSY_LABEL = 'The raft is going…';
 export const C3_P2_RUN_NOTE =
-  '这个 Part 不修 starter：没有“自动修好”按钮，Page 2 的出口一个数字都不会被改。运行有教学用的有限步数，木筏不会一直在两页之间闪。';
-export const C3_P2_EXPECTED_TRACE_TITLE = '预期路线';
-export const C3_P2_ACTUAL_TRACE_TITLE = '实际脚印';
-export const C3_P2_NEVER_REACHED_NOTE = '彼岸山林这一页这次根本没有打开。';
+  'This Part is not a repair starter: there is no "auto-repair" button, and not a single number on the exit of Page 2 will be changed. Running a limited number of steps for teaching purposes, the raft will not always flash between pages.';
+export const C3_P2_EXPECTED_TRACE_TITLE = 'intended route';
+export const C3_P2_ACTUAL_TRACE_TITLE = 'actual footprints';
+export const C3_P2_NEVER_REACHED_NOTE =
+  'The page of Mountain Forest on the Other Side was not opened at all this time.';
 
 // ─── resolved / story_after / continue ───────────────────────────────────────
 
 export const C3_P2_RESOLVED_WORLD_CHANGE =
-  '两排脚印并排留在舞台上：上面一排是摆好的 1 → 2 → 3，下面一排是真的跑出来的 1 → 2 → 1。海中央那一页被圈了起来——它的出口写着 1，木筏还没到彼岸，就被送回了出发的海岸。';
+  'Two rows of footprints are left side by side on the stage: the upper row is arranged 1 → 2 → 3, and the lower row is the real ones 1 → 2 → 1. The page in the middle of the sea was circled - its exit was written 1, and the raft was sent back to the shore from which it started before it reached the other shore.';
 export const C3_P2_STORY_AFTER =
-  '猴王知道问题在第二页的出口，但还要用页面卡说清楚数字是怎样带路的。';
-export const C3_P2_CONTINUE_LABEL = '走页面路口';
+  'The Monkey King knows that the question is at the exit on the second page, but he still needs to use page cards to explain how the numbers lead the way.';
+export const C3_P2_CONTINUE_LABEL = 'Take the page intersection';
 
-export const C3_P2_LOCKED_HINT = '先在第三章 Part 1 说清楚猴王为什么要出发，再来看三页的路。';
-export const C3_P2_LOADING_HINT = '木筏正在岸边等你…';
+export const C3_P2_LOCKED_HINT =
+  'First, let’s explain clearly why the Monkey King set out in Chapter 3, Part 1, and then look at the journey on the third page.';
+export const C3_P2_LOADING_HINT = 'The raft is waiting for you on the shore...';
 
 // ─── Evidence rules — every gate below is measured, never assumed ────────────
 

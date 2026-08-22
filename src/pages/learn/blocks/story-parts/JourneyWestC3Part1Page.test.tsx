@@ -53,10 +53,7 @@ function renderPage() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={['/learn/story/journey-west/jtw-s1-c3-p1']}>
         <Routes>
-          <Route
-            path="/learn/story/journey-west/:partId"
-            element={<JourneyWestC3Part1Page />}
-          />
+          <Route path="/learn/story/journey-west/:partId" element={<JourneyWestC3Part1Page />} />
           <Route path="/learn/story/journey-west" element={<div data-testid="jtw-map-stub" />} />
         </Routes>
       </MemoryRouter>
@@ -87,14 +84,22 @@ function pointAtAllPlaces() {
 
 /** 珍惜现在的家 → 仍愿意远行学习, in that order. */
 function orderMotiveCards() {
-  fireEvent.click(screen.getByRole('button', { name: '珍惜现在的家' }));
-  fireEvent.click(screen.getByRole('button', { name: '仍愿意远行学习' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cherish your current home' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Still willing to travel far to study' }));
 }
 
 /** 虽然这里很快乐，但是他想到…，所以决定… */
 function completeWhySentence() {
-  fireEvent.click(screen.getByRole('button', { name: /生命和时间都会改变/ }));
-  fireEvent.click(screen.getByRole('button', { name: /去找能教他学习和思考的师父/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Life and time will change, and there are still many things I don’t understand\./i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Go a long way to find a master who can teach him to learn and think/i,
+    }),
+  );
 }
 
 /** Everything except the prediction. */
@@ -118,8 +123,8 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestC3Part1Page · C3-P1 快乐的家，也装不下所有问题', () => {
-  it('ships 故事卡A first, the home-shore stage and the three-place map', async () => {
+describe('JourneyWestC3Part1Page · C3-P1 A happy home cannot contain all the problems', () => {
+  it('ships story cardA first, the home-shore stage and the three-place map', async () => {
     // Contract: exactly two motive cards are real; 想拿宝物/不喜欢伙伴 are distractors.
     expect(C3_P1_MOTIVE_CARDS.filter((card) => card.correct).map((card) => card.id)).toEqual([
       'treasure-this-home',
@@ -140,8 +145,12 @@ describe('JourneyWestC3Part1Page · C3-P1 快乐的家，也装不下所有问�
     expect(screen.queryByText(C3_P1_DIALOGUE[1])).not.toBeInTheDocument();
     expect(screen.getByTestId('jtw-c3p1-story-count')).toHaveTextContent('1 / 2');
     // 原著卡: 求师, not 寻宝/取经.
-    expect(screen.getByTestId('jtw-c3p1-story')).toHaveTextContent('远行求师');
-    expect(screen.getByTestId('jtw-c3p1-story')).toHaveTextContent('不能改成寻宝或取经');
+    expect(screen.getByTestId('jtw-c3p1-story')).toHaveTextContent(
+      /traveled far to seek his teacher/i,
+    );
+    expect(screen.getByTestId('jtw-c3p1-story')).toHaveTextContent(
+      /cannot be changed to treasure hunting/i,
+    );
 
     // Before stage: the Page 1 home shore with the monkey king on the contract cell.
     const stage = screen.getByTestId('jtw-c3p1-stage');
@@ -192,7 +201,11 @@ describe('JourneyWestC3Part1Page · C3-P1 快乐的家，也装不下所有问�
     expect(screen.queryByTestId('jtw-c3p1-motives')).not.toBeInTheDocument();
     pointAtAllPlaces();
     completeWhySentence();
-    fireEvent.click(screen.getByRole('button', { name: /我会记得从哪里出发/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I will remember where I started from and I will look for answers carefully\./i,
+      }),
+    );
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeDisabled();
 
     // 故事卡B + the two dialogue lines arrive with the second screen.
@@ -206,40 +219,48 @@ describe('JourneyWestC3Part1Page · C3-P1 快乐的家，也装不下所有问�
     expect(screen.getByTestId('jtw-c3p1-motives')).toBeInTheDocument();
   });
 
-  it('refuses 想拿宝物 / 不喜欢伙伴 with the story hint and only passes the right order', async () => {
+  it("refuses wants to take the treasure / doesn't like the partner with the story hint and only passes the right order", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c3-p1')).toBeInTheDocument());
     completeEvidence();
-    fireEvent.click(screen.getByRole('button', { name: /我会记得从哪里出发/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I will remember where I started from and I will look for answers carefully\./i,
+      }),
+    );
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeEnabled();
 
     // A wrong motive card breaks the evidence even with everything else done.
-    fireEvent.click(screen.getByRole('button', { name: '重新排' }));
-    fireEvent.click(screen.getByRole('button', { name: '想拿宝物' }));
-    fireEvent.click(screen.getByRole('button', { name: '不喜欢伙伴' }));
-    expect(screen.getByRole('status')).toHaveTextContent('都不在正文里');
+    fireEvent.click(screen.getByRole('button', { name: 'Reorder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Want to get the treasure' }));
+    fireEvent.click(screen.getByRole('button', { name: "don't like partner" }));
+    expect(screen.getByRole('status')).toHaveTextContent(/not in the text/i);
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeDisabled();
 
     // The right cards in the WRONG order still fail.
-    fireEvent.click(screen.getByRole('button', { name: '重新排' }));
-    fireEvent.click(screen.getByRole('button', { name: '仍愿意远行学习' }));
-    fireEvent.click(screen.getByRole('button', { name: '珍惜现在的家' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reorder' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Still willing to travel far to study' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cherish your current home' }));
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeDisabled();
     expect(screen.queryByTestId('jtw-c3p1-resolved')).not.toBeInTheDocument();
 
     // Replayable: reorder into the story's own order and it opens again.
-    fireEvent.click(screen.getByRole('button', { name: '重新排' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reorder' }));
     orderMotiveCards();
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeEnabled();
   });
 
-  it('needs all three map places and both halves of the 虽然/但是/所以 sentence', async () => {
+  it('needs all three map places and both halves of the although/but/so sentence', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c3-p1')).toBeInTheDocument());
     readBothScreens();
     orderMotiveCards();
     completeWhySentence();
-    fireEvent.click(screen.getByRole('button', { name: /我会记得从哪里出发/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I will remember where I started from and I will look for answers carefully\./i,
+      }),
+    );
 
     // Two of three places pointed at — not enough.
     fireEvent.click(mapButton('flower-fruit-mountain'));
@@ -249,11 +270,21 @@ describe('JourneyWestC3Part1Page · C3-P1 快乐的家，也装不下所有问�
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeEnabled();
 
     // A wrong second half of the sentence closes it again.
-    fireEvent.click(screen.getByRole('button', { name: /再也不回花果山了/ }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /Never return to Flower-Fruit Mountain again/i }),
+    );
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /去找能教他学习和思考的师父/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Go a long way to find a master who can teach him to learn and think/i,
+      }),
+    );
     // A wrong first half likewise.
-    fireEvent.click(screen.getByRole('button', { name: /海那边一定藏着宝物/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /There must be a treasure hidden on the other side of the sea/i,
+      }),
+    );
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeDisabled();
   });
 
@@ -263,17 +294,27 @@ describe('JourneyWestC3Part1Page · C3-P1 快乐的家，也装不下所有问�
     completeEvidence();
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeDisabled(); // prediction pending
 
-    fireEvent.click(screen.getByRole('button', { name: '“自己还有许多不明白的事。”' }));
-    expect(screen.getByRole('status')).toHaveTextContent('会记得从哪里出发');
+    fireEvent.click(
+      screen.getByRole('button', { name: '"There are still many things I don\'t understand."' }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /will remember where they started from/i,
+    );
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeDisabled();
     expect(screen.queryByTestId('jtw-c3p1-resolved')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /我会记得从哪里出发/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I will remember where I started from and I will look for answers carefully\./i,
+      }),
+    );
     // resolved_world_change: the same camera, the sea-route light lit.
     const stage = screen.getByTestId('jtw-c3p1-stage');
     expect(stage).toHaveAttribute('data-world-state', 'route-light');
     expect(stage.querySelector('img')).toHaveAttribute('src', JTW_C3_PAGE1_RESOLVED_BACKGROUND);
-    expect(screen.getByTestId('jtw-c3p1-resolved')).toHaveTextContent('一直连到天边');
+    expect(screen.getByTestId('jtw-c3p1-resolved')).toHaveTextContent(
+      /continued to the horizon/i,
+    );
     expect(screen.getByTestId('jtw-c3p1-friends')).toBeInTheDocument();
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeEnabled();
   });
@@ -286,7 +327,9 @@ describe('JourneyWestC3Part1Page · C3-P1 快乐的家，也装不下所有问�
     fireEvent.click(screen.getByTestId('jtw-c3p1-audio'));
     const wind = screen.getByTestId('jtw-c3p1-wind-lines');
     expect(wind.querySelectorAll('span')).toHaveLength(3);
-    expect(screen.getByTestId('jtw-c3p1-audio')).toHaveTextContent('再听一次海风');
+    expect(screen.getByTestId('jtw-c3p1-audio')).toHaveTextContent(
+      'Listen to the sea breeze again',
+    );
   });
 
   it('persists Read/Why evidence on continue, writes no project and unlocks only C3-P2', async () => {
@@ -294,7 +337,11 @@ describe('JourneyWestC3Part1Page · C3-P1 快乐的家，也装不下所有问�
     await waitFor(() => expect(screen.getByTestId('jtw-c3p1-continue')).toBeInTheDocument());
     completeEvidence();
     fireEvent.click(screen.getByTestId('jtw-c3p1-audio'));
-    fireEvent.click(screen.getByRole('button', { name: /我会记得从哪里出发/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I will remember where I started from and I will look for answers carefully\./i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-c3p1-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
@@ -339,13 +386,18 @@ describe('JourneyWestC3Part1Page · C3-P1 快乐的家，也装不下所有问�
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('jtw-c3p1-resolved')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /1.*珍惜现在的家/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /2.*仍愿意远行学习/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /1 Cherish your current home/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /2 Still willing to travel far to study/i }),
+    ).toBeInTheDocument();
     expect(mapButton('flower-fruit-mountain')).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /生命和时间都会改变/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      screen.getByRole('button', {
+        name: /Life and time will change, and there are still many things I don’t understand\./i,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('jtw-c3p1-wind-lines')).toBeInTheDocument();
     expect(screen.getByTestId('jtw-c3p1-continue')).toBeEnabled();
   });

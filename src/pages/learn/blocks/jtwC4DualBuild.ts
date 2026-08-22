@@ -17,7 +17,7 @@ export const JTW_C4_WUKONG_ASSET =
 export const JTW_C4_NAME_TARGET: readonly Block[] = [
   { op: 'when_flag' },
   { op: 'show' },
-  { op: 'say', text: '我是孙悟空' },
+  { op: 'say', text: 'I am Sun Wukong' },
   { op: 'end' },
 ]
 
@@ -31,7 +31,7 @@ const JTW_C4_ENGLISH_NAME_TARGET: readonly Block[] = [
 export const JTW_C4_SKILL_TARGET: readonly Block[] = [
   { op: 'when_tap' },
   { op: 'hop', n: 2 },
-  { op: 'say', text: '你邀请了我' },
+  { op: 'say', text: 'you invited me' },
   { op: 'end' },
 ]
 
@@ -39,14 +39,14 @@ export const JTW_C4_P5_SKILL_TARGETS = {
   hop: [
     { op: 'when_tap' },
     { op: 'hop', n: 2 },
-    { op: 'say', text: '我等到邀请了' },
+    { op: 'say', text: "I'm waiting for the invitation" },
     { op: 'end' },
   ],
   turn: [
     { op: 'when_tap' },
     { op: 'turn_left', n: 2 },
     { op: 'wait', n: 1 },
-    { op: 'say', text: '家在那边' },
+    { op: 'say', text: 'Home is over there' },
     { op: 'end' },
   ],
   reappear: [
@@ -54,7 +54,7 @@ export const JTW_C4_P5_SKILL_TARGETS = {
     { op: 'hide' },
     { op: 'wait', n: 1 },
     { op: 'show' },
-    { op: 'say', text: '再看这里' },
+    { op: 'say', text: 'Look here again' },
     { op: 'end' },
   ],
 } as const satisfies Readonly<Record<string, readonly Block[]>>
@@ -89,7 +89,7 @@ export const JTW_C4_P7_SKILL_TARGETS = {
     { op: 'when_tap' },
     { op: 'hop', n: 2 },
     { op: 'wait', n: 1 },
-    { op: 'say', text: '我等到邀请了' },
+    { op: 'say', text: "I'm waiting for the invitation" },
     { op: 'end' },
   ],
   turn: JTW_C4_P5_SKILL_TARGETS.turn,

@@ -36,17 +36,13 @@ const instantSleep = () => Promise.resolve();
 
 const P5_DONE: StoryLineProgress = {
   story_line_id: 'journey-to-the-west-s1',
-  completed: [
-    'jtw-s1-c1-p1',
-    'jtw-s1-c1-p2',
-    'jtw-s1-c1-p3',
-    'jtw-s1-c1-p4',
-    'jtw-s1-c1-p5',
-  ].map((partId) => ({
-    part_id: partId,
-    completed_at: '2026-07-25T04:00:00.000Z',
-    evidence: {},
-  })),
+  completed: ['jtw-s1-c1-p1', 'jtw-s1-c1-p2', 'jtw-s1-c1-p3', 'jtw-s1-c1-p4', 'jtw-s1-c1-p5'].map(
+    (partId) => ({
+      part_id: partId,
+      completed_at: '2026-07-25T04:00:00.000Z',
+      evidence: {},
+    }),
+  ),
   unlocked_part_ids: [
     'jtw-s1-c1-p1',
     'jtw-s1-c1-p2',
@@ -60,11 +56,11 @@ const P5_DONE: StoryLineProgress = {
 function debugProject(order: 'fixed' | 'bug'): BlocksProject {
   const middle =
     order === 'fixed'
-      ? [{ op: 'show' }, { op: 'hop', n: 1 }, { op: 'say', text: '你好，我刚刚来到这里。' }]
-      : [{ op: 'say', text: '你好，我刚刚来到这里。' }, { op: 'hop', n: 1 }, { op: 'show' }];
+      ? [{ op: 'show' }, { op: 'hop', n: 1 }, { op: 'say', text: 'Hello, I just came here.' }]
+      : [{ op: 'say', text: 'Hello, I just came here.' }, { op: 'hop', n: 1 }, { op: 'show' }];
   return {
     version: 1,
-    name: '西游记 · 修好乱序的亮相',
+    name: 'Journey to the West · Fix out-of-order appearances',
     lessonId: 'jtw-s1-c1-p6',
     pages: [
       {
@@ -98,7 +94,12 @@ function debugProject(order: 'fixed' | 'bug'): BlocksProject {
 
 function mockBuild(order: 'fixed' | 'bug', runCompleted = true) {
   listProjects.mockResolvedValue([
-    { id: 'proj_p6', title: '西游记 · 修好乱序的亮相', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_p6',
+      title: 'Journey to the West · Fix out-of-order appearances',
+      kind: 'blocks',
+      status: 'active',
+    },
   ]);
   loadProject.mockResolvedValue({
     project: debugProject(order),
@@ -106,7 +107,9 @@ function mockBuild(order: 'fixed' | 'bug', runCompleted = true) {
     history: { past: [], future: [] },
     storyProgress: {
       schemaVersion: 1,
-      completed: runCompleted ? { 'jtw-s1-c1-p6': { completedAt: '2026-07-25T08:00:00.000Z' } } : {},
+      completed: runCompleted
+        ? { 'jtw-s1-c1-p6': { completedAt: '2026-07-25T08:00:00.000Z' } }
+        : {},
     },
     otherFiles: [],
   } as never);
@@ -132,11 +135,19 @@ function renderPage() {
 /** expectation → bug run → actual → first deviation (the shared front half). */
 async function walkToDeviation() {
   await waitFor(() => expect(screen.getByTestId('jtw-part-c1-p6')).toBeInTheDocument());
-  fireEvent.click(screen.getByRole('button', { name: /在动作和问候之前/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Before actions and greetings - see the stone monkey first, jump and say hello before anyone understands/i,
+    }),
+  );
   fireEvent.click(screen.getByTestId('jtw-p6-run'));
-  await waitFor(() => expect(screen.getByTestId('jtw-p6-run')).toHaveTextContent('再复现一次'));
-  fireEvent.click(screen.getByRole('button', { name: /先听见「你好」/ }));
-  fireEvent.click(screen.getByRole('button', { name: /Say——声音响了/ }));
+  await waitFor(() =>
+    expect(screen.getByTestId('jtw-p6-run')).toHaveTextContent('▶ Repeat it again'),
+  );
+  fireEvent.click(screen.getByRole('button', { name: /I heard "Hello" first/i }));
+  fireEvent.click(
+    screen.getByRole('button', { name: /💬 Say——The voice rang, but no one showed up yet/i }),
+  );
 }
 
 beforeEach(() => {
@@ -152,7 +163,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestPart6Page · C1-P6 声音怎么从空中来了', () => {
+describe('JourneyWestPart6Page · C1-P6 Why does the sound come from the sky?', () => {
   it('defines the shipped bug as EXACTLY the contracted Say→Hop→Show chain', () => {
     expect(C1_P6_BUG_CHAIN.map((block) => block.op)).toEqual([
       'when_flag',
@@ -164,7 +175,7 @@ describe('JourneyWestPart6Page · C1-P6 声音怎么从空中来了', () => {
       'end',
     ]);
     expect(C1_P6_BUG_CHAIN[2].n).toBe(2); // 🔔 Chime — never swapped for another sound
-    expect(C1_P6_BUG_CHAIN[3].text).toBe('你好，我刚刚来到这里。');
+    expect(C1_P6_BUG_CHAIN[3].text).toBe('Hello, I just came here.');
   });
 
   it('blocks kids who have not finished P5 (server-side unlock is the truth)', async () => {
@@ -187,7 +198,9 @@ describe('JourneyWestPart6Page · C1-P6 声音怎么从空中来了', () => {
     expect(screen.getByTestId('jtw-p6-stage').dataset.voiceFromAir).toBe('false');
 
     fireEvent.click(screen.getByTestId('jtw-p6-run'));
-    await waitFor(() => expect(screen.getByTestId('jtw-p6-run')).toHaveTextContent('再复现一次'));
+    await waitFor(() =>
+      expect(screen.getByTestId('jtw-p6-run')).toHaveTextContent('▶ Repeat it again'),
+    );
     // The say happened before Show — the "voice from thin air" was observed.
     expect(screen.getByTestId('jtw-p6-stage').dataset.voiceFromAir).toBe('true');
     // Show still runs last, so the monkey ends visible.
@@ -202,9 +215,15 @@ describe('JourneyWestPart6Page · C1-P6 声音怎么从空中来了', () => {
     fireEvent.click(screen.getByTestId('jtw-p6-run'));
     await waitFor(() => expect(screen.getByTestId('jtw-p6-deviation')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole('button', { name: /Hop——草叶摇动的那一下/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('Say 响起时，Show 还没有发生');
-    fireEvent.click(screen.getByRole('button', { name: /Say——声音响了/ }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /🦘 Hop——the moment when the blades of grass shake/i }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      "Follow the trajectory from left to right to find the earliest one: when Say sounds, Show has not happened yet - which part is the first one that you can't understand?",
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /💬 Say——The voice rang, but no one showed up yet/i }),
+    );
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
@@ -240,9 +259,19 @@ describe('JourneyWestPart6Page · C1-P6 声音怎么从空中来了', () => {
     expect(screen.getByTestId('jtw-p6-diff')).toHaveTextContent('show:6->4 · say:4->6');
 
     expect(screen.getByTestId('jtw-p6-continue')).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: /只把 Show 移到 Hop 和 Say 之前/ }));
-    fireEvent.click(screen.getByRole('button', { name: /群猴先看见石猴，再看见他跳/ }));
-    expect(screen.getByTestId('jtw-p6-resolved')).toHaveTextContent('一只群猴从树后完全走出来');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Just move Show before Hop and Say - let the Stone Monkey show up first/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /The group of monkeys first saw the stone monkey, then saw him jumping, and finally heard the greeting clearly/i,
+      }),
+    );
+    expect(screen.getByTestId('jtw-p6-resolved')).toHaveTextContent(
+      'After the restoration, a group of monkeys fully emerged from behind the tree.',
+    );
     fireEvent.click(screen.getByTestId('jtw-p6-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
@@ -291,14 +320,14 @@ describe('JourneyWestPart6Page · C1-P6 声音怎么从空中来了', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('jtw-p6-resolved')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /在动作和问候之前/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: /Say——声音响了/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      screen.getByRole('button', {
+        name: /Before actions and greetings - see the stone monkey first, jump and say hello before anyone understands/i,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByRole('button', { name: /💬 Say——The voice rang, but no one showed up yet/i }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('jtw-p6-continue')).toBeEnabled();
   });
 });

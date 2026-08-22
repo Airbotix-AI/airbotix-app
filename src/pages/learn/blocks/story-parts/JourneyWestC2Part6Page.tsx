@@ -117,13 +117,15 @@ function TraceList({ trace, testId }: { trace: readonly string[]; testId: string
           data-off-route={cell === '2-7'}
           className={clsx(
             'rounded-2xl border px-4 py-2 text-[14px] font-semibold text-ink',
-            cell === '2-7' ? 'border-brand-coral/60 bg-wash-sunshine' : 'border-hairline bg-canvas-pure',
+            cell === '2-7'
+              ? 'border-brand-coral/60 bg-wash-sunshine'
+              : 'border-hairline bg-canvas-pure',
           )}
         >
-          <span className="mr-1 text-[12px] font-black text-ink-soft">第{index + 1}步</span>
+          <span className="mr-1 text-[12px] font-black text-ink-soft">No.{index + 1}step</span>
           {cell}
-          {cell === C2_P6_SKIPPED_STONE ? ' · 低石' : ''}
-          {cell === '2-7' ? ' · 湿石路外的水面' : ''}
+          {cell === C2_P6_SKIPPED_STONE ? ' · Low stone' : ''}
+          {cell === '2-7' ? ' · The water outside the wet stone road' : ''}
         </li>
       ))}
     </ol>
@@ -195,7 +197,7 @@ function JourneyWestReturnBugPreview({
       >
         <img
           src={BASE_ASSET}
-          alt="水帘分开后的崖面：湿石路从洞口一路退回伙伴等着的起点"
+          alt="The cliff face after the water curtain separates: The wet stone road leads back from the entrance of the cave to the starting point where the friends are waiting."
           className="absolute inset-0 h-full w-full object-cover"
         />
         {/* P5 已经打开的洞口——本 Part 只是布景，没有任何碰撞回应。 */}
@@ -220,7 +222,8 @@ function JourneyWestReturnBugPreview({
 
       <div>
         <p className="mb-2 text-[13px] font-semibold text-ink-soft">
-          bug 复现轨道（只读）——积木和数字都没错，先完整看一遍它把石猴带到哪里：
+          Bug recurrence track (read only) - The building blocks and numbers are correct, let’s take
+          a complete look at where it takes the stone monkey:
         </p>
         <div className="flex flex-wrap items-center gap-1" data-testid="jtw-c2p6-bug-chain">
           {blocks.map((block, index) => (
@@ -242,7 +245,7 @@ function JourneyWestReturnBugPreview({
         onClick={() => void run()}
         data-testid="jtw-c2p6-run"
       >
-        {running ? '运行中…' : ran ? '▶ 再复现一次' : '▶ 运行这个 bug'}
+        {running ? 'Running…' : ran ? '▶ Repeat it again' : '▶ run this bug'}
       </button>
     </div>
   );
@@ -364,7 +367,11 @@ export function JourneyWestC2Part6Page({
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">回程的脚印正在重演…</p>;
+    return (
+      <p className="p-8 text-center text-ink-soft">
+        The footsteps of the return journey are being repeated...
+      </p>
+    );
   }
 
   if (!unlocked && !completed) {
@@ -374,10 +381,11 @@ export function JourneyWestC2Part6Page({
         data-testid="jtw-c2p6-locked"
       >
         <p className="text-[16px] font-bold text-ink">
-          先在 Part 5 让水帘和洞口回应碰撞，再来修回去的路线。
+          First let the water curtain and the hole respond to the collision in Part 5, and then
+          repair the route back.
         </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -387,9 +395,9 @@ export function JourneyWestC2Part6Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c2-p6">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第二章 水帘洞的约定 · Part 6 · Debug
+          Journey to the West · Chapter 2 The Agreement of Water Curtain Cave · Part 6 · Debug
         </p>
-        <h1 className="text-[28px] font-black text-ink">回去的第一处偏离</h1>
+        <h1 className="text-[28px] font-black text-ink">The first deviation on the way back</h1>
       </header>
 
       {/* ── story_before：教学脚本 C2 Part 6 全文 + 动机 + 因果桥 ─────────── */}
@@ -401,11 +409,13 @@ export function JourneyWestC2Part6Page({
         ))}
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
           <p>
-            <span className="font-bold">石猴为什么要修好回程：</span>
+            <span className="font-bold">
+              Why does Stone Monkey need to repair the return journey:
+            </span>
             {C2_P6_MOTIVE}
           </p>
           <p className="mt-2">
-            <span className="font-bold">故事—程序桥：</span>
+            <span className="font-bold">Story—Program Bridge:</span>
             {C2_P6_STORY_BRIDGE}
           </p>
         </aside>
@@ -428,7 +438,7 @@ export function JourneyWestC2Part6Page({
 
       {/* ── bug 复现：真实 Runner 走乱序的回程 ─────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-[15px] font-bold text-ink">运行这个 bug（只读复现）</h2>
+        <h2 className="text-[15px] font-bold text-ink">Run this bug (read-only reproduction)</h2>
         <JourneyWestReturnBugPreview onRunDone={() => setBugRan(true)} sleep={previewSleep} />
       </section>
 
@@ -437,11 +447,15 @@ export function JourneyWestC2Part6Page({
           {/* ── 两串脚印并列比较 ──────────────────────────────────── */}
           <section className="space-y-3" data-testid="jtw-c2p6-compare-traces">
             <div>
-              <h3 className="mb-2 text-[14px] font-bold text-ink">bug 这次走过的三个停点</h3>
+              <h3 className="mb-2 text-[14px] font-bold text-ink">
+                The three stopping points bug visited this time
+              </h3>
               <TraceList trace={C2_P6_BUG_TRACE} testId="jtw-c2p6-bug-trace" />
             </div>
             <div>
-              <h3 className="mb-2 text-[14px] font-bold text-ink">按约定原路返回应该走的三个停点</h3>
+              <h3 className="mb-2 text-[14px] font-bold text-ink">
+                Return to the three stopping points on the original route as agreed
+              </h3>
               <TraceList trace={C2_P6_TARGET_TRACE} testId="jtw-c2p6-target-trace" />
             </div>
           </section>
@@ -513,11 +527,14 @@ export function JourneyWestC2Part6Page({
             data-testid="jtw-c2p6-build"
             data-build-state={buildDone ? 'done' : build.data?.projectId ? 'in_progress' : 'none'}
           >
-            <h2 className="text-[15px] font-bold text-ink">去真正的工作区修好回程顺序</h2>
+            <h2 className="text-[15px] font-bold text-ink">
+              Go to the real workspace and fix the return sequence
+            </h2>
             <p className="mt-1 text-[13px] text-ink-soft">
-              工作区里的程序就是这条 bug。先按 Go 跑一遍它，再只把第二个 Left 2 和 Down 1
-              交换位置，然后重跑保存。不许删掉重搭，也不许改大数字、加 Set Speed 或用 Go
-              Home 绕过去——去程那条五块路线更不能动。
+              The program in the workspace has this bug. Press Go to run it first, and then just put
+              the second Left 2 and Down 1 Swap positions and rerun to save. You are not allowed to
+              delete and re-set, change the numbers, add Set Speed or use Go Home Go around - the
+              five-block route on the way out is even more untouchable.
             </p>
             <div className="mt-4 flex items-center gap-3">
               <button
@@ -528,24 +545,26 @@ export function JourneyWestC2Part6Page({
                 onClick={() => void openStudio()}
               >
                 {creating
-                  ? '正在打开回程的舞台…'
+                  ? 'The stage for the return journey is opening...'
                   : buildDone
-                    ? '再看看我的修复'
+                    ? 'Take another look at my fix'
                     : build.data?.projectId
-                      ? '继续修复 →'
-                      : '开始修复 →'}
+                      ? 'Continue to repair →'
+                      : 'Start repair →'}
               </button>
               {buildDone && (
                 <span
                   className="text-[13px] font-bold text-brand-mint"
                   data-testid="jtw-c2p6-build-done"
                 >
-                  ✓ bug 已复现，回程顺序已修好并重跑过
+                  ✓ The bug has been reproduced, the return sequence has been fixed and the run has
+                  been rerun.
                 </span>
               )}
               {!buildDone && build.data?.projectId && (
                 <span className="text-[13px] font-semibold text-ink-soft">
-                  顺序还没交换成目标回程，或还没先跑 bug 再重跑保存。
+                  The order has not been swapped to the target return, or the bug has not been run
+                  first and then rerun to save.
                 </span>
               )}
             </div>
@@ -554,12 +573,12 @@ export function JourneyWestC2Part6Page({
                 className="mt-2 text-[12px] font-semibold text-ink-soft"
                 data-testid="jtw-c2p6-diff"
               >
-                真实修改记录：{build.data.projectDiff.join(' · ')}
+                Real modification record:{build.data.projectDiff.join(' · ')}
               </p>
             )}
             {createError && (
               <p className="mt-2 text-[13px] font-semibold text-brand-coral" role="alert">
-                没能打开工作区，请再试一次。
+                Failed to open workspace, please try again.
               </p>
             )}
           </section>
@@ -568,7 +587,7 @@ export function JourneyWestC2Part6Page({
           {buildDone && build.data && (
             <section data-testid="jtw-c2p6-fixed-readback">
               <h2 className="mb-2 text-[15px] font-bold text-ink">
-                你保存的回程（从作品里读回来的，不是页面猜的）：
+                The return journey you saved (read from the work, not guessed by the page):
               </h2>
               <TraceList trace={build.data.trace} testId="jtw-c2p6-fixed-trace" />
             </section>
@@ -630,7 +649,7 @@ export function JourneyWestC2Part6Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -639,12 +658,12 @@ export function JourneyWestC2Part6Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C2_P6_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C2_P6_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

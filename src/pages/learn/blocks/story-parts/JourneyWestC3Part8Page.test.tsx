@@ -35,7 +35,7 @@ const loadProject = vi.mocked(blocksApi.loadBlocksProject);
 
 const instantSleep = () => Promise.resolve();
 const SAVED_VERSION = 11;
-const ARRIVAL_LINE = '山林里有歌声，我顺着它走。';
+const ARRIVAL_LINE = "I hear singing in the forest. I'll follow it.";
 const SEAL_ID = 'jtw-s1-c3-long-journey-seal';
 
 /** C1 P1–P8, C2 P1–P8 and C3 P1–P7 complete — C3-P8 is open, not done. */
@@ -104,7 +104,7 @@ function mockBuild(project: BlocksProject | null, runCompleted = true) {
   listProjects.mockResolvedValue([
     {
       id: 'proj_jtw_route',
-      title: '西游记 · Across the Sea to Learn',
+      title: 'Journey to the West · Across the Sea to Learn',
       kind: 'blocks',
       status: 'active',
     },
@@ -142,9 +142,13 @@ function renderPage() {
 
 /** Tap the five cause cards in the story's own order. */
 function orderCards(ids?: string[]) {
-  const labels =
-    ids ??
-    ['为什么离开', '伙伴造筏', 'Page 2 出口错误', '修复顺序与位置', '到达师门'];
+  const labels = ids ?? [
+    '🏝Why left?',
+    '🛶 Build a raft with partners',
+    '↩️ Page 2 Export Error',
+    '🔧 Repair order and location',
+    '⛩ Arrive at the division gate',
+  ];
   const group = screen.getByTestId('jtw-c3p8-cause-cards');
   for (const label of labels) {
     const button = Array.from(group.querySelectorAll('button')).find((candidate) =>
@@ -172,9 +176,15 @@ async function throughTheRetell() {
   await waitFor(() =>
     expect(screen.getByTestId('jtw-c3p8-saved-run')).toHaveAttribute('data-reached', '1'),
   );
-  pick('jtw-c3p8-retell', /因为花果山很快乐/);
-  pick('jtw-c3p8-text-evidence', /能教他学习、思考和修行的师父/);
-  pick('jtw-c3p8-program-evidence', /真的从 Page 1 走到 Page 2/);
+  pick('jtw-c3p8-retell', /Because Flower-Fruit Mountain was very happy/i);
+  pick(
+    'jtw-c3p8-text-evidence',
+    /"He wanted to find a master who could teach him to learn, think and practice\."/i,
+  );
+  pick(
+    'jtw-c3p8-program-evidence',
+    /This time I really went from Page 1 to Page 2 and then to Page 3\./i,
+  );
 }
 
 beforeEach(() => {
@@ -185,7 +195,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', () => {
+describe('JourneyWestC3Part8Page — Arrival is not about learning, but about getting ready to start', () => {
   it('shows the locked screen when C3-P7 is not complete', async () => {
     fetchProgress.mockResolvedValue({
       story_line_id: 'journey-to-the-west-s1',
@@ -196,15 +206,19 @@ describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', (
     expect(await screen.findByTestId('jtw-c3p8-locked')).toBeInTheDocument();
   });
 
-  it('reads 故事卡D, the classic card and the two shore lines', async () => {
+  it('reads story card D, the classic card and the two shore lines', async () => {
     renderPage();
     await screen.findByTestId('jtw-part-c3-p8');
     const story = screen.getByTestId('jtw-c3p8-story');
-    expect(story).toHaveTextContent('终于从 Page 1 走到 2，再从 2 走到 3');
+    expect(story).toHaveTextContent(/finally went from Page 1 to 2, and then from 2 to 3/i);
     // 到达 ≠ 学会 is stated where the child reads it, not only in code.
-    expect(story).toHaveTextContent('到达不等于学会');
-    expect(story).toHaveTextContent('不能把动机改成寻宝或取经');
-    expect(story).toHaveTextContent('我先去学会更多，再把经历讲给你们听');
+    expect(story).toHaveTextContent(/Arriving is not the same as learning/i);
+    expect(story).toHaveTextContent(
+      'In the first chapter of the original work, the Monkey King thought about the impermanence of life and traveled far to seek his teacher. He crossed the sea, visited the world, and then crossed the sea again. It took many years to find his teacher. A young copywriter can say "he wants to learn how to live more wisely", but he cannot change the motivation to treasure hunting or learning.',
+    );
+    expect(story).toHaveTextContent(
+      'I will learn more first and then tell you about my experience.',
+    );
   });
 
   it('points back at Part 7 when there is no saved route to reopen', async () => {
@@ -228,7 +242,13 @@ describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', (
     await screen.findByTestId('jtw-c3p8-design');
     expect(screen.getByTestId('jtw-c3p8-run-button')).toBeDisabled();
     // 到达师门 in front of 修复顺序与位置 is still the wrong story.
-    orderCards(['为什么离开', '伙伴造筏', 'Page 2 出口错误', '到达师门', '修复顺序与位置']);
+    orderCards([
+      '🏝Why left?',
+      '🛶 Build a raft with partners',
+      '↩️ Page 2 Export Error',
+      '⛩ Arrive at the division gate',
+      '🔧 Repair order and location',
+    ]);
     expect(screen.getByTestId('jtw-c3p8-run-button')).toBeDisabled();
   });
 
@@ -265,24 +285,33 @@ describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', (
       expect(screen.getByTestId('jtw-c3p8-saved-run')).toHaveAttribute('data-reached', '1'),
     );
 
-    pick('jtw-c3p8-retell', /把积木的名字按顺序念一遍/);
+    pick(
+      'jtw-c3p8-retell',
+      /Whoosh, Move Right, Wait, Page, End - read the names of the building blocks in order/i,
+    );
     expect(screen.getByTestId('jtw-c3p8-retell')).toHaveAttribute('data-done', '0');
     expect(screen.getByTestId('jtw-c3p8-light-seal')).toBeDisabled();
-    pick('jtw-c3p8-retell', /后来他就学会本领了/);
+    pick(
+      'jtw-c3p8-retell',
+      /The Monkey King arrived at the master's gate on a raft, and later he learned the skill/i,
+    );
     expect(screen.getByTestId('jtw-c3p8-retell')).toHaveAttribute('data-done', '0');
-    pick('jtw-c3p8-retell', /因为花果山很快乐/);
+    pick('jtw-c3p8-retell', /Because Flower-Fruit Mountain was very happy/i);
     expect(screen.getByTestId('jtw-c3p8-retell')).toHaveAttribute('data-done', '1');
   });
 
-  it('refuses 寻宝 as a motive and a program fact as a TEXT evidence', async () => {
+  it('refuses treasure hunt as a motive and a program fact as a TEXT evidence', async () => {
     renderPage();
     await throughTheRetell();
-    pick('jtw-c3p8-text-evidence', /取一件宝物回来/);
+    pick('jtw-c3p8-text-evidence', /retrieve a treasure/i);
     expect(screen.getByTestId('jtw-c3p8-text-evidence')).toHaveAttribute('data-done', '0');
-    pick('jtw-c3p8-text-evidence', /出口积木上写着数字 2/);
+    pick('jtw-c3p8-text-evidence', /Page 1's exit block has the number 2 written on it\./i);
     expect(screen.getByTestId('jtw-c3p8-text-evidence')).toHaveAttribute('data-done', '0');
     expect(screen.getByTestId('jtw-c3p8-light-seal')).toBeDisabled();
-    pick('jtw-c3p8-text-evidence', /我先去学会更多/);
+    pick(
+      'jtw-c3p8-text-evidence',
+      /I will learn more first and then tell you about my experience\./i,
+    );
     expect(screen.getByTestId('jtw-c3p8-text-evidence')).toHaveAttribute('data-done', '1');
   });
 
@@ -297,18 +326,24 @@ describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', (
       'boundaries-continuous',
     ]);
     // A line of story text is not a program measurement.
-    pick('jtw-c3p8-program-evidence', /先从认识自己开始/);
+    pick(
+      'jtw-c3p8-program-evidence',
+      /You have come a long way\. Start by getting to know yourself\./i,
+    );
     expect(section).toHaveAttribute('data-done', '0');
     expect(screen.getByTestId('jtw-c3p8-light-seal')).toBeDisabled();
     // Nor is "the raft knows the way" — the exit number is something you write.
-    pick('jtw-c3p8-program-evidence', /木筏自己知道该去哪一页/);
+    pick(
+      'jtw-c3p8-program-evidence',
+      /The raft knows which page to go to, no need to write down the exit number\./i,
+    );
     expect(section).toHaveAttribute('data-done', '0');
-    pick('jtw-c3p8-program-evidence', /每一次跨页/);
+    pick('jtw-c3p8-program-evidence', /Every time he crosses the page/i);
     expect(section).toHaveAttribute('data-done', '1');
     expect(screen.getByTestId('jtw-c3p8-light-seal')).toBeEnabled();
   });
 
-  it('persists the retell bundle and lights 远行印 only from the SERVER', async () => {
+  it('persists the retell bundle and lights Remote Seal only from the SERVER', async () => {
     renderPage();
     await throughTheRetell();
     expect(screen.getByTestId('jtw-c3p8-resolved')).toBeInTheDocument();
@@ -357,10 +392,10 @@ describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', (
 
     const sealPanel = await screen.findByTestId('jtw-c3p8-seal');
     await waitFor(() => expect(sealPanel).toHaveAttribute('data-lit', 'true'));
-    expect(sealPanel).toHaveTextContent('远行印');
+    expect(sealPanel).toHaveTextContent('Seal of long journey');
   });
 
-  it('leaves 远行印 dark and names the gap when the server still reports one', async () => {
+  it('leaves 远行音 dark and names the gap when the server still reports one', async () => {
     const done = openProgress();
     done.completed.push({
       part_id: 'jtw-s1-c3-p8',
@@ -396,7 +431,7 @@ describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', (
 
     const sealPanel = await screen.findByTestId('jtw-c3p8-seal');
     expect(sealPanel).toHaveAttribute('data-lit', 'false');
-    expect(sealPanel).toHaveTextContent('还缺 2 项证据');
+    expect(sealPanel).toHaveTextContent(/2 items of evidence/i);
     // The restored evidence still shows the chapter ending, malformed row dropped.
     expect(screen.getByTestId('jtw-c3p8-resolved')).toBeInTheDocument();
     expect(screen.getByTestId('jtw-c3p8-trace')).toHaveAttribute('data-trace', '1-2-3');
@@ -405,18 +440,11 @@ describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', (
     );
   });
 
-  it('records 以后继续 on the row and stays on the chapter-three ending', async () => {
+  it('records continue on the row and stays on the chapter-three ending', async () => {
     const savedRunEvidence = {
       page_trace: ['1', '2', '3'],
-      run_footprints: [
-        'page1:3-9->7-9:page2',
-        'page2:2-8->6-8:page3',
-        'page3:2-9->4-9:stop',
-      ],
-      run_boundaries: [
-        'page1->page2:7-9:2-8:ok',
-        'page2->page3:6-8:2-9:ok',
-      ],
+      run_footprints: ['page1:3-9->7-9:page2', 'page2:2-8->6-8:page3', 'page3:2-9->4-9:stop'],
+      run_boundaries: ['page1->page2:7-9:2-8:ok', 'page2->page3:6-8:2-9:ok'],
       run_stop: ['end'],
       rerun_result: ['trace:1-2-3', 'stop:end'],
     };
@@ -441,7 +469,7 @@ describe('JourneyWestC3Part8Page — 到达不是学会，而是准备开始', (
     expect(screen.getByTestId('jtw-part-c3-p8')).toBeInTheDocument();
   });
 
-  it('goes to the map with ONLY C4-P1 unlocked when 现在去敲门 is tapped', async () => {
+  it('goes to the map with ONLY C4-P1 unlocked when now goes to the map is tapped', async () => {
     const done = openProgress();
     done.completed.push({
       part_id: 'jtw-s1-c3-p8',

@@ -97,15 +97,18 @@ export function JourneyWestMapPage() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-map">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          Story Blocks · 故事世界
+          Story Blocks · Story World
         </p>
-        <h1 className="text-[28px] font-black text-ink">西游记 · 第一季：石猴的第一程</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          Journey to the West · Season 1: Stone Monkey’s First Journey
+        </h1>
         <p className="mt-2 text-[14px] text-ink-soft">
-          一次一个 Part：读故事、找证据、跑程序。完成一个，才点亮下一个。
+          One part at a time: read the story, find evidence, and run the program. Only when one is
+          completed will the next one be lit.
         </p>
       </header>
 
-      {progress.isLoading && <p className="text-ink-soft">正在查看你的进度…</p>}
+      {progress.isLoading && <p className="text-ink-soft">Checking your progress...</p>}
 
       {JTW_S1_CHAPTERS.map((chapter) => (
         <section key={chapter.code} data-testid={`jtw-map-${chapter.code.toLowerCase()}`}>
@@ -129,12 +132,12 @@ export function JourneyWestMapPage() {
                   <span className="text-[12px] font-bold text-ink-soft">{part.code}</span>
                   <span className="block text-[14px] font-semibold">{part.title}</span>
                   <span className="mt-1 block text-[12px] font-bold">
-                    {state === 'completed' && <span className="text-brand-mint">✓ 已完成</span>}
-                    {state === 'open' && <span className="text-brand-sky">▶ 可以开始</span>}
+                    {state === 'completed' && <span className="text-brand-mint">✓ Completed</span>}
+                    {state === 'open' && <span className="text-brand-sky">▶ OK to start</span>}
                     {state === 'coming' && (
-                      <span className="text-brand-sunshine">已解锁 · 场景制作中</span>
+                      <span className="text-brand-sunshine">Unlocked · Scene in production</span>
                     )}
-                    {state === 'locked' && <span className="text-ink-soft">🔒 未解锁</span>}
+                    {state === 'locked' && <span className="text-ink-soft">🔒 Not unlocked</span>}
                   </span>
                 </>
               );
@@ -162,54 +165,108 @@ export function JourneyWestMapPage() {
         </section>
       ))}
 
-      <section className="rounded-3xl border border-brand-sky/35 bg-wash-sky p-5" data-testid="jtw-map-s2">
-        <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">第二季 · 西行队伍集合</p>
-        <h2 className="mt-1 text-[20px] font-black text-ink">C1 · 长安的出发纸条</h2>
-        <p className="mt-2 text-[14px] text-ink-soft">玄奘把很远的西行目标拆成今天能完成的三步。</p>
+      <section
+        className="rounded-3xl border border-brand-sky/35 bg-wash-sky p-5"
+        data-testid="jtw-map-s2"
+      >
+        <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
+          Season 2 · Westbound team gathers
+        </p>
+        <h2 className="mt-1 text-[20px] font-black text-ink">C1 · Departure note from Chang’an</h2>
+        <p className="mt-2 text-[14px] text-ink-soft">
+          Xuanzang breaks down the far westward goal into three steps that can be accomplished
+          today.
+        </p>
         <ol className="mt-4 grid gap-2 sm:grid-cols-2">
-          <li data-testid={`jtw-map-part-${JTW_S2_C1_P1_ID}`} data-state={season2Part1Completed ? 'completed' : season2Part1Open ? 'open' : 'locked'}>
+          <li
+            data-testid={`jtw-map-part-${JTW_S2_C1_P1_ID}`}
+            data-state={season2Part1Completed ? 'completed' : season2Part1Open ? 'open' : 'locked'}
+          >
             {season2Part1Open || season2Part1Completed ? (
-              <Link className="block rounded-2xl border border-brand-sky/60 bg-canvas-pure p-3 text-ink" to={`/learn/story/journey-west/${JTW_S2_C1_P1_ID}`}>
+              <Link
+                className="block rounded-2xl border border-brand-sky/60 bg-canvas-pure p-3 text-ink"
+                to={`/learn/story/journey-west/${JTW_S2_C1_P1_ID}`}
+              >
                 <span className="text-[12px] font-bold text-ink-soft">C1-P1 · Read</span>
-                <span className="block text-[14px] font-semibold">把很远的路变成今天的三步</span>
-                <span className="mt-1 block text-[12px] font-bold text-brand-sky">{season2Part1Completed ? '✓ 已完成' : '▶ 可以开始'}</span>
+                <span className="block text-[14px] font-semibold">
+                  Turn a long way into three steps today
+                </span>
+                <span className="mt-1 block text-[12px] font-bold text-brand-sky">
+                  {season2Part1Completed ? '✓ Completed' : '▶ OK to start'}
+                </span>
               </Link>
-            ) : <div className="rounded-2xl border border-hairline bg-canvas-pure p-3 text-ink-soft">🔒 第二季入口未解锁</div>}
+            ) : (
+              <div className="rounded-2xl border border-hairline bg-canvas-pure p-3 text-ink-soft">
+                🔒 The entrance to Season 2 has not been unlocked
+              </div>
+            )}
           </li>
-          <li data-testid={`jtw-map-part-${JTW_S2_C1_P2_ID}`} data-state={season2Part2Completed ? 'completed' : season2Part2Unlocked ? 'open' : 'locked'}>
+          <li
+            data-testid={`jtw-map-part-${JTW_S2_C1_P2_ID}`}
+            data-state={
+              season2Part2Completed ? 'completed' : season2Part2Unlocked ? 'open' : 'locked'
+            }
+          >
             {season2Part2Unlocked || season2Part2Completed ? (
-              <Link className="block rounded-2xl border border-brand-sky/60 bg-canvas-pure p-3 text-ink" to={`/learn/story/journey-west/${JTW_S2_C1_P2_ID}`}>
+              <Link
+                className="block rounded-2xl border border-brand-sky/60 bg-canvas-pure p-3 text-ink"
+                to={`/learn/story/journey-west/${JTW_S2_C1_P2_ID}`}
+              >
                 <span className="text-[12px] font-bold text-ink-soft">C1-P2 · Why</span>
-                <span className="block text-[14px] font-semibold">为什么先写三步？</span>
-                <span className="mt-1 block text-[12px] font-bold text-brand-sky">{season2Part2Completed ? '✓ 已完成' : '▶ 可以开始'}</span>
+                <span className="block text-[14px] font-semibold">
+                  Why write three steps first?
+                </span>
+                <span className="mt-1 block text-[12px] font-bold text-brand-sky">
+                  {season2Part2Completed ? '✓ Completed' : '▶ OK to start'}
+                </span>
               </Link>
-            ) : <div className="rounded-2xl border border-hairline bg-canvas-pure p-3 text-ink-soft">🔒 完成 P1 后解锁</div>}
+            ) : (
+              <div className="rounded-2xl border border-hairline bg-canvas-pure p-3 text-ink-soft">
+                🔒 Unlocked after completing P1
+              </div>
+            )}
           </li>
           {JTW_S2_BATCH_PART_IDS.map((partId) => {
-            const item = JTW_S2_PART_CONFIGS[partId]
-            const isCompleted = season2Completed.has(partId)
-            const isUnlocked = season2Unlocked.has(partId)
-            const state = isCompleted ? 'completed' : isUnlocked ? 'open' : 'locked'
+            const item = JTW_S2_PART_CONFIGS[partId];
+            const isCompleted = season2Completed.has(partId);
+            const isUnlocked = season2Unlocked.has(partId);
+            const state = isCompleted ? 'completed' : isUnlocked ? 'open' : 'locked';
             return (
               <li key={partId} data-testid={`jtw-map-part-${partId}`} data-state={state}>
                 {isCompleted || isUnlocked ? (
-                  <Link className="block rounded-2xl border border-brand-sky/60 bg-canvas-pure p-3 text-ink" to={`/learn/story/journey-west/${partId}`}>
-                    <span className="text-[12px] font-bold text-ink-soft">{partId.replace('jtw-s2-', '').toUpperCase()} · {item.scaffold}</span>
+                  <Link
+                    className="block rounded-2xl border border-brand-sky/60 bg-canvas-pure p-3 text-ink"
+                    to={`/learn/story/journey-west/${partId}`}
+                  >
+                    <span className="text-[12px] font-bold text-ink-soft">
+                      {partId.replace('jtw-s2-', '').toUpperCase()} · {item.scaffold}
+                    </span>
                     <span className="block text-[14px] font-semibold">{item.title}</span>
-                    <span className={`mt-1 block text-[12px] font-bold ${isCompleted ? 'text-brand-mint' : 'text-brand-sky'}`}>{isCompleted ? '✓ 已完成' : '▶ 可以开始'}</span>
+                    <span
+                      className={`mt-1 block text-[12px] font-bold ${isCompleted ? 'text-brand-mint' : 'text-brand-sky'}`}
+                    >
+                      {isCompleted ? '✓ Completed' : '▶ OK to start'}
+                    </span>
                   </Link>
                 ) : (
                   <div className="rounded-2xl border border-hairline bg-canvas-pure p-3 text-ink-soft">
-                    <span className="text-[12px] font-bold">{partId.replace('jtw-s2-', '').toUpperCase()} · {item.scaffold}</span>
+                    <span className="text-[12px] font-bold">
+                      {partId.replace('jtw-s2-', '').toUpperCase()} · {item.scaffold}
+                    </span>
                     <span className="block text-[14px] font-semibold">{item.title}</span>
-                    <span className="mt-1 block text-[12px]">🔒 完成前一 Part 后解锁</span>
+                    <span className="mt-1 block text-[12px]">
+                      🔒 Unlocked after completing the previous Part
+                    </span>
                   </div>
                 )}
               </li>
-            )
+            );
           })}
         </ol>
-        <p className="mt-3 text-[12px] text-ink-soft">本季共 6 章、48 Parts；全部 Part 已完成内部产品实现。</p>
+        <p className="mt-3 text-[12px] text-ink-soft">
+          There are 6 chapters and 48 Parts in this season; all Parts have been implemented
+          internally.
+        </p>
       </section>
     </div>
   );

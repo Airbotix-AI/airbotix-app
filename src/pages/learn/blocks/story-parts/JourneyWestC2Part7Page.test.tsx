@@ -7,11 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Block, BlocksProject, Page } from '../blocksModel';
 import { BlocksRunner, startState, type SpriteState } from '../interpreter';
-import {
-  JTW_C2_P7_EVIDENCE_LINES,
-  JTW_C2_P7_SIDES,
-  type JtwEntrySide,
-} from '../jtwPersonalEntry';
+import { JTW_C2_P7_EVIDENCE_LINES, JTW_C2_P7_SIDES, type JtwEntrySide } from '../jtwPersonalEntry';
 import {
   JTW_C2_ACTOR_FREE_BACKGROUND,
   JTW_C2_CAVE_SPRITE,
@@ -156,7 +152,12 @@ function mockBuild(page: Page | null, runCompleted: boolean) {
     return;
   }
   listProjects.mockResolvedValue([
-    { id: 'proj_jtw_entry', title: '西游记 · Find the Water Curtain Cave', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_jtw_entry',
+      title: 'Journey to the West · Find the Water Curtain Cave',
+      kind: 'blocks',
+      status: 'active',
+    },
   ]);
   loadProject.mockResolvedValue({
     project: entryProject(page),
@@ -192,12 +193,20 @@ function renderPart() {
 /** Drive the whole Part to the point where continue is armed. */
 async function walkToResolved() {
   await screen.findByTestId('jtw-c2p7-build-done');
-  fireEvent.click(screen.getByRole('button', { name: /停在离水帘只有一格的那块石头上/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Stop on the stone that is only one block away from the water curtain - as soon as your feet touch it, the water curtain will hide and the hole will show\./i,
+    }),
+  );
   fireEvent.click(await screen.findByTestId('jtw-c2p7-rerun'));
   await waitFor(() =>
     expect(screen.getByTestId('jtw-c2p7-rerun-result')).toHaveAttribute('data-consistent', 'true'),
   );
-  fireEvent.click(screen.getByRole('button', { name: /等待才是“把门留给伙伴”/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Because you have to encounter the water curtain first and the entrance of the cave appears first\. Waiting is "leaving the door to your friends"/i,
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -223,8 +232,12 @@ describe('C2-P7 · the saved design drives the page', () => {
     mockBuild(null, false);
     renderPart();
     const story = await screen.findByTestId('jtw-c2p7-story');
-    expect(story).toHaveTextContent('“我走过一次”不等于“大家都能走”');
-    expect(story).toHaveTextContent('保存、关闭、重开以后再跑一次，结果还要一样');
+    expect(story).toHaveTextContent(
+      'The stone monkey returned to his friends, explained that the cave was safe, and invited everyone to follow his route and enter. But "I walked it once" does not mean "everyone can walk it": what partners want is a path that they can understand, guess, and be the same every time.',
+    );
+    expect(story).toHaveTextContent(
+      'Ship Checkpoint 3: A partner used only the map and program to predict the route and the response at the cave entrance. The actual run matched; after saving, closing, reopening and running again, the result stayed the same. Title: Find the Water Curtain Cave.',
+    );
     expect(screen.getByTestId('jtw-c2p7-continue')).toBeDisabled();
     expect(screen.queryByTestId('jtw-c2p7-design')).not.toBeInTheDocument();
   });
@@ -233,7 +246,10 @@ describe('C2-P7 · the saved design drives the page', () => {
     mockBuild(entryPage(LEFT), false);
     renderPart();
     await waitFor(() =>
-      expect(screen.getByTestId('jtw-c2p7-build')).toHaveAttribute('data-build-state', 'in_progress'),
+      expect(screen.getByTestId('jtw-c2p7-build')).toHaveAttribute(
+        'data-build-state',
+        'in_progress',
+      ),
     );
     expect(screen.queryByTestId('jtw-c2p7-build-done')).not.toBeInTheDocument();
     expect(screen.getByTestId('jtw-c2p7-continue')).toBeDisabled();
@@ -242,8 +258,10 @@ describe('C2-P7 · the saved design drives the page', () => {
   it('reads the LEFT bank design back out of the saved project', async () => {
     mockBuild(entryPage(LEFT, { waitN: 1 }), true);
     renderPart();
-    expect(await screen.findByTestId('jtw-c2p7-side')).toHaveTextContent('左岸');
-    expect(screen.getByTestId('jtw-c2p7-wait')).toHaveTextContent('等待 1 拍');
+    expect(await screen.findByTestId('jtw-c2p7-side')).toHaveTextContent(
+      /left bank/i,
+    );
+    expect(screen.getByTestId('jtw-c2p7-wait')).toHaveTextContent('wait 1 beat');
     expect(screen.getByTestId('jtw-c2p7-saved-version')).toHaveTextContent(`#${SAVED_VERSION}`);
     const stops = screen.getByTestId('jtw-c2p7-stops');
     expect(stops.querySelectorAll('li')).toHaveLength(LEFT.route.length);
@@ -256,7 +274,9 @@ describe('C2-P7 · the saved design drives the page', () => {
   it('reads the RIGHT bank design back — a different route and one more stop', async () => {
     mockBuild(entryPage(RIGHT, { line: JTW_C2_P7_EVIDENCE_LINES[2] }), true);
     renderPart();
-    expect(await screen.findByTestId('jtw-c2p7-side')).toHaveTextContent('右岸');
+    expect(await screen.findByTestId('jtw-c2p7-side')).toHaveTextContent(
+      /right bank/i,
+    );
     expect(screen.getByTestId('jtw-c2p7-line')).toHaveTextContent(JTW_C2_P7_EVIDENCE_LINES[2]);
     const stops = screen.getByTestId('jtw-c2p7-stops');
     expect(stops.querySelectorAll('li')).toHaveLength(RIGHT.route.length);
@@ -270,10 +290,20 @@ describe('C2-P7 · prediction, reopen-and-rerun, completion', () => {
     renderPart();
     await screen.findByTestId('jtw-c2p7-prediction');
     expect(screen.queryByTestId('jtw-c2p7-rerun')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /直接走进洞里/ }));
-    expect(await screen.findByRole('status')).toHaveTextContent('少一格就碰不到');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Walk directly into the cave without touching the water curtain/i,
+      }),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      "Think about what you learned in Part 4: If you miss one square, you won't be able to touch it, and the water curtain won't have any response. The route must go exactly to the rock one block away from the water curtain.",
+    );
     expect(screen.queryByTestId('jtw-c2p7-rerun')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /停在离水帘只有一格的那块石头上/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Stop on the stone that is only one block away from the water curtain - as soon as your feet touch it, the water curtain will hide and the hole will show\./i,
+      }),
+    );
     expect(await screen.findByTestId('jtw-c2p7-rerun')).toBeInTheDocument();
   });
 
@@ -281,7 +311,11 @@ describe('C2-P7 · prediction, reopen-and-rerun, completion', () => {
     mockBuild(entryPage(LEFT), true);
     renderPart();
     await screen.findByTestId('jtw-c2p7-build-done');
-    fireEvent.click(screen.getByRole('button', { name: /停在离水帘只有一格的那块石头上/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Stop on the stone that is only one block away from the water curtain - as soon as your feet touch it, the water curtain will hide and the hole will show\./i,
+      }),
+    );
     expect(screen.getByTestId('jtw-c2p7-stage')).toHaveAttribute(
       'data-world-state',
       'curtain-closed',
@@ -296,9 +330,7 @@ describe('C2-P7 · prediction, reopen-and-rerun, completion', () => {
     expect(screen.getByTestId('jtw-c2p7-stone-monkey')).toHaveAttribute('data-gx', '6');
     expect(screen.getByTestId('jtw-c2p7-stone-monkey')).toHaveAttribute('data-gy', '7');
     expect(screen.queryByTestId('jtw-c2p7-curtain')).not.toBeInTheDocument();
-    expect(screen.getByTestId('jtw-c2p7-said-line')).toHaveTextContent(
-      JTW_C2_P7_EVIDENCE_LINES[0],
-    );
+    expect(screen.getByTestId('jtw-c2p7-said-line')).toHaveTextContent(JTW_C2_P7_EVIDENCE_LINES[0]);
     expect(screen.getByTestId('jtw-c2p7-rerun-result')).toHaveAttribute('data-consistent', 'true');
   });
 
@@ -350,7 +382,9 @@ describe('C2-P7 · prediction, reopen-and-rerun, completion', () => {
     expect(screen.getByTestId('jtw-c2p7-continue')).toBeEnabled();
     await waitFor(() =>
       expect(
-        screen.getByRole('button', { name: /停在离水帘只有一格的那块石头上/ }),
+        screen.getByRole('button', {
+          name: /Stop on the stone that is only one block away from the water curtain - as soon as your feet touch it, the water curtain will hide and the hole will show\./i,
+        }),
       ).toHaveAttribute('aria-pressed', 'true'),
     );
   });
@@ -392,7 +426,7 @@ describe('C2-P7 · the real interpreter answers both banks', () => {
     }
   });
 
-  it('never opens it when the route stops one cell short — C2-P4’s 刚好到达 rule', async () => {
+  it('never opens it when the route stops one cell short — C2-P4’s just to rule', async () => {
     const short = { ...LEFT, route: LEFT.route.slice(0, -1) };
     const result = await runBank(short);
     expect(result.endCell).toBe(LEFT.shortOfDoorCell);

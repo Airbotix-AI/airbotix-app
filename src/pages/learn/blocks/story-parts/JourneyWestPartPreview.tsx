@@ -77,7 +77,7 @@ export function JourneyWestPartPreview({
       >
         <img
           src={JTW_C1_BACKGROUND_ASSET}
-          alt="清晨的花果山：仙石还是暗的，群猴躲在叶子后面"
+          alt="Flower-Fruit Mountain in the early morning: The fairy stone is still dark, and the monkeys are hiding behind the leaves"
           className="absolute inset-0 h-full w-full object-cover"
         />
         {/* Morning light — resolves onto the immortal stone after the evidence step. */}
@@ -122,7 +122,8 @@ export function JourneyWestPartPreview({
 
       <div>
         <p className="mb-2 text-[13px] font-semibold text-ink-soft">
-          系统预览轨道（只读）——这不是你的程序，看看仙石的清晨发生了什么：
+          System Preview Track (read only) - This is not your program, see what happened in the
+          early morning of Sengoku:
         </p>
         <div className="flex flex-wrap items-center gap-1" data-testid="jtw-p1-preview-chain">
           {blocks.map((block, index) => (
@@ -144,7 +145,11 @@ export function JourneyWestPartPreview({
         onClick={() => void run()}
         data-testid="jtw-p1-run"
       >
-        {runState === 'running' ? '播放中…' : runState === 'done' ? '再看一次' : '▶ 看一看'}
+        {runState === 'running'
+          ? 'Playing…'
+          : runState === 'done'
+            ? 'watch again'
+            : '▶ Take a look'}
       </button>
     </div>
   );

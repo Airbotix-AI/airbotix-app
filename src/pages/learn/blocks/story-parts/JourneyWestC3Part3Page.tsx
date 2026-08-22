@@ -157,7 +157,7 @@ function SavedFootprints({ footprints }: { footprints: readonly C3P2Footprint[] 
             Page {footprint.page} · {c3p2PageLabel(footprint.page)}
           </span>
           <span className="ml-2 font-semibold text-ink-soft">
-            {footprint.exitTo === null ? '（路线在这里停下）' : `出口 → Page ${footprint.exitTo}`}
+            {footprint.exitTo === null ? '(route stops here)' : `Exit → Page ${footprint.exitTo}`}
           </span>
         </li>
       ))}
@@ -357,8 +357,7 @@ export function JourneyWestC3Part3Page({
   const rehearsalOk = chosenRun ? c3p3RehearsalReached(chosenRun) : c3p3TraceReached(savedTrace);
   const chosenIsTarget = chosen === C3_P3_TARGET_CARD_ID;
   const completed = Boolean(savedEntry);
-  const resolved =
-    storyRead && modelDone && predictionsCorrect && chosenIsTarget && rehearsalOk;
+  const resolved = storyRead && modelDone && predictionsCorrect && chosenIsTarget && rehearsalOk;
 
   const rehearsalFootprints = chosenRun ? c3p3FootprintsOf(chosenRun) : savedFootprints;
   const rehearsalTrace = chosenRun ? chosenRun.trace : savedTrace;
@@ -428,7 +427,7 @@ export function JourneyWestC3Part3Page({
       >
         <p className="text-[16px] font-bold text-ink">{C3_P3_LOCKED_HINT}</p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -442,9 +441,9 @@ export function JourneyWestC3Part3Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c3-p3">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第三章 一叶木筏求师路 · Part 3
+          Journey to the West · Chapter 3 One Leaf Raft’s Journey to Seeking a Master · Part 3
         </p>
-        <h1 className="text-[28px] font-black text-ink">页面出口不是门牌装饰</h1>
+        <h1 className="text-[28px] font-black text-ink">The page exit is not a house decoration</h1>
       </header>
 
       {/* ── story_before：教学脚本 Part 3 离屏活动，两屏 ────────────────── */}
@@ -478,15 +477,15 @@ export function JourneyWestC3Part3Page({
             </button>
           )}
           <span className="text-[12px] font-bold text-ink-soft" data-testid="jtw-c3p3-story-count">
-            {screensRead.length} / {C3_P3_SCREEN_IDS.length} 段
+            {screensRead.length} / {C3_P3_SCREEN_IDS.length} part
           </span>
         </div>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C3_P3_CLASSIC_CARD}
         </aside>
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C3_P3_STORY_BRIDGE}
         </aside>
       </section>
@@ -656,7 +655,7 @@ export function JourneyWestC3Part3Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -665,12 +664,12 @@ export function JourneyWestC3Part3Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C3_P3_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C3_P3_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

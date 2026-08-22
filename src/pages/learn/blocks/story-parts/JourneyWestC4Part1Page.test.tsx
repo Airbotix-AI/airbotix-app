@@ -49,19 +49,23 @@ function renderPage() {
 function pickCorrectEvidence() {
   fireEvent.click(screen.getByTestId('jtw-c4p1-read'));
   const route = within(screen.getByTestId('jtw-c4p1-route'));
-  fireEvent.click(route.getByRole('button', { name: '花果山' }));
-  fireEvent.click(route.getByRole('button', { name: '海路' }));
-  fireEvent.click(route.getByRole('button', { name: '师门' }));
+  fireEvent.click(route.getByRole('button', { name: 'Flower-Fruit Mountain' }));
+  fireEvent.click(route.getByRole('button', { name: 'sea ​​route' }));
+  fireEvent.click(route.getByRole('button', { name: "master's gate" }));
   const motives = within(screen.getByTestId('jtw-c4p1-motives'));
-  fireEvent.click(motives.getByRole('button', { name: '愿意认真学' }));
-  fireEvent.click(motives.getByRole('button', { name: '想把所学带回家' }));
+  fireEvent.click(motives.getByRole('button', { name: 'willing to study seriously' }));
+  fireEvent.click(
+    motives.getByRole('button', { name: 'Want to take what I learned home with me' }),
+  );
   fireEvent.click(
     within(screen.getByTestId('jtw-c4p1-prediction')).getByRole('button', {
-      name: /愿意认真学习/,
+      name: /"Being willing to study hard" and "bringing experiences home" are contradictory\./i,
     }),
   );
   fireEvent.click(
-    within(screen.getByTestId('jtw-c4p1-why')).getByRole('button', { name: /因为还有许多/ }),
+    within(screen.getByTestId('jtw-c4p1-why')).getByRole('button', {
+      name: /Because there are still many things I don’t understand, I am willing to study hard and take the experience home\./i,
+    }),
   );
 }
 
@@ -80,12 +84,12 @@ describe('JourneyWestC4Part1Page', () => {
     await screen.findByTestId('jtw-part-c4-p1');
     expect(screen.getByTestId('jtw-c4p1-stone-monkey')).toHaveAttribute(
       'alt',
-      '仍系着旧布带的石猴站在山门前',
+      'The stone monkey still wearing an old cloth belt stands in front of the mountain gate',
     );
     expect(screen.queryByTestId('jtw-c4p1-route')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('jtw-c4p1-read'));
     const motives = within(screen.getByTestId('jtw-c4p1-motives'));
-    fireEvent.click(motives.getByRole('button', { name: '来找闪亮宝物' }));
+    fireEvent.click(motives.getByRole('button', { name: 'Looking for shiny treasures' }));
     expect(screen.getByTestId('jtw-c4p1-continue')).toBeDisabled();
     expect(screen.queryByTestId('jtw-c4p1-resolved')).not.toBeInTheDocument();
   });
@@ -94,7 +98,9 @@ describe('JourneyWestC4Part1Page', () => {
     renderPage();
     await screen.findByTestId('jtw-part-c4-p1');
     pickCorrectEvidence();
-    expect(screen.getByTestId('jtw-c4p1-resolved')).toHaveTextContent('空名字牌');
+    expect(screen.getByTestId('jtw-c4p1-resolved')).toHaveTextContent(
+      'empty name plate',
+    );
     fireEvent.click(screen.getByTestId('jtw-c4p1-continue'));
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
     expect(completePart).toHaveBeenCalledWith('journey-to-the-west-s1', 'jtw-s1-c4-p1', {

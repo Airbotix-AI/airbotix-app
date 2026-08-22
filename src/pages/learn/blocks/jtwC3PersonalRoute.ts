@@ -99,10 +99,10 @@ export const JTW_C3_P7_TEMPLATES: Readonly<Record<JtwC3Weather, BlocksTemplateId
  * to type, so no other sentence can reach the saved document.
  */
 export const JTW_C3_P7_SAY_CHOICES: readonly string[] = [
-  '我会记得从哪里出发，也会认真寻找答案。',
-  '我先去学会更多，再把经历讲给你们听。',
-  '晨雾里看不清，我先听浪声。',
-  '山林里有歌声，我顺着它走。',
+  'I will remember where I started from and I will search hard for answers.',
+  'I will learn more first and then tell you about my experience.',
+  "The fog is thick, so I'll listen for the waves.",
+  "I hear singing in the forest. I'll follow it.",
 ];
 
 /** Meaningful actions a page may carry — the C3 op set minus trigger and exit. */
@@ -193,7 +193,11 @@ function blocksEqual(actual: readonly Block[] | undefined, target: readonly Bloc
   });
 }
 
-function scriptOf(page: Page | undefined, characterId: string, scriptId: string): Script | undefined {
+function scriptOf(
+  page: Page | undefined,
+  characterId: string,
+  scriptId: string,
+): Script | undefined {
   return page?.characters
     .find((character) => character.id === characterId)
     ?.scripts.find((script) => script.id === scriptId);
@@ -328,14 +332,22 @@ export function jtwC3RouteDesign(project: BlocksProject): JtwC3RouteDesign | nul
   if (actorOf(shore, JTW_C3_RAFT_ID)?.scripts.length !== 0) return null;
   if (actorOf(sea, JTW_C3_RAFT_ID)?.scripts.length !== 1) return null;
   if (
-    !blocksEqual(scriptOf(sea, JTW_C3_RAFT_ID, JTW_C3_P7_SCRIPT_IDS.raftCarry)?.blocks, JTW_C3_RAFT_CHAIN)
+    !blocksEqual(
+      scriptOf(sea, JTW_C3_RAFT_ID, JTW_C3_P7_SCRIPT_IDS.raftCarry)?.blocks,
+      JTW_C3_RAFT_CHAIN,
+    )
   ) {
     return null;
   }
 
   // 三页各承担离家 / 观察 / 到达，Page 1 与 2 有有效 Goto 出口，Page 3 稳定 End.
   const homeDesign = pageDesign(home, 1, JTW_C3_P7_SCRIPT_IDS.depart, JTW_C3_SEA_PAGE);
-  const seaDesign = pageDesign(sea, JTW_C3_SEA_PAGE, JTW_C3_P7_SCRIPT_IDS.seaLeg, JTW_C3_FAR_SHORE_PAGE);
+  const seaDesign = pageDesign(
+    sea,
+    JTW_C3_SEA_PAGE,
+    JTW_C3_P7_SCRIPT_IDS.seaLeg,
+    JTW_C3_FAR_SHORE_PAGE,
+  );
   const shoreDesign = pageDesign(shore, JTW_C3_FAR_SHORE_PAGE, JTW_C3_P7_SCRIPT_IDS.arrival, null);
   if (!homeDesign || !seaDesign || !shoreDesign) return null;
 

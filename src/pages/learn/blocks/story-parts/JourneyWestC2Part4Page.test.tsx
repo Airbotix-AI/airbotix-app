@@ -60,7 +60,7 @@ const P3_DONE: StoryLineProgress = {
 function routeProject(middle: Array<{ op: string; n?: number; text?: string }>): BlocksProject {
   return {
     version: 1,
-    name: '西游记 · 刚好到达，不多也不少',
+    name: 'Journey to the West · Just arrived, no more, no less',
     lessonId: 'jtw-s1-c2-p4',
     pages: [
       {
@@ -107,7 +107,12 @@ function mockBuild(
     return;
   }
   listProjects.mockResolvedValue([
-    { id: 'proj_jtw_route', title: '西游记 · 刚好到达，不多也不少', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_jtw_route',
+      title: 'Journey to the West · Just arrived, no more, no less',
+      kind: 'blocks',
+      status: 'active',
+    },
   ]);
   loadProject.mockResolvedValue({
     project: routeProject(middle),
@@ -139,9 +144,21 @@ function renderPage() {
 }
 
 function answerComparisons() {
-  fireEvent.click(screen.getByRole('button', { name: /停在 5-7——高台的边上/ }));
-  fireEvent.click(screen.getByRole('button', { name: /越过 6-7 的水帘入口格/ }));
-  fireEvent.click(screen.getByRole('button', { name: /不能——脚印只证明石猴到达了入口格/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Stopped at 5-7 - the edge of the high platform, one space away, the soles of your feet cannot touch the entrance to the water curtain\./i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Cross the water curtain entrance grid at 6-7 and rush to 7-7 - you should stop when you hit it\./i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /No - the footprints only prove that the stone monkey has reached the entrance grid, the water curtain is still down, and there is no response yet/i,
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -157,7 +174,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestC2Part4Page · C2-P4 刚好到达，不多也不少', () => {
+describe('JourneyWestC2Part4Page · C2-P4 Just arrived, no more, no less', () => {
   it('blocks kids who have not finished C2-P3 (server truth)', async () => {
     fetchProgress.mockResolvedValue({
       ...P3_DONE,
@@ -173,18 +190,22 @@ describe('JourneyWestC2Part4Page · C2-P4 刚好到达，不多也不少', () =>
     mockBuild(null, false);
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-c2p4-story')).toBeInTheDocument());
-    expect(screen.getByTestId('jtw-c2p4-story')).toHaveTextContent('starter只预建Start和End');
     expect(screen.getByTestId('jtw-c2p4-story')).toHaveTextContent(
-      '孩子实际工作量：选择3块、排列3块、预测3个停点、至少运行1次；不是改单个数字。',
+      'The starter only pre-builds Start and End. The child selects from 6 candidate blocks and places them in Move Right 2 → Move Up 1 → Move Right 2, forming a 5-block main script; one wrong direction or order will end up on the wrong wet stone.',
     );
     expect(screen.getByTestId('jtw-c2p4-story')).toHaveTextContent(
-      '石猴准确到达水帘，但水帘暂时没有打开',
+      "The child's actual workload: select 3 blocks, arrange 3 blocks, predict 3 stopping points, run at least 1 time; not change a single number.",
+    );
+    expect(screen.getByTestId('jtw-c2p4-story')).toHaveTextContent(
+      'Build successful: The running trajectory is consistent with the three endpoint stickers. The stone monkey reaches the water curtain accurately, but the water curtain is not opened yet.',
     );
     const monkey = screen.getByTestId('jtw-c2p4-stone-monkey');
     expect(monkey.dataset.gx).toBe('2');
     expect(monkey.dataset.gy).toBe('8');
     expect(screen.getByTestId('jtw-c2p4-cave-mouth').dataset.visible).toBe('false');
-    expect(screen.getByTestId('jtw-c2p4-footprints').querySelectorAll('[data-lit="true"]')).toHaveLength(0);
+    expect(
+      screen.getByTestId('jtw-c2p4-footprints').querySelectorAll('[data-lit="true"]'),
+    ).toHaveLength(0);
   });
 
   it('starts a REAL blocks project from the C2-P4 template when none exists', async () => {
@@ -197,12 +218,12 @@ describe('JourneyWestC2Part4Page · C2-P4 刚好到达，不多也不少', () =>
     fireEvent.click(screen.getByTestId('jtw-c2p4-open-studio'));
     await waitFor(() => expect(screen.getByTestId('studio-stub')).toBeInTheDocument());
     expect(createProject).toHaveBeenCalledWith({
-      title: '西游记 · 刚好到达，不多也不少',
+      title: 'Journey to the West · Just arrived, no more, no less',
       template: 'blocks_jtw_c2_p4',
     });
   });
 
-  it('the parameter-merged 右2/上1/右2 shortcut is NOT accepted even with a run marker', async () => {
+  it('the parameter-merged right2/upper1/right2 shortcut is NOT accepted even with a run marker', async () => {
     mockBuild(
       [
         { op: 'move_right', n: 2 },
@@ -260,10 +281,26 @@ describe('JourneyWestC2Part4Page · C2-P4 刚好到达，不多也不少', () =>
     expect(screen.getByTestId('jtw-c2p4-continue')).toBeDisabled(); // comparisons pending
 
     // A wrong arrival claim shows the picture-grounded hint and keeps continue locked.
-    fireEvent.click(screen.getByRole('button', { name: /停在 5-7——高台的边上/ }));
-    fireEvent.click(screen.getByRole('button', { name: /越过 6-7 的水帘入口格/ }));
-    fireEvent.click(screen.getByRole('button', { name: /能——到了入口就等于发现了洞穴/ }));
-    expect(screen.getByText(/到达只回答了“怎样到达”/)).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Stopped at 5-7 - the edge of the high platform, one space away, the soles of your feet cannot touch the entrance to the water curtain\./i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Cross the water curtain entrance grid at 6-7 and rush to 7-7 - you should stop when you hit it\./i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Yes - reaching the entrance is equivalent to discovering a cave\./i,
+      }),
+    );
+    expect(
+      screen.getByText(
+        /Look at the stage again: has the water curtain separated\? Is the cave entrance visible\? Arrival only answers "how to arrive"; the collision response has not happened yet\./i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('jtw-c2p4-continue')).toBeDisabled();
   });
 
@@ -272,7 +309,9 @@ describe('JourneyWestC2Part4Page · C2-P4 刚好到达，不多也不少', () =>
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-c2p4-build-done')).toBeInTheDocument());
     answerComparisons();
-    expect(screen.getByTestId('jtw-c2p4-resolved')).toHaveTextContent('五个脚印沿湿石路稳定显示');
+    expect(screen.getByTestId('jtw-c2p4-resolved')).toHaveTextContent(
+      "Five footprints showed steadily along the wet stone path: 3-8, 4-8, 4-7, 5-7, 6-7, one step at a time. The soles of the stone monkey's feet just touched the entrance grid of the water curtain, no more and no less - but the response chain of the water curtain was not connected yet.",
+    );
     expect(
       screen.getByTestId('jtw-c2p4-footprints').querySelectorAll('[data-lit="true"]'),
     ).toHaveLength(5);
@@ -324,10 +363,14 @@ describe('JourneyWestC2Part4Page · C2-P4 刚好到达，不多也不少', () =>
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-c2p4-resolved')).toBeInTheDocument());
     expect(
-      screen.getByRole('button', { name: /停在 5-7——高台的边上/ }),
+      screen.getByRole('button', {
+        name: /Stopped at 5-7 - the edge of the high platform, one space away, the soles of your feet cannot touch the entrance to the water curtain\./i,
+      }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(
-      screen.getByRole('button', { name: /不能——脚印只证明石猴到达了入口格/ }),
+      screen.getByRole('button', {
+        name: /No - the footprints only prove that the stone monkey has reached the entrance grid, the water curtain is still down, and there is no response yet/i,
+      }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('jtw-c2p4-continue')).toBeEnabled();
   });

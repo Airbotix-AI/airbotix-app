@@ -1,7 +1,7 @@
-import { getJourneyWestS2SceneModel } from './journeyWestS2SceneModel'
+import { getJourneyWestS2SceneModel } from './journeyWestS2SceneModel';
 
 export function JourneyWestS2Scene({ partId, resolved }: { partId: string; resolved: boolean }) {
-  const scene = getJourneyWestS2SceneModel(partId, resolved)
+  const scene = getJourneyWestS2SceneModel(partId, resolved);
   return (
     <figure
       className="overflow-hidden rounded-3xl border border-brand-sunshine/40 bg-canvas-pure shadow-sm"
@@ -9,7 +9,12 @@ export function JourneyWestS2Scene({ partId, resolved }: { partId: string; resol
       data-scene-state={resolved ? 'resolved' : 'before'}
     >
       <div className="relative aspect-video overflow-hidden">
-        <img className="absolute inset-0 h-full w-full object-cover" src={scene.background} alt="" aria-hidden="true" />
+        <img
+          className="absolute inset-0 h-full w-full object-cover"
+          src={scene.background}
+          alt=""
+          aria-hidden="true"
+        />
         {scene.actors.map((actor) => (
           <img
             key={actor.alt}
@@ -30,8 +35,11 @@ export function JourneyWestS2Scene({ partId, resolved }: { partId: string; resol
         ))}
       </div>
       <figcaption className="px-4 py-3 text-[13px] font-semibold text-ink-soft">
-        第 {scene.chapter} 章 · Part {scene.part} · {resolved ? '程序结果已和故事证据对齐' : '先观察场景，再读故事证据'}
+        Chapter {scene.chapter} · Part {scene.part} ·{' '}
+        {resolved
+          ? 'Program results are aligned with story evidence'
+          : 'Observe the scene first, then read the story evidence'}
       </figcaption>
     </figure>
-  )
+  );
 }

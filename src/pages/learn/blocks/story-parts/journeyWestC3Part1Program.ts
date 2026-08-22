@@ -13,10 +13,7 @@
 // chapter-three content is added there either).
 
 import type { JtwEvidenceOption } from './journeyWestSeason1';
-import {
-  JTW_C1_BACKGROUND_ASSET,
-  JTW_C2_RESOLVED_BACKGROUND_ASSET,
-} from './journeyWestSeason1';
+import { JTW_C1_BACKGROUND_ASSET, JTW_C2_RESOLVED_BACKGROUND_ASSET } from './journeyWestSeason1';
 import { JTW_C3_PAGE1_BACKGROUND } from '../jtwC3Stage';
 
 /**
@@ -25,27 +22,28 @@ import { JTW_C3_PAGE1_BACKGROUND } from '../jtwC3Stage';
  * is 故事卡A, and 故事卡B carries the farewell the motive evidence is read from.
  */
 export const C3_P1_STORY_SCREENS: readonly [string, string] = [
-  '美猴王和伙伴们在水帘洞生活了很久。一天，他想到：花果山虽然快乐，生命和时间却会改变，自己还有许多不明白的事。他想寻找能教他学习、思考和修行的师父。这是一次为了求知的离开，不是已经加入取经队伍。',
-  '群猴帮他找来木头和藤条，做成一只木筏。美猴王看着水帘洞，有些舍不得，却仍对伙伴说：“我会记得从哪里出发，也会认真寻找答案。”木筏离岸，花果山在身后慢慢变小。',
+  'The Monkey King and his friends have lived in Water Curtain Cave for a long time. One day, he realises that although Flower-Fruit Mountain is happy, life changes and he still has much to learn. He wants to find a teacher who can help him study, think and practise. This is his search for wisdom; the pilgrimage has not begun yet.',
+  'The monkeys helped him find wood and rattan to make a raft. The Monkey King looked at Water Curtain Cave with some reluctance, but still said to his companion: "I will remember where I started from, and I will also look for the answer seriously." The raft left the shore, and Flower-Fruit Mountain slowly became smaller behind it.',
 ];
 export const C3_P1_SCREEN_IDS: readonly [string, string] = ['story-card-a', 'story-card-b'];
-export const C3_P1_NEXT_SCREEN_LABEL = '再读下一段';
-export const C3_P1_PREV_SCREEN_LABEL = '回上一段';
-export const C3_P1_UNREAD_HINT = '先把两段正文都读完，再来摆动机卡——答案在正文里，不在卡片上。';
+export const C3_P1_NEXT_SCREEN_LABEL = 'Read the next paragraph';
+export const C3_P1_PREV_SCREEN_LABEL = 'Go back to the previous paragraph';
+export const C3_P1_UNREAD_HINT =
+  'First read both paragraphs of text, and then move the card - the answer is in the text, not on the card.';
 
 /** 原创对白（teaching script C3）：动机证据和预测都要从这两句里读出来。 */
 export const C3_P1_DIALOGUE: readonly [string, string] = [
-  '群猴：“要走很远，你还会回来吗？”',
-  '美猴王：“我先去学会更多，再把经历讲给你们听。”',
+  'Group of monkeys: "We have to go a long way, will you come back?"',
+  'Monkey King: "I will learn more first, and then I will tell you about my experience."',
 ];
 
 /** Classic Card — 第一回·漂洋求师；动机不是寻宝、取经，也不是讨厌花果山。 */
 export const C3_P1_CLASSIC_CARD =
-  '原著第一回中，美猴王因为想到生命和时间都会改变而远行求师：跨海、访人间、再渡海，经过很久才找到师门。低龄可以说“他想学习怎样更有智慧地生活”，但不能改成寻宝或取经，也不是因为讨厌花果山。';
+  'In the first chapter of the original work, the Monkey King traveled far to seek his teacher because he thought that life and time would change: he crossed the sea, visited the world, and then crossed the sea again. It took a long time to find his teacher. A younger person can say "he wants to learn how to live more wisely", but it cannot be changed to treasure hunting or learning, nor is it because he hates Flower-Fruit Mountain.';
 
 /** 故事—程序桥（teaching script C3）：三页是旅程的三个可读阶段。 */
 export const C3_P1_STORY_BRIDGE =
-  '这一章有三个 Page：离开花果山、经过海上、到达师门所在的山。每一页的动作、Wait 和声音让这个地点有内容，页面出口的数字把下一段接上去。今天先读懂他为什么要出发。';
+  'This chapter has three pages: leaving Flower-Fruit Mountain, passing through the sea, and arriving at the mountain where the division gate is located. The actions, waits and sounds on each page add content to this location, and the page exit numbers connect the next paragraph. Today, let’s first understand why he set out.';
 
 // ─── 同屏地图 ────────────────────────────────────────────────────────────────
 // 花果山、水帘洞与海面同时出现在一屏上；每个地点用它自己真实的场景图，
@@ -62,89 +60,112 @@ export interface C3P1MapPlace {
 export const C3_P1_MAP_PLACES: readonly C3P1MapPlace[] = [
   {
     id: 'flower-fruit-mountain',
-    label: '花果山',
-    hint: '果树、清泉和仙石都在这里——他长大的地方。',
+    label: 'Flower-Fruit Mountain',
+    hint: 'Fruit trees, clear springs and fairy stones are all here - where he grew up.',
     asset: JTW_C1_BACKGROUND_ASSET,
-    alt: '花果山：桃树、清泉和山顶的仙石',
+    alt: 'Flower-Fruit Mountain: Peach trees, clear springs and fairy stones on the top of the mountain',
   },
   {
     id: 'water-curtain-cave',
-    label: '水帘洞',
-    hint: '第二章大家一起走进去的家，暖光还亮着。',
+    label: 'Water Curtain Cave',
+    hint: 'Chapter 2 Everyone walked into the home together, and the warm light was still on.',
     asset: JTW_C2_RESOLVED_BACKGROUND_ASSET,
-    alt: '水帘洞：水帘后面亮着暖光的洞口和湿石路线',
+    alt: 'Water Curtain Cave: The cave entrance and wet stone route with warm light behind the water curtain',
   },
   {
     id: 'open-sea',
-    label: '海面',
-    hint: '从家门口的沙滩往右看，海一直连到天边。',
+    label: 'sea ​​surface',
+    hint: 'Looking to the right from the beach in front of my house, the sea stretches all the way to the horizon.',
     asset: JTW_C3_PAGE1_BACKGROUND,
-    alt: '花果山海岸：左边是山和果树，右边的海一直连到天边',
+    alt: 'Flower-Fruit Mountain Coast: There are mountains and fruit trees on the left, and the sea on the right stretches to the horizon.',
   },
 ];
-export const C3_P1_MAP_TITLE = '先在地图上指出三个地方（三个都要点到）';
+export const C3_P1_MAP_TITLE = 'First point out three places on the map (click on all three)';
 
 /** 音频重放：故事里的海风。静音时仍然有可见的风纹。 */
 export const C3_P1_AUDIO_ID = 'sea-wind';
-export const C3_P1_AUDIO_LABEL = '▶ 听一听海风';
-export const C3_P1_AUDIO_AGAIN_LABEL = '再听一次海风';
-export const C3_P1_AUDIO_NOTE = '静音也能读：海风响的时候，海面上会出现三道风纹。';
+export const C3_P1_AUDIO_LABEL = '▶ Listen to the sea breeze';
+export const C3_P1_AUDIO_AGAIN_LABEL = 'Listen to the sea breeze again';
+export const C3_P1_AUDIO_NOTE =
+  'Can be read even on mute: When the sea breeze blows, three wind patterns will appear on the sea surface.';
 
 // ─── 动机证据卡 ──────────────────────────────────────────────────────────────
 
 /** 两张正确卡按“虽然…但是…所以…”的顺序排列；另有两张干扰卡。 */
 export const C3_P1_MOTIVE_CARDS: readonly JtwEvidenceOption[] = [
-  { id: 'treasure-this-home', label: '珍惜现在的家', correct: true },
-  { id: 'still-willing-to-learn', label: '仍愿意远行学习', correct: true },
-  { id: 'want-treasure', label: '想拿宝物', correct: false },
-  { id: 'dislike-friends', label: '不喜欢伙伴', correct: false },
+  { id: 'treasure-this-home', label: 'Cherish your current home', correct: true },
+  { id: 'still-willing-to-learn', label: 'Still willing to travel far to study', correct: true },
+  { id: 'want-treasure', label: 'Want to get the treasure', correct: false },
+  { id: 'dislike-friends', label: "don't like partner", correct: false },
 ];
 export const C3_P1_MOTIVE_CARD_ORDER: readonly string[] = [
   'treasure-this-home',
   'still-willing-to-learn',
 ];
-export const C3_P1_MOTIVE_TITLE = '把两张真正的动机卡按“先舍不得、再决定出发”的顺序摆好';
+export const C3_P1_MOTIVE_TITLE =
+  'Put the two real motivation cards in the order of "first be reluctant to leave, then decide to go"';
 export const C3_P1_MOTIVE_REJECT_HINT =
-  '“想拿宝物”和“不喜欢伙伴”都不在正文里：他说的是“我会记得从哪里出发”，还答应“把经历讲给你们听”。';
+  '"Want to get the treasure" and "Don\'t like partners" are not in the text: what he said was "I will remember where to start" and promised to "tell you about the experience."';
 
 // ─── Why 句式：虽然这里很快乐，但是他想到___，所以决定___ ────────────────────
 
-export const C3_P1_WHY_SENTENCE_LEAD = '把句子说完整：“虽然这里很快乐，但是他想到——”';
+export const C3_P1_WHY_SENTENCE_LEAD =
+  'Complete the sentence: "Although it was happy here, he thought-"';
 export const C3_P1_WHY_BUT_OPTIONS: readonly JtwEvidenceOption[] = [
   {
     id: 'life-and-time-change',
-    label: '生命和时间都会改变，自己还有许多不明白的事',
+    label: 'Life and time will change, and there are still many things I don’t understand.',
     correct: true,
   },
-  { id: 'friends-too-noisy', label: '伙伴太吵，住不下去了', correct: false },
-  { id: 'treasure-across-sea', label: '海那边一定藏着宝物', correct: false },
+  {
+    id: 'friends-too-noisy',
+    label: "My partner is too noisy and I can't live here anymore.",
+    correct: false,
+  },
+  {
+    id: 'treasure-across-sea',
+    label: 'There must be a treasure hidden on the other side of the sea',
+    correct: false,
+  },
 ];
-export const C3_P1_WHY_SO_LEAD = '“——所以决定——”';
+export const C3_P1_WHY_SO_LEAD = '"——So I decided——"';
 export const C3_P1_WHY_SO_OPTIONS: readonly JtwEvidenceOption[] = [
   {
     id: 'go-find-a-master',
-    label: '走很远的路，去找能教他学习和思考的师父',
+    label: 'Go a long way to find a master who can teach him to learn and think',
     correct: true,
   },
-  { id: 'bring-back-treasure', label: '去把宝物带回来分给大家', correct: false },
-  { id: 'never-come-back', label: '再也不回花果山了', correct: false },
+  {
+    id: 'bring-back-treasure',
+    label: 'Go and bring the treasure back and distribute it to everyone',
+    correct: false,
+  },
+  { id: 'never-come-back', label: 'Never return to Flower-Fruit Mountain again', correct: false },
 ];
 
 // ─── Prediction ──────────────────────────────────────────────────────────────
 
 export const C3_P1_PREDICTION_QUESTION =
-  '如果离家只是因为讨厌花果山，正文里哪一句就不成立了？';
+  'If you leave home just because you hate Flower-Fruit Mountain, which sentence in the text would not be true?';
 export const C3_P1_PREDICTION_OPTIONS: readonly JtwEvidenceOption[] = [
   {
     id: 'line-remember-where-i-started',
-    label: '“我会记得从哪里出发，也会认真寻找答案。”',
+    label: '“I will remember where I started from and I will look for answers carefully.”',
     correct: true,
   },
-  { id: 'line-friends-bring-wood', label: '“群猴帮他找来木头和藤条。”', correct: false },
-  { id: 'line-many-things-unclear', label: '“自己还有许多不明白的事。”', correct: false },
+  {
+    id: 'line-friends-bring-wood',
+    label: '"The monkeys helped him find wood and rattan."',
+    correct: false,
+  },
+  {
+    id: 'line-many-things-unclear',
+    label: '"There are still many things I don\'t understand."',
+    correct: false,
+  },
 ];
 export const C3_P1_PREDICTION_RETRY_HINT =
-  '再回正文找一找：讨厌一个地方的人，不会说自己“会记得从哪里出发”，也不会答应把经历讲回来给大家听。';
+  'Go back to the text and search: People who hate a place will not say that they "will remember where they started from", nor will they agree to tell everyone their experiences.';
 
 // ─── resolved / story_after / continue ───────────────────────────────────────
 
@@ -160,14 +181,15 @@ export const C3_P1_PREDICTION_RETRY_HINT =
  * recorded in the saga asset bible.
  */
 export const C3_P1_RESOLVED_WORLD_CHANGE =
-  '海面上那道风纹亮了起来，凉凉的青色一直连到天边——离开花果山的方向，第一次看得清清楚楚。群猴从山上下来，站到岸边和他一起看海。';
+  'The wind pattern on the sea lit up, and the cool blue color continued to the horizon - leaving the direction of Flower-Fruit Mountain, it was clearly visible for the first time. A group of monkeys came down from the mountain and stood on the shore to watch the sea with him.';
 export const C3_P1_STORY_AFTER =
-  '猴王把自己的愿望说清楚了，群猴决定帮他造一只真正能离岸的木筏。';
-export const C3_P1_CONTINUE_LABEL = '一起造木筏';
+  'The monkey king made his wish clear, and the monkeys decided to help him build a raft that could actually leave the shore.';
+export const C3_P1_CONTINUE_LABEL = 'Build a raft together';
 
 export const C3_P1_LOCKED_HINT =
-  '先在第二章 Part 8 把水帘洞的约定讲回来，再跟着美猴王走到海边。';
-export const C3_P1_LOADING_HINT = '海风正把花果山的清晨吹开…';
+  'Let’s talk about the promise of Water Curtain Cave in Chapter 2, Part 8, and then follow the Monkey King to the beach.';
+export const C3_P1_LOADING_HINT =
+  'The sea breeze is blowing away the morning of Flower-Fruit Mountain...';
 
 // ─── Evidence rules — every gate below is measured, never assumed ────────────
 

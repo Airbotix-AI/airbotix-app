@@ -77,7 +77,7 @@ export function JourneyWestArrivalDemo({
       >
         <img
           src={JTW_C1_BACKGROUND_ASSET}
-          alt="花果山的清晨：仙石就要打开了"
+          alt="Early morning in Flower-Fruit Mountain: The Fairy Stone is about to open"
           className="absolute inset-0 h-full w-full object-cover"
         />
         {chimed && (
@@ -111,7 +111,8 @@ export function JourneyWestArrivalDemo({
 
       <div>
         <p className="mb-2 text-[13px] font-semibold text-ink-soft">
-          示范轨道（只读）——这一条不算你搭的，先看它从左到右怎么跑：
+          Demonstration track (read-only) - This one is not for you to ride. Let’s first see how it
+          runs from left to right:
         </p>
         <div className="flex flex-wrap items-center gap-1" data-testid="jtw-p2-demo-chain">
           {blocks.map((block, index) => (
@@ -133,7 +134,7 @@ export function JourneyWestArrivalDemo({
         onClick={() => void run()}
         data-testid="jtw-p2-run"
       >
-        {running ? '运行中…' : ran ? '▶ 再跑一次' : '▶ Go'}
+        {running ? 'Running…' : ran ? '▶Run again' : '▶ Go'}
       </button>
     </div>
   );

@@ -1,47 +1,57 @@
 import type { JtwEvidenceOption } from './journeyWestSeason1';
 
 export const C4_P1_STORY =
-  '石猴走了很远，终于来到安静的山门。他没有一进门就表演本领，而是先说明自己从花果山来，为什么愿意远行求学。师父听见的，不只是“我想变厉害”，还有他坚持寻找、愿意学习的心。';
+  'The stone monkey walked a long way and finally came to the quiet mountain gate. He did not show off his skills as soon as he entered the door, but first explained that he came from Flower-Fruit Mountain and why he was willing to travel far to study. What the master heard was not only "I want to become great", but also his persistent search and willingness to learn.';
 
 export const C4_P1_DIALOGUE = [
-  '师父：“你从哪里来？为什么走这么远？”',
-  '石猴：“我从花果山来，想认真学习。”',
+  'Master: "Where are you from? Why have you come so far?"',
+  'Stone Monkey: "I come from Flower-Fruit Mountain and want to study seriously."',
 ] as const;
 
 export const C4_P1_CLASSIC_CARD =
-  '原著第一至二回中，石猴经过多年寻找来到师门。这里不是寻宝、不是已经取经，也不是按一下就学会全部本领。';
+  "In the first and second chapters of the original work, Stone Monkey came to the master's gate after many years of searching. This is not a treasure hunt, a lesson learned, or a click to learn all the skills.";
 
 export const C4_P1_ROUTE_CARDS: readonly JtwEvidenceOption[] = [
-  { id: 'flower-fruit-mountain', label: '花果山', correct: true },
-  { id: 'sea-route', label: '海路', correct: true },
-  { id: 'master-gate', label: '师门', correct: true },
+  { id: 'flower-fruit-mountain', label: 'Flower-Fruit Mountain', correct: true },
+  { id: 'sea-route', label: 'sea ​​route', correct: true },
+  { id: 'master-gate', label: "master's gate", correct: true },
 ];
 
 export const C4_P1_ROUTE_ORDER = ['flower-fruit-mountain', 'sea-route', 'master-gate'] as const;
 
 export const C4_P1_MOTIVE_OPTIONS: readonly JtwEvidenceOption[] = [
-  { id: 'willing-to-learn', label: '愿意认真学', correct: true },
-  { id: 'bring-learning-home', label: '想把所学带回家', correct: true },
-  { id: 'find-shiny-treasure', label: '来找闪亮宝物', correct: false },
-  { id: 'dislike-friends', label: '不喜欢伙伴', correct: false },
+  { id: 'willing-to-learn', label: 'willing to study seriously', correct: true },
+  { id: 'bring-learning-home', label: 'Want to take what I learned home with me', correct: true },
+  { id: 'find-shiny-treasure', label: 'Looking for shiny treasures', correct: false },
+  { id: 'dislike-friends', label: "don't like partner", correct: false },
 ];
 
 export const C4_P1_WHY_OPTIONS: readonly JtwEvidenceOption[] = [
   {
     id: 'learn-and-return',
-    label: '因为还有许多不明白，所以愿意认真学习，再把经历带回家',
+    label:
+      'Because there are still many things I don’t understand, I am willing to study hard and take the experience home.',
     correct: true,
   },
-  { id: 'treasure-only', label: '因为山门里一定有宝物，所以只想进去找宝物', correct: false },
+  {
+    id: 'treasure-only',
+    label:
+      'Because there must be a treasure inside the mountain gate, so I just want to go in and find the treasure.',
+    correct: false,
+  },
 ];
 
 export const C4_P1_PREDICTION_OPTIONS: readonly JtwEvidenceOption[] = [
   {
     id: 'learning-and-return-conflict',
-    label: '“愿意认真学习”和“把经历带回家”会互相矛盾',
+    label: '"Being willing to study hard" and "bringing experiences home" are contradictory.',
     correct: true,
   },
-  { id: 'long-road-conflict', label: '“走了很远”和“来到山门”会互相矛盾', correct: false },
+  {
+    id: 'long-road-conflict',
+    label: '"Walked a long way" and "came to the mountain gate" would contradict each other.',
+    correct: false,
+  },
 ];
 
 export function c4p1RouteDone(order: readonly string[]): boolean {

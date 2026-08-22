@@ -64,7 +64,7 @@ function WetStoneStage({ resolved }: { resolved: boolean }) {
     >
       <img
         src={JTW_C2_BACKGROUND_ASSET}
-        alt="瀑布前的三段湿石路：石猴站在左边的起点，圆叶、尖叶、长叶分别标着三个停点，白色水帘仍然合着"
+        alt="Three sections of wet stone road in front of the waterfall: the stone monkey stands at the starting point on the left, round leaves, pointed leaves, and long leaves mark the three stopping points respectively, and the white water curtain is still closed"
         className="absolute inset-0 h-full w-full object-cover"
       />
       {/* 石猴在起点 2/8 — nothing has moved yet. */}
@@ -80,7 +80,10 @@ function WetStoneStage({ resolved }: { resolved: boolean }) {
       {/* 水帘仍关闭、洞口保持隐藏 — nothing behind the curtain is rendered. */}
       <span data-testid="jtw-c2p3-cave-mouth" data-visible="false" hidden aria-hidden />
       {/* 圆叶、尖叶、长叶分别标示三个停点。 */}
-      <ol className="absolute inset-x-[8%] bottom-[4%] flex justify-between" data-testid="jtw-c2p3-leaves">
+      <ol
+        className="absolute inset-x-[8%] bottom-[4%] flex justify-between"
+        data-testid="jtw-c2p3-leaves"
+      >
         {C2_P3_TARGET_STOPS.map((stop, index) => (
           <li
             key={stop.cell}
@@ -170,7 +173,11 @@ export function JourneyWestC2Part3Page() {
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">湿石上的叶子正被摆开…</p>;
+    return (
+      <p className="p-8 text-center text-ink-soft">
+        The leaves on the wet stone are being spread out...
+      </p>
+    );
   }
 
   if (!unlocked && !completed) {
@@ -180,10 +187,11 @@ export function JourneyWestC2Part3Page() {
         data-testid="jtw-c2p3-locked"
       >
         <p className="text-[16px] font-bold text-ink">
-          先在 Part 2 听完瀑布前的约定，再来把湿石路摆清楚。
+          First listen to the agreement before the waterfall in Part 2, and then lay out the wet
+          stone path clearly.
         </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -195,9 +203,9 @@ export function JourneyWestC2Part3Page() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c2-p3">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第二章 水帘洞的约定 · Part 3
+          Journey to the West · Chapter 2 The Agreement of Water Curtain Cave · Part 3
         </p>
-        <h1 className="text-[28px] font-black text-ink">三段湿石路</h1>
+        <h1 className="text-[28px] font-black text-ink">Three sections of wet stone road</h1>
       </header>
 
       {/* ── story_before：教学脚本 Story Screen 3 全文 + 因果桥 ─────────── */}
@@ -208,7 +216,7 @@ export function JourneyWestC2Part3Page() {
           </p>
         ))}
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C2_P3_STORY_BRIDGE}
         </aside>
       </section>
@@ -218,7 +226,9 @@ export function JourneyWestC2Part3Page() {
 
       {/* ── 动机：把停点讲清楚，让伙伴能预测 ────────────────────────────── */}
       <section data-testid="jtw-c2p3-motive">
-        <h2 className="mb-2 text-[15px] font-bold text-ink">石猴为什么要一段一段摆路线？</h2>
+        <h2 className="mb-2 text-[15px] font-bold text-ink">
+          Why does the Stone Monkey lay out its route section by section?
+        </h2>
         <div className="flex flex-col gap-2">
           {C2_P3_MOTIVE_OPTIONS.map((option) => (
             <Choice
@@ -233,7 +243,7 @@ export function JourneyWestC2Part3Page() {
 
       {/* ── 三张路线卡排序（可访问、可重放，不是单选题） ─────────────────── */}
       <OrderCards
-        title="把三张路线卡摆成石猴要走的顺序"
+        title="Arrange the three route cards in the order that Stone Monkey wants to go."
         options={C2_P3_ROUTE_CARDS}
         order={cardOrder}
         onChange={setCardOrder}
@@ -245,7 +255,8 @@ export function JourneyWestC2Part3Page() {
       {cardsDone && (
         <section data-testid="jtw-c2p3-grid">
           <h2 className="mb-2 text-[15px] font-bold text-ink">
-            按到达顺序，把三个预测脚印放到停点上（先放第 1 个）
+            Put the three predicted footprints on the stopping point in order of arrival (the first
+            one first)
           </h2>
           <div className="inline-block rounded-2xl border border-hairline bg-canvas-pure p-2">
             {C2_P3_GRID_ROWS.map((gy) => (
@@ -261,7 +272,7 @@ export function JourneyWestC2Part3Page() {
                       key={cell}
                       type="button"
                       disabled={isStart}
-                      aria-label={`格子 横${gx} 竖${gy}`}
+                      aria-label={`grid horizontal${gx} vertical${gy}`}
                       aria-pressed={position >= 0}
                       data-cell={cell}
                       data-terrain={stone ? 'stone' : 'water'}
@@ -300,7 +311,7 @@ export function JourneyWestC2Part3Page() {
               className="btn-pill-ghost ml-3 text-[13px]"
               onClick={() => setFootprints([])}
             >
-              重放脚印
+              replay footprints
             </button>
           )}
           {footprintsMissed && (
@@ -318,7 +329,8 @@ export function JourneyWestC2Part3Page() {
           data-testid="jtw-c2p3-compare"
         >
           <h2 className="text-[15px] font-bold text-ink">
-            同伴问：要是把“上1”放到最后（右2→右2→上1），石猴会停在哪里？
+            The companion asked: If "upper 1" is placed at the end (right 2 → right 2 → upper 1),
+            where will the stone monkey stop?
           </h2>
           <ol
             className="mt-3 flex flex-wrap gap-2"
@@ -334,13 +346,15 @@ export function JourneyWestC2Part3Page() {
                   wrongShown && index > 0 ? 'border-brand-coral/60' : 'border-hairline',
                 )}
               >
-                <span className="mr-1 text-[12px] font-black text-ink-soft">第{index + 1}段</span>
+                <span className="mr-1 text-[12px] font-black text-ink-soft">
+                  No.{index + 1}part
+                </span>
                 {stop.label}
               </li>
             ))}
             {wrongShown && (
               <li className="rounded-2xl border border-brand-coral/60 bg-canvas-pure px-4 py-2 text-[14px] font-semibold text-brand-coral">
-                停住了——到不了水帘入口
+                Stopped - can't reach the water curtain entrance
               </li>
             )}
           </ol>
@@ -353,7 +367,9 @@ export function JourneyWestC2Part3Page() {
               setCompareTried(true);
             }}
           >
-            {wrongShown ? '换回 右2→上1→右2' : '把上1放到最后试试'}
+            {wrongShown
+              ? 'Change back to right 2→top 1→right 2'
+              : 'Try putting the above 1 to the end'}
           </button>
 
           {compareTried && (
@@ -400,7 +416,8 @@ export function JourneyWestC2Part3Page() {
       {/* ── 只读目标链（不运行——排序卡不冒充真实 Blocks 项目） ──────────── */}
       <section data-testid="jtw-c2p3-target-chain">
         <h2 className="mb-2 text-[15px] font-bold text-ink">
-          目标路线长这样（只读，还没真实运行——下一个 Part 才轮到你搭）：
+          The target route looks like this (read only, not actually run yet - it will be your turn
+          to take the next part):
         </h2>
         <div className="flex flex-wrap items-center gap-1">
           {C2_P3_TARGET_CHAIN.map((block, index) => (
@@ -427,7 +444,7 @@ export function JourneyWestC2Part3Page() {
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -436,12 +453,12 @@ export function JourneyWestC2Part3Page() {
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C2_P3_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C2_P3_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

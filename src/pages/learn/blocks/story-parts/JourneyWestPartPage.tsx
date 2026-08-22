@@ -209,16 +209,22 @@ export function JourneyWestPartPage({
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">正在打开花果山的清晨…</p>;
+    return (
+      <p className="p-8 text-center text-ink-soft">
+        Opening Flower-Fruit Mountain early morning...
+      </p>
+    );
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c1-p1">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第一章 石猴出世 · Part 1
+          Journey to the West · Chapter 1 The Stone Monkey is Born · Part 1
         </p>
-        <h1 className="text-[28px] font-black text-ink">清晨的花果山</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          Flower-Fruit Mountain in the early morning
+        </h1>
       </header>
 
       {/* ── story_before：完整儿童正文，两屏 ─────────────────────────── */}
@@ -229,14 +235,14 @@ export function JourneyWestPartPage({
           </p>
         ))}
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C1_P1_CLASSIC_CARD}
         </aside>
       </section>
 
       {/* ── 阅读证据：环境 ≥3 项 ───────────────────────────────────── */}
       <EvidenceGroup
-        title={`故事里有哪些景物？至少选 ${C1_P1_ENVIRONMENT_MIN} 项`}
+        title={`What scenes are in the story? Choose at least ${C1_P1_ENVIRONMENT_MIN} item`}
         options={C1_P1_ENVIRONMENT_OPTIONS}
         selected={environment}
         onToggle={(id) =>
@@ -250,7 +256,7 @@ export function JourneyWestPartPage({
 
       {/* ── 动机证据：停下来观察的两条原因 ──────────────────────────── */}
       <EvidenceGroup
-        title="群猴为什么停下来观察？选出两条真正的原因"
+        title="Why did the monkeys stop to observe? Pick two real reasons"
         options={C1_P1_REASON_OPTIONS}
         selected={reasons}
         onToggle={(id) =>
@@ -269,7 +275,8 @@ export function JourneyWestPartPage({
       {/* ── 因为…所以… 句子 ─────────────────────────────────────────── */}
       <section data-testid="jtw-p1-so">
         <h2 className="mb-2 text-[15px] font-bold text-ink">
-          把句子说完整：“因为石缝发光、石头有声音，所以群猴——”
+          Complete the sentence: "Because the cracks in the rocks glow and the rocks make sounds,
+          the monkeys—"
         </h2>
         <div className="flex flex-wrap gap-2">
           {C1_P1_SO_OPTIONS.map((option) => (
@@ -285,7 +292,9 @@ export function JourneyWestPartPage({
 
       {/* ── 只读系统预览 + 预测 ─────────────────────────────────────── */}
       <section className="space-y-4">
-        <h2 className="text-[15px] font-bold text-ink">听一听这个清晨（只读预览）</h2>
+        <h2 className="text-[15px] font-bold text-ink">
+          Listen to this morning (read-only preview)
+        </h2>
         <JourneyWestPartPreview
           resolved={resolved || completed}
           onRunDone={() => setPreviewRan(true)}
@@ -329,7 +338,7 @@ export function JourneyWestPartPage({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -338,12 +347,12 @@ export function JourneyWestPartPage({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C1_P1_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C1_P1_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

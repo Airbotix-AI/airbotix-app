@@ -230,7 +230,7 @@ function RunFootprints({ run }: { run: PageFlowRunResult }) {
           </span>
           <span className="ml-2 font-semibold text-ink-soft">
             {visit.enterCell ?? '?'} → {visit.exitCell ?? '?'} ·{' '}
-            {visit.exitTo === null ? '在这一页结束' : `出口 → Page ${visit.exitTo}`}
+            {visit.exitTo === null ? 'end on this page' : `Exit → Page ${visit.exitTo}`}
           </span>
         </li>
       ))}
@@ -316,12 +316,12 @@ export function JourneyWestC3Part5Page({
   const completed = Boolean(savedEntry);
   const resolved = Boolean(
     storyRead &&
-      version &&
-      whyCorrect &&
-      predictionsCorrect &&
-      buildDone &&
-      runReached &&
-      exitStillFarShore,
+    version &&
+    whyCorrect &&
+    predictionsCorrect &&
+    buildDone &&
+    runReached &&
+    exitStillFarShore,
   );
 
   const runSavedProject = useCallback(async () => {
@@ -412,7 +412,7 @@ export function JourneyWestC3Part5Page({
       >
         <p className="text-[16px] font-bold text-ink">{C3_P5_LOCKED_HINT}</p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -424,9 +424,12 @@ export function JourneyWestC3Part5Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c3-p5">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第三章 一叶木筏求师路 · Part 5 · 故事选择
+          Journey to the West · Chapter 3 One Leaf Raft’s Journey to Seeking a Master · Part 5 ·
+          Story Selection
         </p>
-        <h1 className="text-[28px] font-black text-ink">星夜和晨雾都需要观察</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          Both starry night and morning fog need to be observed
+        </h1>
       </header>
 
       {/* ── story_before：教学脚本 Part 5 全文，两屏 ─────────────────────── */}
@@ -460,15 +463,15 @@ export function JourneyWestC3Part5Page({
             </button>
           )}
           <span className="text-[12px] font-bold text-ink-soft" data-testid="jtw-c3p5-story-count">
-            {screensRead.length} / {C3_P5_SCREEN_IDS.length} 段
+            {screensRead.length} / {C3_P5_SCREEN_IDS.length} part
           </span>
         </div>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C3_P5_CLASSIC_CARD}
         </aside>
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C3_P5_STORY_BRIDGE}
         </aside>
       </section>
@@ -513,7 +516,10 @@ export function JourneyWestC3Part5Page({
           })}
         </ul>
         {versionLocked && (
-          <p className="mt-2 text-[12px] font-semibold text-ink-soft" data-testid="jtw-c3p5-version-locked">
+          <p
+            className="mt-2 text-[12px] font-semibold text-ink-soft"
+            data-testid="jtw-c3p5-version-locked"
+          >
             {C3_P5_VERSION_CHANGE_LOCKED}
           </p>
         )}
@@ -639,7 +645,10 @@ export function JourneyWestC3Part5Page({
             </span>
           )}
           {buildDone ? (
-            <span className="text-[13px] font-bold text-brand-mint" data-testid="jtw-c3p5-build-done">
+            <span
+              className="text-[13px] font-bold text-brand-mint"
+              data-testid="jtw-c3p5-build-done"
+            >
               {C3_P5_BUILD_DONE_LABEL}
             </span>
           ) : (
@@ -749,7 +758,7 @@ export function JourneyWestC3Part5Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -758,12 +767,12 @@ export function JourneyWestC3Part5Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C3_P5_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C3_P5_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

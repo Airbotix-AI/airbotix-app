@@ -117,7 +117,7 @@ export function JourneyWestPart4Page() {
     setCreateError(false);
     try {
       const { id } = await createBlocksProject({
-        title: '西游记 · 搭出完整出世链',
+        title: 'Journey to the West · Create a complete birth chain',
         template: 'blocks_jtw_c1_p4',
       });
       navigate(`/learn/blocks/${id}`);
@@ -149,15 +149,20 @@ export function JourneyWestPart4Page() {
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">舞台正在亮灯…</p>;
+    return <p className="p-8 text-center text-ink-soft">The stage is lighting up...</p>;
   }
 
   if (!unlocked && !completed) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center" data-testid="jtw-p4-locked">
-        <p className="text-[16px] font-bold text-ink">先完成 Part 3 的排练，再来搭真正的出世链。</p>
+      <div
+        className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center"
+        data-testid="jtw-p4-locked"
+      >
+        <p className="text-[16px] font-bold text-ink">
+          First complete the rehearsal of Part 3, and then build the actual birth chain.
+        </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -167,9 +172,9 @@ export function JourneyWestPart4Page() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c1-p4">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第一章 石猴出世 · Part 4 · Build 1
+          Journey to the West · Chapter 1 The Stone Monkey is Born · Part 4 · Build 1
         </p>
-        <h1 className="text-[28px] font-black text-ink">搭出完整出世链</h1>
+        <h1 className="text-[28px] font-black text-ink">Create a complete birth chain</h1>
       </header>
 
       {/* ── story_before：完整儿童正文 ──────────────────────────────── */}
@@ -180,7 +185,8 @@ export function JourneyWestPart4Page() {
       {/* ── 逐块因果证据 ────────────────────────────────────────────── */}
       <section data-testid="jtw-p4-meanings">
         <h2 className="mb-3 text-[15px] font-bold text-ink">
-          每一块会让观众看见 / 听见什么？给四块动作找到它们的故事意思：
+          What does each piece allow the audience to see/hear? Find the story meaning for each of
+          the four actions:
         </h2>
         <div className="space-y-4">
           {C1_P4_BLOCK_MEANINGS.map((block) => (
@@ -241,10 +247,13 @@ export function JourneyWestPart4Page() {
         data-testid="jtw-p4-build"
         data-build-state={buildDone ? 'done' : build.data?.projectId ? 'in_progress' : 'none'}
       >
-        <h2 className="text-[15px] font-bold text-ink">去真正的工作区搭出世链</h2>
+        <h2 className="text-[15px] font-bold text-ink">
+          Go to the real work area to build a world chain
+        </h2>
         <p className="mt-1 text-[13px] text-ink-soft">
-          候选区里混着 Grow 和 Turn——它们能运行，却回答不了眼前的问题。搭好后按 Go
-          真实运行并保存，回到这里就能继续。没有任何按钮会替你完成。
+          The candidate pool is mixed with Grow and Turn - they work, but they don't answer the
+          question at hand. After setting up, press Go Really run it and save it, then you can
+          continue here when you come back. No button will do it for you.
         </p>
         <div className="mt-4 flex items-center gap-3">
           <button
@@ -255,27 +264,27 @@ export function JourneyWestPart4Page() {
             onClick={() => void openStudio()}
           >
             {creating
-              ? '正在准备舞台…'
+              ? 'Preparing the stage...'
               : buildDone
-                ? '再看看我的程序'
+                ? 'Take another look at my program'
                 : build.data?.projectId
-                  ? '继续搭建 →'
-                  : '开始搭建 →'}
+                  ? 'Continue building →'
+                  : 'Start building →'}
           </button>
           {buildDone && (
             <span className="text-[13px] font-bold text-brand-mint" data-testid="jtw-p4-build-done">
-              ✓ 出世链已搭好并真实运行过
+              ✓ The birth chain has been set up and actually operated
             </span>
           )}
           {!buildDone && build.data?.projectId && (
             <span className="text-[13px] font-semibold text-ink-soft">
-              程序还没有精确完成，或还没运行保存。
+              The program has not been accurately completed or has not been run and saved.
             </span>
           )}
         </div>
         {createError && (
           <p className="mt-2 text-[13px] font-semibold text-brand-coral" role="alert">
-            没能打开工作区，请再试一次。
+            Failed to open workspace, please try again.
           </p>
         )}
       </section>
@@ -293,7 +302,7 @@ export function JourneyWestPart4Page() {
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -302,12 +311,12 @@ export function JourneyWestPart4Page() {
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C1_P4_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C1_P4_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

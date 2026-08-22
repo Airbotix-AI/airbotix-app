@@ -1,0 +1,910 @@
+{
+  "schemaVersion": 2,
+  "collection": "journey-to-the-west-s1-s2",
+  "locale": "en-AU",
+  "generatedAt": "2026-08-22T12:41:51.493Z",
+  "provider": "ElevenLabs",
+  "voice": {
+    "id": "XEQBC9sleaE3f5ff82UR",
+    "name": "Charlotte - Podcasts & Lifestyle",
+    "language": "en",
+    "accent": "australian"
+  },
+  "model": "eleven_multilingual_v2",
+  "outputFormat": "mp3_44100_128",
+  "voiceSettings": {
+    "stability": 0.58,
+    "similarityBoost": 0.78,
+    "style": 0.18,
+    "useSpeakerBoost": true
+  },
+  "trackCount": 98,
+  "seasons": {
+    "s1": 50,
+    "s2": 48
+  },
+  "tracks": [
+    {
+      "partId": "jtw-s1-c1-p1",
+      "title": "Morning on Flower-Fruit Mountain",
+      "file": "s1/jtw-s1-c1-p1-v02.mp3",
+      "bytes": 180184,
+      "durationSeconds": 11.192,
+      "sha256": "e9cb25228d6bffd6d358c326d1af58ee89cdbaa90f2f5ab2b69f77f5db986173",
+      "textSha256": "7122f84badf58942f5d309b11b89dd603f5ed1b9f38952d8d6eb77e58ef7b83d"
+    },
+    {
+      "partId": "jtw-s1-c1-p2",
+      "title": "Watch the Stone Monkey Appear",
+      "file": "s1/jtw-s1-c1-p2-v02.mp3",
+      "bytes": 152599,
+      "durationSeconds": 9.474,
+      "sha256": "1bb99c32ccac2876b9d3142e7c7afdc92cdd4bce43c50c290616206584ccc1ba",
+      "textSha256": "0edad79113aa6995a1d344bf0b9cfcbb8619cdc4ac4adaa2254ce0b3b68d9189"
+    },
+    {
+      "partId": "jtw-s1-c1-p3",
+      "title": "Rehearse the Story Order",
+      "file": "s1/jtw-s1-c1-p3-v02.mp3",
+      "bytes": 163884,
+      "durationSeconds": 10.17,
+      "sha256": "555e276e876f2fcb145a2ee15447269b4c17878df3b0aaf0478f64d78fc9484a",
+      "textSha256": "e817e272257e98f9f0bc0e4a5c941a500ddcdd868894fdb491a3a32e2fa82e8d"
+    },
+    {
+      "partId": "jtw-s1-c1-p4",
+      "title": "Build the Full Arrival",
+      "file": "s1/jtw-s1-c1-p4-v02.mp3",
+      "bytes": 122088,
+      "durationSeconds": 7.57,
+      "sha256": "9f71150630705f9ee117dfa01b9a545e1521d482da8b2dcf78e263a5522db79e",
+      "textSha256": "46612434de6111f7cddf348b12d50918be604fc1c064c7159d501c25acc2ac3a"
+    },
+    {
+      "partId": "jtw-s1-c1-p5",
+      "title": "Two sincere greetings",
+      "file": "s1/jtw-s1-c1-p5-v02.mp3",
+      "bytes": 131701,
+      "durationSeconds": 8.173,
+      "sha256": "60560d1b4c08f8569c1114a763e81210fa9c3586623ad3145dddbe9d42996b64",
+      "textSha256": "649e6bcf30ae703fb3bfe6b290084b8a97a333278188fe97fad1b44028c4b598"
+    },
+    {
+      "partId": "jtw-s1-c1-p6",
+      "title": "Where Did That Sound Come From?",
+      "file": "s1/jtw-s1-c1-p6-v02.mp3",
+      "bytes": 156360,
+      "durationSeconds": 9.706,
+      "sha256": "61a7a41826770fa0a2d3732e1e70a978d800b84dd6b4ad88fccd4deafac61f59",
+      "textSha256": "338b901f7004a18a299a3a47efeb4cbc2e942023d1adf828a2dbe4fdea13dd5e"
+    },
+    {
+      "partId": "jtw-s1-c1-p7",
+      "title": "My Stone Monkey Entrance",
+      "file": "s1/jtw-s1-c1-p7-v02.mp3",
+      "bytes": 114146,
+      "durationSeconds": 7.059,
+      "sha256": "0c8f8af579acd4b8550529f37270ba13289d3e547cb9c91a33e180836688f03e",
+      "textSha256": "276e2bd15dc12316f6c817fb1433ff60747c541c9e71bda8b4bd2cb18873d699"
+    },
+    {
+      "partId": "jtw-s1-c1-p8",
+      "title": "A New Friend Hears Water",
+      "file": "s1/jtw-s1-c1-p8-v02.mp3",
+      "bytes": 150509,
+      "durationSeconds": 9.334,
+      "sha256": "f6da109fd70a164cc0cb6f3825194b981533d6ad1636dc969d40e6a15efedcbc",
+      "textSha256": "8337152a154497176ea076fdb617d19bf2a9e68f6031c6469b878be3b4029008"
+    },
+    {
+      "partId": "jtw-s1-c2-p1",
+      "title": "Where does the sound of water take everyone?",
+      "file": "s1/jtw-s1-c2-p1-v02.mp3",
+      "bytes": 158450,
+      "durationSeconds": 9.845,
+      "sha256": "5d3373840fe33c5721e4bc29c201f2ef96d1ba501eef57fbec88dda18ebeb92a",
+      "textSha256": "c0ff2b512f6eacae87cf9bc4e65bd07dbbb1ec518ca46c0d65a5392900db4776"
+    },
+    {
+      "partId": "jtw-s1-c2-p2",
+      "title": "The Promise at the Waterfall",
+      "file": "s1/jtw-s1-c2-p2-v02.mp3",
+      "bytes": 127521,
+      "durationSeconds": 7.895,
+      "sha256": "6d0598a1423d8a63e62083a18848537ba695b563e5124a1822ecd17c8e31af0c",
+      "textSha256": "a93e3ee2a35eabd33bf45d730780d062a153a64c5c0072f6011ef84c84d7d46f"
+    },
+    {
+      "partId": "jtw-s1-c2-p3",
+      "title": "Three Sections of Wet Stone",
+      "file": "s1/jtw-s1-c2-p3-v02.mp3",
+      "bytes": 117072,
+      "durationSeconds": 7.245,
+      "sha256": "57bf3abd772403685f46e37bd3acb944cbfbd38ede4b1d31450bd2f1b4f300dc",
+      "textSha256": "223a3759181a9fbef49a97b0d365f1a82b4af8d94740d9605b521b6ab8478db8"
+    },
+    {
+      "partId": "jtw-s1-c2-p4",
+      "title": "Reach It Exactly",
+      "file": "s1/jtw-s1-c2-p4-v02.mp3",
+      "bytes": 114146,
+      "durationSeconds": 7.059,
+      "sha256": "676fecae75811a735adb62a3959e2984c1fe02240b47abb1a28333a3ea2293ba",
+      "textSha256": "7076e1e9121cbae071e9332759d3914d40cd6ee3262c3022b83f94cdab5c083e"
+    },
+    {
+      "partId": "jtw-s1-c2-p5",
+      "title": "Behind the Water Curtain",
+      "file": "s1/jtw-s1-c2-p5-v02.mp3",
+      "bytes": 145911,
+      "durationSeconds": 9.056,
+      "sha256": "0aaccd13774058069c659fd9318d3b74b36f7ae2e76dc5638957f57c309fe02b",
+      "textSha256": "9cb79163f59b506c910678f7e1a89e1bcd403ab36ab1600d2d6c9df259460a73"
+    },
+    {
+      "partId": "jtw-s1-c2-p6",
+      "title": "The first deviation on the way back",
+      "file": "s1/jtw-s1-c2-p6-v02.mp3",
+      "bytes": 174333,
+      "durationSeconds": 10.82,
+      "sha256": "e27abba849c5e6a37a873fd839ddcc80ca34150fa6c23de77e5c88a2541f3f7c",
+      "textSha256": "d733173617de15d990e9e13f743870bc1fb5553240632bb0c888d197acb935d2"
+    },
+    {
+      "partId": "jtw-s1-c2-p7",
+      "title": "Make discovery the path for everyone",
+      "file": "s1/jtw-s1-c2-p7-v02.mp3",
+      "bytes": 117908,
+      "durationSeconds": 7.291,
+      "sha256": "786a531fa6a14395135d5b64f0b607c78a8ce5e86f58c0144beb1140a6a3a64d",
+      "textSha256": "016f1a059878e32b44ac0629b34aca852a0dcc068d7e8f06bc789db7be59a0c5"
+    },
+    {
+      "partId": "jtw-s1-c2-p8",
+      "title": "Keep the Promise, Become the Monkey King",
+      "file": "s1/jtw-s1-c2-p8-v02.mp3",
+      "bytes": 153435,
+      "durationSeconds": 9.52,
+      "sha256": "7cc4a042b2b4723b07963f0f168c2c9aef9ba4005146db31a79845dd4dc52640",
+      "textSha256": "bfd0f19bc088bdd8f6811d61f4acc1918c24c0419c49938531f8970c37b038c1"
+    },
+    {
+      "partId": "jtw-s1-c3-p1",
+      "title": "A Happy Home Cannot Answer Every Question",
+      "file": "s1/jtw-s1-c3-p1-v02.mp3",
+      "bytes": 163884,
+      "durationSeconds": 10.17,
+      "sha256": "48c94c7927bd66d3a3b4dae69b823fe507fc2f50dd77085159d50658402a0161",
+      "textSha256": "af09c1a9ed61099e5f33ea745f73731d01555807c2de409154eb4043233b25bf"
+    },
+    {
+      "partId": "jtw-s1-c3-p2",
+      "title": "Put Departure and Arrival in Order",
+      "file": "s1/jtw-s1-c3-p2-v02.mp3",
+      "bytes": 150509,
+      "durationSeconds": 9.334,
+      "sha256": "9c843ed8db1b1a6ef452efef2e7c787b90aa8884b896ab85d753c69a97053099",
+      "textSha256": "d86fc3b13bdb6e6f88cc68c00ca1e4bf75145854ceb77364aefb0a2a97e37719"
+    },
+    {
+      "partId": "jtw-s1-c3-p3",
+      "title": "A Page Exit Must Lead Somewhere",
+      "file": "s1/jtw-s1-c3-p3-v02.mp3",
+      "bytes": 141314,
+      "durationSeconds": 8.777,
+      "sha256": "12854f990a4926924b8a93bba1f6837593bf58275c3593ddeef80ad37cd5a28f",
+      "textSha256": "30a9562bb868eb7b8ecded18deb5a16fc5b5747329fa5d3bad743cff913ba0fa"
+    },
+    {
+      "partId": "jtw-s1-c3-p4",
+      "title": "Give the Middle of the Sea a Story and an Exit",
+      "file": "s1/jtw-s1-c3-p4-v02.mp3",
+      "bytes": 168063,
+      "durationSeconds": 10.449,
+      "sha256": "07b52c6d0cbfaddbd07f7df23ec363e1435b0a2f672019e3adb10cc3191b1658",
+      "textSha256": "84e3d990c75233605d2d56978c90accebfaaab11c11cbdc363ff6a547c53f13e"
+    },
+    {
+      "partId": "jtw-s1-c3-p5",
+      "title": "Observe the Starry Night and Morning Mist",
+      "file": "s1/jtw-s1-c3-p5-v02.mp3",
+      "bytes": 155524,
+      "durationSeconds": 9.66,
+      "sha256": "f122ccf6d93f88ea6a1414eeabb441b3cf274c3b12781536ccd59ca38746fce9",
+      "textSha256": "79a204a7addca65073e8b5daa062e8cfd02eeefd0f22cbf4df914704e654fd4f"
+    },
+    {
+      "partId": "jtw-s1-c3-p6",
+      "title": "The Raft Starts in the Wrong Place",
+      "file": "s1/jtw-s1-c3-p6-v02.mp3",
+      "bytes": 124595,
+      "durationSeconds": 7.709,
+      "sha256": "8d9f1d0db8bfebdec1a346e80b1adbde9758021fd7c9eebab6f55adb236ec2f4",
+      "textSha256": "efb00a5592fb8ecd29c24d8aa5a83dba6f937a8c3f6e758a90037a29c097d353"
+    },
+    {
+      "partId": "jtw-s1-c3-p7",
+      "title": "My Three-Page Search for a Teacher",
+      "file": "s1/jtw-s1-c3-p7-v02.mp3",
+      "bytes": 133373,
+      "durationSeconds": 8.266,
+      "sha256": "a09117231a2dea8605da530e99a749a21fd507c87a5fa203eb6637ef346b3b8c",
+      "textSha256": "dedcd61bf16a77acaf0961f40b69a5a1d49d642396b860bdef5ddc2ab92218e7"
+    },
+    {
+      "partId": "jtw-s1-c3-p8",
+      "title": "Arrival Is Only the Beginning",
+      "file": "s1/jtw-s1-c3-p8-v02.mp3",
+      "bytes": 143822,
+      "durationSeconds": 8.916,
+      "sha256": "3759f3999c2574c3063f5bbe22b400606a695e79c264b2c189f6021ed8eb3bd2",
+      "textSha256": "27c14bd5e31d650ec34d69216d5ce18ecac32c7b7cda6fb209953762f8d2ab86"
+    },
+    {
+      "partId": "jtw-s1-c4-p1",
+      "title": "In front of the mountain gate, explain clearly the way you came.",
+      "file": "s1/jtw-s1-c4-p1-v02.mp3",
+      "bytes": 166809,
+      "durationSeconds": 10.356,
+      "sha256": "58482c47bae2006912b6bfdfbc9ac098c5dc24668e16df790c20958cf8de190e",
+      "textSha256": "55431b684b2b27ecece24dd0b5f4494a5aed26566aa39b89d3fd04d50c0c9086"
+    },
+    {
+      "partId": "jtw-s1-c4-p2",
+      "title": "One name, two starts",
+      "file": "s1/jtw-s1-c4-p2-v02.mp3",
+      "bytes": 127939,
+      "durationSeconds": 7.941,
+      "sha256": "d26e4f14536447f3e915a6d53bba0338c138870094d407f65def4de52e9b5dbe",
+      "textSha256": "c72b0ddaa72055a5654b685b3880498a4137836de32213f4ce3ab5a6f830d7b2"
+    },
+    {
+      "partId": "jtw-s1-c4-p3",
+      "title": "two entrance circles",
+      "file": "s1/jtw-s1-c4-p3-v02.mp3",
+      "bytes": 120834,
+      "durationSeconds": 7.477,
+      "sha256": "d8e9226be7f4749eb2e5245b484a35942c950f55e7589805b5b5baa50984a5ea",
+      "textSha256": "35301eb68faed799582412663902b44d78837eec8d4e83cf88aea9ff8e1ff68e"
+    },
+    {
+      "partId": "jtw-s1-c4-p4",
+      "title": "Stand firm on the name first, then respond with the ability",
+      "file": "s1/jtw-s1-c4-p4-v02.mp3",
+      "bytes": 168063,
+      "durationSeconds": 10.449,
+      "sha256": "bc434893575439454884f520fcf349db2a5e8d5fcc7dbe4b547b3cc956a2db63",
+      "textSha256": "dbc7fbe0894c141eaa496aff1e2b2902acf572d6c2b21f897d91318fd42d8d90"
+    },
+    {
+      "partId": "jtw-s1-c4-p5",
+      "title": "The skill is not to be first",
+      "file": "s1/jtw-s1-c4-p5-v02.mp3",
+      "bytes": 118326,
+      "durationSeconds": 7.338,
+      "sha256": "0185d2b216784202bca3d5cb7bba8f361246cdaa453ae11b1965bbce5ece3e2a",
+      "textSha256": "95ff71d7021c19d49b4f6e2864cb6296f5750f8d9c219fdd9f1ce1f4a4eb4a2d"
+    },
+    {
+      "partId": "jtw-s1-c4-p6",
+      "title": "Find the first deviation first",
+      "file": "s1/jtw-s1-c4-p6-v02.mp3",
+      "bytes": 157196,
+      "durationSeconds": 9.752,
+      "sha256": "271d2bb87e1f489162dadd6aa01aee5851d52da2110cc9ab03576bdc75f1b038",
+      "textSha256": "4d6a59893b7b816c3807d75975fda47e8da770b6631a9ba0ded963fd10d05b7c"
+    },
+    {
+      "partId": "jtw-s1-c4-p7",
+      "title": "Let your companions truly know Wukong",
+      "file": "s1/jtw-s1-c4-p7-v02.mp3",
+      "bytes": 156360,
+      "durationSeconds": 9.706,
+      "sha256": "57e0b4a29b62e504ba120fad7c7623c6ff74a142818897a1a0444b656d21480b",
+      "textSha256": "09d5c7ce1ecfd0a9851080e258d7bec52084ed0b0f625f8983dfb646edc139ac"
+    },
+    {
+      "partId": "jtw-s1-c4-p8",
+      "title": "The name followed him home",
+      "file": "s1/jtw-s1-c4-p8-v02.mp3",
+      "bytes": 112475,
+      "durationSeconds": 6.966,
+      "sha256": "52be14a80777a067d38f5d9fe561962954e7e314d07ce15e9a190d694bb38a10",
+      "textSha256": "7e25d0fc366ba00b5ee4d0f980a21d533743aa48954769b55767b2e63165f705"
+    },
+    {
+      "partId": "jtw-s1-c5-p1",
+      "title": "Why do pillar shadows appear on the seabed?",
+      "file": "s1/jtw-s1-c5-p1-v02.mp3",
+      "bytes": 178094,
+      "durationSeconds": 11.053,
+      "sha256": "06ba5e41f82a8700b7a17a77a1632b8e6bb647d8330efb713199b1f94bb39ec9",
+      "textSha256": "24631051ebf2d48c4925550eb4e84bc3cee4da606b2c88e9fca7df23e01813a5"
+    },
+    {
+      "partId": "jtw-s1-c5-p2",
+      "title": "What size will the last piece leave?",
+      "file": "s1/jtw-s1-c5-p2-v02.mp3",
+      "bytes": 130447,
+      "durationSeconds": 8.081,
+      "sha256": "11acf61fa8adeb5ad6d6c5327355e4cd138655d19d97c033ed24ff0e65d44ab3",
+      "textSha256": "9f41595397e53bd36a9d6f8b875bab90e5e9c9151cf39f6dc318799d0f651a70"
+    },
+    {
+      "partId": "jtw-s1-c5-p3",
+      "title": "The body remembers three states",
+      "file": "s1/jtw-s1-c5-p3-v02.mp3",
+      "bytes": 122924,
+      "durationSeconds": 7.616,
+      "sha256": "222149f152b974e3804f73257615ea586252b41a3b04cb8bf6ace19026152b9e",
+      "textSha256": "b9c24bdfaad1bb4ffba594b7f7b4d9f77ed444b8c7902878dee6c4282c14b248"
+    },
+    {
+      "partId": "jtw-s1-c5-p4",
+      "title": "Build a full-size experiment",
+      "file": "s1/jtw-s1-c5-p4-v02.mp3",
+      "bytes": 139224,
+      "durationSeconds": 8.638,
+      "sha256": "ba5d86e089afa4fe11ca8d2f4eadd203efb5025dd7eba5fad583eb90dfdc8a17",
+      "textSha256": "722903e350a667a567365e33d10af0eafcd41879abd471fe562e6f3b6a0fa920"
+    },
+    {
+      "partId": "jtw-s1-c5-p5",
+      "title": "The largest does not mean the most suitable",
+      "file": "s1/jtw-s1-c5-p5-v02.mp3",
+      "bytes": 147583,
+      "durationSeconds": 9.149,
+      "sha256": "4ff17e492b166d632bd2869807b943ef81afec0281751e9d0317828e10fdf4bb",
+      "textSha256": "f013f2df501f04237974a277f9ed122c796a76a9b5f195ede6fdb98d48bea1d5"
+    },
+    {
+      "partId": "jtw-s1-c5-p6",
+      "title": "Reset ended at the wrong end",
+      "file": "s1/jtw-s1-c5-p6-v02.mp3",
+      "bytes": 151763,
+      "durationSeconds": 9.427,
+      "sha256": "3a2844d0eaa14a7f63ab0ffe841a9c363d89d7b8cc86cdbec4d0ca8684a96ec6",
+      "textSha256": "b20d4e44efd8659e3f8b0de34009cf9364d09a0fb224e5eba34bce9ce9dc97e8"
+    },
+    {
+      "partId": "jtw-s1-c5-p7",
+      "title": "My wishful story",
+      "file": "s1/jtw-s1-c5-p7-v02.mp3",
+      "bytes": 136298,
+      "durationSeconds": 8.452,
+      "sha256": "7e551599b9d750d3fb20c6370a9658100a887bcb7b077e9561105e62ed04151a",
+      "textSha256": "e0b8c973e006865cea9078a3ee9cc3a307484693423bbc6751b2507162766ea8"
+    },
+    {
+      "partId": "jtw-s1-c5-p8",
+      "title": "Take away the treasure and explain the consequences",
+      "file": "s1/jtw-s1-c5-p8-v02.mp3",
+      "bytes": 154271,
+      "durationSeconds": 9.567,
+      "sha256": "e8e7dab6729259557b9a7936ac4044991ef683fcdd0d12fc3de4cd0757b5ed03",
+      "textSha256": "40b4a7b539a51fe5f7358ee61dccd7a4e3a2630846e9278cb68cb290b6237a73"
+    },
+    {
+      "partId": "jtw-s1-c6-p1",
+      "title": "Six seals walked to the Heavenly Palace",
+      "file": "s1/jtw-s1-c6-p1-v02.mp3",
+      "bytes": 143822,
+      "durationSeconds": 8.916,
+      "sha256": "99684771f0a68844ccc40b49620359e10203ba2f0fde60ff91f60321583eeeec",
+      "textSha256": "0963adac2ec5c8b008a39b072b4c608dae48d5b53ec29a303a58f4ffabc0a9c5"
+    },
+    {
+      "partId": "jtw-s1-c6-p2",
+      "title": "Feelings and choices are not the same thing",
+      "file": "s1/jtw-s1-c6-p2-v02.mp3",
+      "bytes": 177258,
+      "durationSeconds": 11.006,
+      "sha256": "1fcf470e3e6928bb0a4a8354236f41e21d0b39b4d8dfdebacc9b960a4fa201a6",
+      "textSha256": "ebd11800cde9dee6a064b9d017c66ff8af2194706fe133c418e92767a551c960"
+    },
+    {
+      "partId": "jtw-s1-c6-p3",
+      "title": "Six things cannot happen at the same time",
+      "file": "s1/jtw-s1-c6-p3-v02.mp3",
+      "bytes": 151763,
+      "durationSeconds": 9.427,
+      "sha256": "8d049411251e682310da127e63348ceca69e43f2c3ca6654d460213e7e13d718",
+      "textSha256": "52c8e2308f543a1b5c5df2c29a180932743470bef5ad9a5806330e883f0aa83a"
+    },
+    {
+      "partId": "jtw-s1-c6-p4",
+      "title": "Make the identity conflict clear on the first page",
+      "file": "s1/jtw-s1-c6-p4-v02.mp3",
+      "bytes": 165137,
+      "durationSeconds": 10.263,
+      "sha256": "680ef815b63b37f2a9c21bacf4783612acbaec15111c813aba0bfcfa534b00fb",
+      "textSha256": "aebaf30db8fdceab586898b02fc662f7fa7375c19c184f642cfb1ddc54bc11c8"
+    },
+    {
+      "partId": "jtw-s1-c6-p5",
+      "title": "Page 2 separates action from response",
+      "file": "s1/jtw-s1-c6-p5-v02.mp3",
+      "bytes": 112475,
+      "durationSeconds": 6.966,
+      "sha256": "1489ecff776e48abb383208f8c8a75a934fb777a61c4dfdee1091b0196c8fc51",
+      "textSha256": "575c390bda78e23089cb60dd01d62c9fc4c4308349f20e1a513cd7d87d6749e3"
+    },
+    {
+      "partId": "jtw-s1-c6-p6",
+      "title": "My prequel rhythm",
+      "file": "s1/jtw-s1-c6-p6-v02.mp3",
+      "bytes": 119998,
+      "durationSeconds": 7.43,
+      "sha256": "006ef28c2d98e0bd385bdebb5d49133c2f95c19e9afda83481ecc9d61afde920",
+      "textSha256": "938287365b26893bce4972371fb7474f78fc7c3b9f9d6ffbe9530911e19a9bf4"
+    },
+    {
+      "partId": "jtw-s1-c6-p7",
+      "title": "It’s Five Elements Mountain but it’s not over yet",
+      "file": "s1/jtw-s1-c6-p7-v02.mp3",
+      "bytes": 154271,
+      "durationSeconds": 9.567,
+      "sha256": "ff56dfd26b63998389a50c95ba46ce581f15749b47eb14b504c186050ae0f059",
+      "textSha256": "9835b8120643433c122b729f757b74df3852fa9862032bfff526518360ab5a24"
+    },
+    {
+      "partId": "jtw-s1-c6-p8",
+      "title": "My three-page Monkey King prequel",
+      "file": "s1/jtw-s1-c6-p8-v02.mp3",
+      "bytes": 178094,
+      "durationSeconds": 11.053,
+      "sha256": "e48be631330ce24699544d790785b858d469e7bb47af43f8507a5ea3841ee1fb",
+      "textSha256": "877768f71ab824b0ec06c89a65c44afeeb159f7867ffcd8a891e076de2ffb952"
+    },
+    {
+      "partId": "jtw-s1-c6-p9",
+      "title": "Six seals and four reasons",
+      "file": "s1/jtw-s1-c6-p9-v02.mp3",
+      "bytes": 167645,
+      "durationSeconds": 10.403,
+      "sha256": "19573d855ed0da41a7d795105b12fa4ee05ad81393c7701d22b8a36aa1ce2b1e",
+      "textSha256": "38648f14f8e57460fb72c28c530a3bd73b84fbd28a429963d6f5e081eeb99329"
+    },
+    {
+      "partId": "jtw-s1-c6-p10",
+      "title": "The first journey is complete",
+      "file": "s1/jtw-s1-c6-p10-v02.mp3",
+      "bytes": 158450,
+      "durationSeconds": 9.845,
+      "sha256": "f1aaaaf748cb3ff17f22d5beb2b79b9481b29257b0258361c6511e228c6f3009",
+      "textSha256": "44db491789c9d0b4cb7621e797593e9e616583132a25243cc729a5055c73ca2b"
+    },
+    {
+      "partId": "jtw-s2-c1-p1",
+      "title": "Turn a long journey into three steps today",
+      "file": "s2/jtw-s2-c1-p1-v02.mp3",
+      "bytes": 424690,
+      "durationSeconds": 26.471,
+      "sha256": "128585d31e12ce8c3be83702b55ef7f446e987a004dedafcebe9f22f8def2035",
+      "textSha256": "dec154a50972f915741c6b382458eb220c03949816a9aba60e1e6a081a68ceb1"
+    },
+    {
+      "partId": "jtw-s2-c1-p2",
+      "title": "Why does the note only have three lines?",
+      "file": "s2/jtw-s2-c1-p2-v02.mp3",
+      "bytes": 574737,
+      "durationSeconds": 35.852,
+      "sha256": "c708538e0a8ca1cbcf4b23f500d5786a6b9d927cc121bb8c932eaebabbd29665",
+      "textSha256": "8837a511ba9e627c6ee716a0f576b56ce5e7f9fe5449cf7d6d67efcfd806b7bd"
+    },
+    {
+      "partId": "jtw-s2-c1-p3",
+      "title": "Walk around the table first",
+      "file": "s2/jtw-s2-c1-p3-v02.mp3",
+      "bytes": 438901,
+      "durationSeconds": 27.353,
+      "sha256": "542e5d1c445efdfb08c4d073dcfe55bf2ad3b302b873e647fb306e62b0a5d517",
+      "textSha256": "dec473ef6402b1a81b27fd1b0af05ff870830585dcc2210ddaa68efd1de6473d"
+    },
+    {
+      "partId": "jtw-s2-c1-p4",
+      "title": "Really run the three steps",
+      "file": "s2/jtw-s2-c1-p4-v02.mp3",
+      "bytes": 209023,
+      "durationSeconds": 13.003,
+      "sha256": "40329b504bc92a111b309b09ad5d69472e8f832d7e2f4c2856236d81945b83af",
+      "textSha256": "cf9c817c2456734ddc14bdc31dc98368eb55a3aaf78801a9c2ae5941cbb43ac5"
+    },
+    {
+      "partId": "jtw-s2-c1-p5",
+      "title": "Let the road signs answer their own questions",
+      "file": "s2/jtw-s2-c1-p5-v02.mp3",
+      "bytes": 365340,
+      "durationSeconds": 22.756,
+      "sha256": "0105cc068b60b13e139c0cfc1e02c499021456e9e2ee851334cab036864bad66",
+      "textSha256": "cdf7f888e2ed9ff601f5503a6e371369651a9b571d4c726f653ffa5161f6eda6"
+    },
+    {
+      "partId": "jtw-s2-c1-p6",
+      "title": "\"Arrived\" is said too soon",
+      "file": "s2/jtw-s2-c1-p6-v02.mp3",
+      "bytes": 370355,
+      "durationSeconds": 23.081,
+      "sha256": "3c74e6d64453f8626a4086bd4c9e9f8581cdd2d99b0481157b72be4c04287aed",
+      "textSha256": "ef5181ba12e57170f7e449c81a9e4b5df5c5bb30bd78e0fb309933a3e7a8e2ce"
+    },
+    {
+      "partId": "jtw-s2-c1-p7",
+      "title": "My first trip westward",
+      "file": "s2/jtw-s2-c1-p7-v02.mp3",
+      "bytes": 379968,
+      "durationSeconds": 23.684,
+      "sha256": "c69ee42fc2f4a07cdc31b62e9fb0241e04ffecca50385e64894a8e5c99a4e82d",
+      "textSha256": "6a1586716320c31e096313288cee36a6e930e47f099b0fa773d8e389afd264ee"
+    },
+    {
+      "partId": "jtw-s2-c1-p8",
+      "title": "The sound coming from the mountain",
+      "file": "s2/jtw-s2-c1-p8-v02.mp3",
+      "bytes": 359906,
+      "durationSeconds": 22.43,
+      "sha256": "301be1e56345eb21edf770b6e20382d870aa8d4f962df8608284684cbe3c3ee8",
+      "textSha256": "8e04267296cff1fa84f5095922adf26396b08d0fea9de15c0931793a228d5c73"
+    },
+    {
+      "partId": "jtw-s2-c2-p1",
+      "title": "One is walking, one is waiting",
+      "file": "s2/jtw-s2-c2-p1-v02.mp3",
+      "bytes": 494489,
+      "durationSeconds": 30.836,
+      "sha256": "e33abe23324bd5d067ae9d0b16d09887a8b349948ec2ee89052ab7f309267a3a",
+      "textSha256": "cb67d1257312289d42200305db66cdb3e07f5b0621451ae036f822cf1c80de8d"
+    },
+    {
+      "partId": "jtw-s2-c2-p2",
+      "title": "Why don't the two of them start together?",
+      "file": "s2/jtw-s2-c2-p2-v02.mp3",
+      "bytes": 402956,
+      "durationSeconds": 25.124,
+      "sha256": "0fa68514847d7e559a257ea083dfaf828d9a371333b9534b889d13f311c5a657",
+      "textSha256": "92ea0e6a5d65ab011217c208dcdba75a75c368f5be9713215a2a1e6e95452f3c"
+    },
+    {
+      "partId": "jtw-s2-c2-p3",
+      "title": "Two different starting keys",
+      "file": "s2/jtw-s2-c2-p3-v02.mp3",
+      "bytes": 416331,
+      "durationSeconds": 25.96,
+      "sha256": "189577cf218340f7ac0a70a64296123c11820cc3c93ddec0d790ddd833dc7287",
+      "textSha256": "1d9b8379d3bd674412c01d120417b5e0c6961380681958bb0e99c7838da38b81"
+    },
+    {
+      "partId": "jtw-s2-c2-p4",
+      "title": "Approach the sound, but don't answer for Wukong",
+      "file": "s2/jtw-s2-c2-p4-v02.mp3",
+      "bytes": 366594,
+      "durationSeconds": 22.848,
+      "sha256": "4639978d843553c0ac7ca213b6372bbca0dae2232ff621af434281450a88c9ea",
+      "textSha256": "83054f091eb7f40a7ec8e5752f9e72c472f1558cccaea63abc0a2d89c6bf29eb"
+    },
+    {
+      "partId": "jtw-s2-c2-p5",
+      "title": "After asking, Wukong responded",
+      "file": "s2/jtw-s2-c2-p5-v02.mp3",
+      "bytes": 461888,
+      "durationSeconds": 28.793,
+      "sha256": "cacd7d052b368aeabe0e5825542d37e0a361cf0aa02fb0421cec085995c9f32a",
+      "textSha256": "261873cee8aac2b65d2e65e941a902022c8a9e88b5772a9921ba8d0b54724462"
+    },
+    {
+      "partId": "jtw-s2-c2-p6",
+      "title": "Who answered too early?",
+      "file": "s2/jtw-s2-c2-p6-v02.mp3",
+      "bytes": 479443,
+      "durationSeconds": 29.907,
+      "sha256": "7c464f5ea4f7e3fa50775b156df4bd0aed4686c05718b4a32a11ffcbfcc5e409",
+      "textSha256": "9e217e69590782c4e6c7cd776ad8e7b38dc48fda2c240329917a420ccc292bfd"
+    },
+    {
+      "partId": "jtw-s2-c2-p7",
+      "title": "WukongThe first step after leaving the mountain",
+      "file": "s2/jtw-s2-c2-p7-v02.mp3",
+      "bytes": 473591,
+      "durationSeconds": 29.536,
+      "sha256": "8e30122b29c28b76be6e3328544c2469cc7a99051caaf0587615de26059738b5",
+      "textSha256": "e7117532191f0f6795be76a9c1dfb9719c0d352f0f47e1b371db6cb0a2786354"
+    },
+    {
+      "partId": "jtw-s2-c2-p8",
+      "title": "Two events merge into a path together",
+      "file": "s2/jtw-s2-c2-p8-v02.mp3",
+      "bytes": 351965,
+      "durationSeconds": 21.92,
+      "sha256": "78f98274e946cbfd5632de386a3b776c368acb65ac6101317210f67d4bf64b8b",
+      "textSha256": "f2573f64499a7de9b2b62cabc7d1a5e96cbc0dec34071491f36ccba4cb30da9a"
+    },
+    {
+      "partId": "jtw-s2-c3-p1",
+      "title": "Three clues on the narrow road",
+      "file": "s2/jtw-s2-c3-p1-v02.mp3",
+      "bytes": 376207,
+      "durationSeconds": 23.452,
+      "sha256": "5d1b23f3cfe11c9f9fff015c8b7001f2ae79f329e3650a841e7f45bd3c514883",
+      "textSha256": "6cad591692e93d1ae50ff4e67ac396ec692f92ce9badf38566a21787d27e6645"
+    },
+    {
+      "partId": "jtw-s2-c3-p2",
+      "title": "Why stabilize first and then observe?",
+      "file": "s2/jtw-s2-c3-p2-v02.mp3",
+      "bytes": 361578,
+      "durationSeconds": 22.523,
+      "sha256": "04ce9246173230e498d64c174495e1e959a64d03fb1f58809b9018e63597e586",
+      "textSha256": "3dfec192d23ce615093f04a831143a19da3a23099a9ee74bd0c2b9761540df5a"
+    },
+    {
+      "partId": "jtw-s2-c3-p3",
+      "title": "Go a few blocks before you encounter a rhinestone",
+      "file": "s2/jtw-s2-c3-p3-v02.mp3",
+      "bytes": 313095,
+      "durationSeconds": 19.505,
+      "sha256": "31c8b53eb7292fcfe69c71127cff28495c1db2e8d0ea66b725919a1b32b41a58",
+      "textSha256": "5739846dee121cc5b4cac276b78cc2d0e6eb3f824b37b32463191c60c6f94f4f"
+    },
+    {
+      "partId": "jtw-s2-c3-p4",
+      "title": "Let the collision leave evidence of water marks",
+      "file": "s2/jtw-s2-c3-p4-v02.mp3",
+      "bytes": 241624,
+      "durationSeconds": 15.047,
+      "sha256": "a4485f24694151e4fef426fe359ea5c04f321007fa82bc98e323d3a0a1efd17d",
+      "textSha256": "2dde5a4be296409221479af808b281c670d49feabbe4bf32178f4bc3592af413"
+    },
+    {
+      "partId": "jtw-s2-c3-p5",
+      "title": "Let the white reflection respond to the collision",
+      "file": "s2/jtw-s2-c3-p5-v02.mp3",
+      "bytes": 220308,
+      "durationSeconds": 13.7,
+      "sha256": "b2363d73a5ae3cc2cf2ecc367b7a0893135ca71464d9364fa096749a31c20f6d",
+      "textSha256": "089b41200e80b31aa3ace420451d6038ffa678f4cbf525b2c4e3df4919957f31"
+    },
+    {
+      "partId": "jtw-s2-c3-p6",
+      "title": "Just one frame missing, the water pattern didn’t appear.",
+      "file": "s2/jtw-s2-c3-p6-v02.mp3",
+      "bytes": 332321,
+      "durationSeconds": 20.712,
+      "sha256": "bcefde6e6f887e73fbe8ff4e0ac0f4600c47e71b2c8814c851f69df889f49aa6",
+      "textSha256": "3245c84d8514821eb0bea6ee0cf63e0c41e5f87f27956cbd395da463408c8620"
+    },
+    {
+      "partId": "jtw-s2-c3-p7",
+      "title": "My water mark distance and welcome action",
+      "file": "s2/jtw-s2-c3-p7-v02.mp3",
+      "bytes": 413405,
+      "durationSeconds": 25.774,
+      "sha256": "8a4f97759fa3528e6a3bc3a0e6e5ddec3498e21b6fbd529f8d653ae9d79cf73c",
+      "textSha256": "da4d5891b9ce08d3c2ee7c58f16d75ca331dc58195007890703530f010d1db82"
+    },
+    {
+      "partId": "jtw-s2-c3-p8",
+      "title": "From reflection to companion",
+      "file": "s2/jtw-s2-c3-p8-v02.mp3",
+      "bytes": 498251,
+      "durationSeconds": 31.068,
+      "sha256": "f5092bf4e1ef767b0fd3b8fe6c9c6758fbe66132e0a14b7512c225fe581ca7de",
+      "textSha256": "fddd563c4b2f12bed2b2a6ad8c48551683adbd4e70fa653cb007cd2f28c5a4e0"
+    },
+    {
+      "partId": "jtw-s2-c4-p1",
+      "title": "The blue-edged route card was sent to the wrong person.",
+      "file": "s2/jtw-s2-c4-p1-v02.mp3",
+      "bytes": 662927,
+      "durationSeconds": 41.378,
+      "sha256": "5f20fbb11111410d8078511c7610bd1178176f3f3f165bf70289d0dc4280e6f7",
+      "textSha256": "a91f44588bb43fa639e82d660645a45548cc7bdde316022438cfd76b80aacd38"
+    },
+    {
+      "partId": "jtw-s2-c4-p2",
+      "title": "Why identify with a signal first?",
+      "file": "s2/jtw-s2-c4-p2-v02.mp3",
+      "bytes": 612772,
+      "durationSeconds": 38.22,
+      "sha256": "58cdc50a50ad75bea05ca3f9cdcd049d5e01172ba65a00759c59764792650eee",
+      "textSha256": "815315c64a421199a0fecc7197fbc7459f365380023f3afdb80e55e5cea377e3"
+    },
+    {
+      "partId": "jtw-s2-c4-p3",
+      "title": "Which pair of colors can connect the message?",
+      "file": "s2/jtw-s2-c4-p3-v02.mp3",
+      "bytes": 665435,
+      "durationSeconds": 41.517,
+      "sha256": "450fa173aa13163b321a7f32147f6bd36bd843eb3498fabd7a3451bb02c3a3e7",
+      "textSha256": "91d20dace160d2e0c78dbaeb1d6465d1f70e3ab32a413494afa7fa21127cf8d0"
+    },
+    {
+      "partId": "jtw-s2-c4-p4",
+      "title": "Make the blue messenger really run",
+      "file": "s2/jtw-s2-c4-p4-v02.mp3",
+      "bytes": 290943,
+      "durationSeconds": 18.112,
+      "sha256": "b3514e63c5f5090d8d39ef52096015c2d6b69293653493cd141e72d58c9fe632",
+      "textSha256": "427dcc6737871c23f9a70940aca53776fcd102ec1c0b437c0658a926742b026c"
+    },
+    {
+      "partId": "jtw-s2-c4-p5",
+      "title": "Have White Dragon Horse reply \"Received\"",
+      "file": "s2/jtw-s2-c4-p5-v02.mp3",
+      "bytes": 305572,
+      "durationSeconds": 19.04,
+      "sha256": "28e89581d4875cb92fda6248498b0fbb34dee9bdfe9c7e956144bd5863a57e42",
+      "textSha256": "560b434f23cb9ce042676cec77299d26209c07f6f4f98c57f6b9ded02aecfd46"
+    },
+    {
+      "partId": "jtw-s2-c4-p6",
+      "title": "Find orange breakpoint",
+      "file": "s2/jtw-s2-c4-p6-v02.mp3",
+      "bytes": 274643,
+      "durationSeconds": 17.09,
+      "sha256": "474fc57203a52edcf68cc9450441746b115867639b762c984fc3335a7884ac37",
+      "textSha256": "f417c4dcc612c47458f202ce695717bf8d0ad53bfe1a9815271fbebcedd0d150"
+    },
+    {
+      "partId": "jtw-s2-c4-p7",
+      "title": "My route color and card delivery direction",
+      "file": "s2/jtw-s2-c4-p7-v02.mp3",
+      "bytes": 363668,
+      "durationSeconds": 22.663,
+      "sha256": "f6feede00ec3414380a22b9442645249c49b240265e51af3958fc4ec2ec1fbc7",
+      "textSha256": "52a28e202d4ff292bfaa86d14acdd4a2eda832ea1f48d923d201acd50bb1b4c5"
+    },
+    {
+      "partId": "jtw-s2-c4-p8",
+      "title": "Bajie delivered the route card",
+      "file": "s2/jtw-s2-c4-p8-v02.mp3",
+      "bytes": 362832,
+      "durationSeconds": 22.616,
+      "sha256": "5388cdc82b680aaf0560a0a304e1c8f69369e290028f194e65aff8c277b86f53",
+      "textSha256": "293c6f70ab57c852711663a39faa37dfabfe35c91db082ca5972d24f4686fc72"
+    },
+    {
+      "partId": "jtw-s2-c5-p1",
+      "title": "The river divides a sentence into two paragraphs",
+      "file": "s2/jtw-s2-c5-p1-v02.mp3",
+      "bytes": 356981,
+      "durationSeconds": 22.245,
+      "sha256": "f9b727711d44f6cc8db07b1cffd732a2213e15ab0b2148a851d15e575cb169b2",
+      "textSha256": "ca5e621d440ce861b1a5dc428a2911924cdaac82a17a193febb15851e1cca540"
+    },
+    {
+      "partId": "jtw-s2-c5-p2",
+      "title": "Why did Wu Jing confirm first?",
+      "file": "s2/jtw-s2-c5-p2-v02.mp3",
+      "bytes": 229085,
+      "durationSeconds": 14.257,
+      "sha256": "4988f82989e63051244313141c6e01c744144678319b42a57fcc209912d960e9",
+      "textSha256": "a95f6b64a0e28822d2ac3be9b733560a36c274d38e92d0d16a89d7b353300858"
+    },
+    {
+      "partId": "jtw-s2-c5-p3",
+      "title": "Which partner will the message stop at?",
+      "file": "s2/jtw-s2-c5-p3-v02.mp3",
+      "bytes": 217382,
+      "durationSeconds": 13.514,
+      "sha256": "a995efa5c4a610f9acbb3eb581a31da7ecee78da626d36b8f86236fb0f0b835f",
+      "textSha256": "c6789244f7288740a33d0e208b9d8e9a4dd51a8d1793e1a2379eba1c3523a19a"
+    },
+    {
+      "partId": "jtw-s2-c5-p4",
+      "title": "Three partners connected the route",
+      "file": "s2/jtw-s2-c5-p4-v02.mp3",
+      "bytes": 269209,
+      "durationSeconds": 16.765,
+      "sha256": "5b1cd11d31b991bb5f3a7bc4b1b2d3dc6406003bd8d11154cda7a1009a7ce729",
+      "textSha256": "084faedc0835ae4c03b7050dd023fa4e3f4d8e0e83d4f31bdeb8091d8b45759b"
+    },
+    {
+      "partId": "jtw-s2-c5-p5",
+      "title": "Purple receipt back to Wukong",
+      "file": "s2/jtw-s2-c5-p5-v02.mp3",
+      "bytes": 290943,
+      "durationSeconds": 18.112,
+      "sha256": "7e42163a3e44f1146b71120fcd74890e3b0e9864a0e634b420991a842381ac46",
+      "textSha256": "ef141fed43bf3cfbed271eca8af732371e9414c3a3ec2453fe1a3250067d2c48"
+    },
+    {
+      "partId": "jtw-s2-c5-p6",
+      "title": "Find the intermediate transition breakpoint",
+      "file": "s2/jtw-s2-c5-p6-v02.mp3",
+      "bytes": 461053,
+      "durationSeconds": 28.746,
+      "sha256": "81e2c15f2c7cbb73c62ad0cf1f9aad5961e94d78551404722cd785dabe8aa3f4",
+      "textSha256": "aebb7b0b5ab5713c43b9ab1f1a5496bab0498f90ae3110fb9f27b7073bdc9cac"
+    },
+    {
+      "partId": "jtw-s2-c5-p7",
+      "title": "My three-color relay diagram",
+      "file": "s2/jtw-s2-c5-p7-v02.mp3",
+      "bytes": 402956,
+      "durationSeconds": 25.124,
+      "sha256": "a8212c54df0893ddb3a1fb4912a9ab59fee4197eada000e82b40ac0b134cec79",
+      "textSha256": "27756eed3d0c35eb024560fb5b140b34eb8a2a910f922c56ad2a641a10892985"
+    },
+    {
+      "partId": "jtw-s2-c5-p8",
+      "title": "Wu Jing caught the last part",
+      "file": "s2/jtw-s2-c5-p8-v02.mp3",
+      "bytes": 379968,
+      "durationSeconds": 23.684,
+      "sha256": "ea7242dbee940b4d96213da1a3386b0f40177a827c381ad8baf2debcc34d1d05",
+      "textSha256": "d395437952b4cb86e064de9b721d7ac872caaaeb3ae8ee7fef22fd6b4daf6cfd"
+    },
+    {
+      "partId": "jtw-s2-c6-p1",
+      "title": "How did the five partners join the team?",
+      "file": "s2/jtw-s2-c6-p1-v02.mp3",
+      "bytes": 295123,
+      "durationSeconds": 18.39,
+      "sha256": "7891addc4b1ec4262d6564cef1ada5a98933e301cf29c0247fff88f7cbb659a8",
+      "textSha256": "cade08f31a205ea0c1af91116196ae568a8978c3ee50925bdb3812236b4ae977"
+    },
+    {
+      "partId": "jtw-s2-c6-p2",
+      "title": "Why do they continue to travel together?",
+      "file": "s2/jtw-s2-c6-p2-v02.mp3",
+      "bytes": 295123,
+      "durationSeconds": 18.39,
+      "sha256": "cf68f095b021a61158f576bb56d0ce980cadab1a81c98e5f992cb3f774187e32",
+      "textSha256": "c3f38e722ddeb3f88070d3180f03f174d4a063c045d67ddc468afc7903e69515"
+    },
+    {
+      "partId": "jtw-s2-c6-p3",
+      "title": "Arrange the three-page plan on the desktop first",
+      "file": "s2/jtw-s2-c6-p3-v02.mp3",
+      "bytes": 313931,
+      "durationSeconds": 19.551,
+      "sha256": "e9c8a71870c8ecd8f83bae0d199bf168e98558d7e79525450bf476bee0df34a6",
+      "textSha256": "d45019c02bc7e7b92203e5fc8ee90c7f59939f8cfa4b96577f03ce706f5169e2"
+    },
+    {
+      "partId": "jtw-s2-c6-p4",
+      "title": "The collection page sends the message to the bridge page",
+      "file": "s2/jtw-s2-c6-p4-v02.mp3",
+      "bytes": 339844,
+      "durationSeconds": 21.177,
+      "sha256": "73cb6cf824db28d9f5cc04ffd4cf7c1a2240029c90ea9ec037ba41e61ab310e8",
+      "textSha256": "f67b70370cfb1f6e508273e1cbfb41ab49afc0e49d6a45b5c700f3e21a1e2f96"
+    },
+    {
+      "partId": "jtw-s2-c6-p5",
+      "title": "Page 3: Bring the complete team to the flag",
+      "file": "s2/jtw-s2-c6-p5-v02.mp3",
+      "bytes": 296795,
+      "durationSeconds": 18.483,
+      "sha256": "ca18e25c7d8f0d1d38b20220e137c513abed36a8f55f67378d7d88554fc6aa22",
+      "textSha256": "dcab1e224cee93afff0c9959923aeee57fbd8f2505b7bdf4bcef48c1918f0ab7"
+    },
+    {
+      "partId": "jtw-s2-c6-p6",
+      "title": "Fixed return page and wrong color message",
+      "file": "s2/jtw-s2-c6-p6-v02.mp3",
+      "bytes": 345696,
+      "durationSeconds": 21.548,
+      "sha256": "a9cdbaff062b4e78fded506a3139deab6f3e441a30f4a61a0d7c76cc95dc8d3e",
+      "textSha256": "b4b73b414298e54014306715630e444bec76138db42eaac4ce3489a5f63b9025"
+    },
+    {
+      "partId": "jtw-s2-c6-p7",
+      "title": "My complete team three-page drama",
+      "file": "s2/jtw-s2-c6-p7-v02.mp3",
+      "bytes": 298884,
+      "durationSeconds": 18.622,
+      "sha256": "85053a232d6bc4aa43e045133a31a2681044a1113e52dce8e81046c2bf3f8a1a",
+      "textSha256": "ff250c3fc44d66dc9b69165b31b80f3ff69f2c902b8c32de384eb2418b2a30da"
+    },
+    {
+      "partId": "jtw-s2-c6-p8",
+      "title": "The westbound team has assembled",
+      "file": "s2/jtw-s2-c6-p8-v02.mp3",
+      "bytes": 403792,
+      "durationSeconds": 25.17,
+      "sha256": "ca28c040407796086049bc55ba033948eafb0ad72dccb4d482ff092b639c3d5c",
+      "textSha256": "31ecded4364b3b567674b20b5571675e2825081c836d2b79b13e92515c40f2b7"
+    }
+  ]
+}

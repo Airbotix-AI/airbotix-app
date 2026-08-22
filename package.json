@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "art-tasks:guides": "node scripts/generate-art-task-guides.mjs",
-    "audio:jtw-s2": "vite-node scripts/generate-jtw-s2-narration.ts",
+    "audio:jtw": "vite-node scripts/generate-jtw-narration.ts",
+    "audio:jtw-s2": "vite-node scripts/generate-jtw-narration.ts",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run test:e2e"
   },
   "dependencies": {

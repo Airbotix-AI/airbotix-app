@@ -1,14 +1,14 @@
-import type { BlockOp, BlocksProject } from '../blocksModel'
+import type { BlockOp, BlocksProject } from '../blocksModel';
 
 export const C4_P2_STORY = [
-  '石猴原本没有人的姓名。师父为他取姓“孙”，又按门中排行给他法名“悟空”。这个名字不是换一张装饰贴纸：从这以后，伙伴和观众都能用同一个名字认识他。',
-  '悟空在师门学习了很长时间。今天的小展示只练习两种开始：Go先完成得名故事，观众Tap他之后，他才应该展示动作。几块积木不等于一下子学会全部本领。',
-] as const
+  'Stone Monkey originally had no human name. Master named him "Sun" and gave him the Dharma name "Wukong" according to his ranking in the family. This name is not just another decorative sticker: from now on, partners and viewers will know him by the same name.',
+  "Wukong has studied at his master’s school for a long time. Today's small demonstration practises two triggers: Go completes the name story, and a real Tap starts the action. A few blocks do not mean learning every skill at once.",
+] as const;
 
 export const C4_P2_PREDICTIONS = [
-  { id: 'name-only', label: '名字出现，本领保持安静', correct: true },
-  { id: 'hop-alone', label: '他会自己先Hop，不必等Tap', correct: false },
-] as const
+  { id: 'name-only', label: 'When the name appears, the ability remains quiet', correct: true },
+  { id: 'hop-alone', label: 'He will hop first without waiting for tap', correct: false },
+] as const;
 
 export const C4_P2_PROJECT: BlocksProject = {
   version: 1,
@@ -21,7 +21,7 @@ export const C4_P2_PROJECT: BlocksProject = {
       characters: [
         {
           id: 'sun-wukong',
-          name: '孙悟空',
+          name: 'Sun Wukong',
           emoji: '🐵',
           asset: '/story-blocks/journey-to-the-west/characters/stone-monkey/neutral-v01.png',
           start: { gx: 8, gy: 9, size: 3, rot: 0 },
@@ -31,7 +31,7 @@ export const C4_P2_PROJECT: BlocksProject = {
               blocks: [
                 { op: 'when_flag' },
                 { op: 'show' },
-                { op: 'say', text: '我是孙悟空' },
+                { op: 'say', text: 'I am Sun Wukong' },
                 { op: 'hop', n: 1 },
                 { op: 'end' },
               ],
@@ -45,15 +45,15 @@ export const C4_P2_PROJECT: BlocksProject = {
       ],
     },
   ],
-}
+};
 
 export function c4p2PredictionDone(value: string | null): boolean {
-  return C4_P2_PREDICTIONS.find((option) => option.id === value)?.correct === true
+  return C4_P2_PREDICTIONS.find((option) => option.id === value)?.correct === true;
 }
 
 export function c4p2TraceDone(trace: readonly BlockOp[], trigger: BlockOp): boolean {
   if (trigger === 'when_flag') {
-    return trace.join(',') === 'when_flag,show,say,hop,end'
+    return trace.join(',') === 'when_flag,show,say,hop,end';
   }
-  return trace.join(',') === 'when_tap,turn_right,end'
+  return trace.join(',') === 'when_tap,turn_right,end';
 }

@@ -151,7 +151,7 @@ function mockBuild(seaChain: readonly Block[] | null, runCompleted: boolean) {
   listProjects.mockResolvedValue([
     {
       id: 'proj_jtw_sea',
-      title: '西游记 · 让海中央既有故事又有出口',
+      title: 'Journey to the West · Let the middle of the sea have both a story and an outlet',
       kind: 'blocks',
       status: 'active',
     },
@@ -162,7 +162,9 @@ function mockBuild(seaChain: readonly Block[] | null, runCompleted: boolean) {
     history: { past: [], future: [] },
     storyProgress: {
       schemaVersion: 1,
-      completed: runCompleted ? { 'jtw-s1-c3-p4': { completedAt: '2026-07-27T06:00:00.000Z' } } : {},
+      completed: runCompleted
+        ? { 'jtw-s1-c3-p4': { completedAt: '2026-07-27T06:00:00.000Z' } }
+        : {},
     },
     otherFiles: [],
   } as never);
@@ -210,17 +212,17 @@ function answerRoles(correct = true) {
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  'role-sea-wind': '让观众听见这是一段有风的海',
-  'role-forward': '让木筏真的向前走了一段',
-  'role-pause': '让他停下来看清方向',
-  'role-exit': '把这一段交给下一页',
+  'role-sea-wind': 'Let the audience hear that this is a windy sea',
+  'role-forward': 'Let the raft really move forward for a while',
+  'role-pause': 'Ask him to stop and look at the direction',
+  'role-exit': 'Pass this paragraph to the next page',
 };
 
 /** Everything the Part asks for outside the studio. */
 function answerEverything() {
   readStory();
   answerRoles();
-  pick(/6-8——从 2-8 向右走 4 格/);
+  pick(/6-8--from 2-8 Go right 4 spaces/i);
 }
 
 beforeEach(() => {
@@ -232,7 +234,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe('JourneyWestC3Part4Page — 让海中央既有故事又有出口', () => {
+describe('JourneyWestC3Part4Page — Let the center of the sea have both a story and an outlet', () => {
   it('shows the locked screen when C3-P3 is not complete', async () => {
     fetchProgress.mockResolvedValue({
       story_line_id: 'journey-to-the-west-s1',
@@ -246,11 +248,13 @@ describe('JourneyWestC3Part4Page — 让海中央既有故事又有出口', () =
   it('reads the whole teaching brief across two screens', async () => {
     renderPage();
     await screen.findByTestId('jtw-part-c3-p4');
-    expect(screen.getByTestId('jtw-c3p4-story-count')).toHaveTextContent('1 / 2 段');
-    expect(screen.getByTestId('jtw-c3p4-story')).toHaveTextContent('一个空的脚本槽');
+    expect(screen.getByTestId('jtw-c3p4-story-count')).toHaveTextContent(/1\s*\/\s*2\s*part/i);
+    expect(screen.getByTestId('jtw-c3p4-story')).toHaveTextContent('an empty script slot');
     readStory();
-    expect(screen.getByTestId('jtw-c3p4-story-count')).toHaveTextContent('2 / 2 段');
-    expect(screen.getByTestId('jtw-c3p4-story')).toHaveTextContent('实际轨迹是 1 → 2 → 3');
+    expect(screen.getByTestId('jtw-c3p4-story-count')).toHaveTextContent(/2\s*\/\s*2\s*parts?/i);
+    expect(screen.getByTestId('jtw-c3p4-story')).toHaveTextContent(
+      /the actual trajectory is 1 → 2 → 3/i,
+    );
   });
 
   it('shows the target chain and both read-only demo chains', async () => {
@@ -274,14 +278,16 @@ describe('JourneyWestC3Part4Page — 让海中央既有故事又有出口', () =
     renderPage();
     await screen.findByTestId('jtw-part-c3-p4');
     answerRoles(false);
-    expect(screen.getByRole('status')).toHaveTextContent('Wait 什么都不改只让时间过去');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Think about it again: the sound is only heard, the position is changed when moving, Wait does not change anything and only lets time pass, and the number on Page determines the next page.',
+    );
   });
 
   it('refuses the "he waits in place" exit prediction', async () => {
     renderPage();
     await screen.findByTestId('jtw-part-c3-p4');
-    pick(/2-8——他在原地等风停/);
-    expect(screen.getByRole('status')).toHaveTextContent('一格都不多走');
+    pick(/2-8——He waited for the wind to subside\./i);
+    expect(screen.getByRole('status')).toHaveTextContent(/without moving a single grid/i);
   });
 
   it('creates the three-page starter the first time and reopens it afterwards', async () => {
@@ -294,7 +300,7 @@ describe('JourneyWestC3Part4Page — 让海中央既有故事又有出口', () =
     fireEvent.click(screen.getByTestId('jtw-c3p4-open-studio'));
     await waitFor(() =>
       expect(createProject).toHaveBeenCalledWith({
-        title: '西游记 · 让海中央既有故事又有出口',
+        title: 'Journey to the West · Let the middle of the sea have both a story and an outlet',
         template: 'blocks_jtw_c3_p4',
       }),
     );
@@ -362,7 +368,7 @@ describe('JourneyWestC3Part4Page — 让海中央既有故事又有出口', () =
     expect(screen.getByTestId('jtw-c3p4-exit-cell')).toHaveTextContent('6-8');
 
     const resolved = await screen.findByTestId('jtw-c3p4-resolved');
-    expect(resolved).toHaveTextContent('稳稳靠上了彼岸的浅滩');
+    expect(resolved).toHaveTextContent(/landed firmly on the shoal on the other side/i);
     expect(screen.getByTestId('jtw-c3p4-page2-resolved')).toHaveAttribute(
       'src',
       '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page2-morning-resolved-v01.webp',
@@ -372,7 +378,7 @@ describe('JourneyWestC3Part4Page — 让海中央既有故事又有出口', () =
       '/story-blocks/journey-to-the-west/backgrounds/s1/c3/page3-resolved-v01.webp',
     );
     // 远行印 only lights half here — the seal itself is C3-P8's aggregation.
-    expect(screen.getByTestId('jtw-c3p4-half-seal')).toHaveTextContent('亮了一半');
+    expect(screen.getByTestId('jtw-c3p4-half-seal')).toHaveTextContent(/half brightened/i);
   });
 
   it('does not resolve when the saved exit still points home', async () => {
@@ -407,10 +413,7 @@ describe('JourneyWestC3Part4Page — 让海中央既有故事又有出口', () =
     const [lineId, partId, evidence] = completePart.mock.calls[0];
     expect(lineId).toBe('journey-to-the-west-s1');
     expect(partId).toBe('jtw-s1-c3-p4');
-    expect(evidence.selections?.story_screens).toEqual([
-      'part-4-build-brief',
-      'part-4-workload',
-    ]);
+    expect(evidence.selections?.story_screens).toEqual(['part-4-build-brief', 'part-4-workload']);
     expect(evidence.selections?.build_project).toEqual(['proj_jtw_sea']);
     expect(evidence.selections?.target_chain).toEqual([
       'play_sound:4',
@@ -465,7 +468,7 @@ describe('JourneyWestC3Part4Page — 让海中央既有故事又有出口', () =
     });
     renderPage();
     await screen.findByTestId('jtw-part-c3-p4');
-    expect(screen.getByTestId('jtw-c3p4-story-count')).toHaveTextContent('2 / 2 段');
+    expect(screen.getByTestId('jtw-c3p4-story-count')).toHaveTextContent(/2\s*\/\s*2\s*parts?/i);
     expect(screen.getByTestId('jtw-c3p4-role-slot-exit')).toHaveAttribute(
       'data-picked',
       'role-exit',

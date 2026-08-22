@@ -1,499 +1,1506 @@
-import type { JtwEvidenceOption } from './journeyWestSeason1'
+import type { JtwEvidenceOption } from './journeyWestSeason1';
 
-export const JTW_S2_STORY_LINE_ID = 'journey-to-the-west-s2'
-export const JTW_S2_C1_P1_ID = 'jtw-s2-c1-p1'
-export const JTW_S2_C1_P2_ID = 'jtw-s2-c1-p2'
-export const JTW_S2_C1_P3_ID = 'jtw-s2-c1-p3'
-export const JTW_S2_C1_P4_ID = 'jtw-s2-c1-p4'
-export const JTW_S2_C1_P5_ID = 'jtw-s2-c1-p5'
-export const JTW_S2_C1_P6_ID = 'jtw-s2-c1-p6'
-export const JTW_S2_C1_P7_ID = 'jtw-s2-c1-p7'
-export const JTW_S2_C1_P8_ID = 'jtw-s2-c1-p8'
-export const JTW_S2_C2_P1_ID = 'jtw-s2-c2-p1'
-export const JTW_S2_C2_P2_ID = 'jtw-s2-c2-p2'
-export const JTW_S2_C2_P3_ID = 'jtw-s2-c2-p3'
-export const JTW_S2_C2_P4_ID = 'jtw-s2-c2-p4'
-export const JTW_S2_C2_P5_ID = 'jtw-s2-c2-p5'
-export const JTW_S2_C2_P6_ID = 'jtw-s2-c2-p6'
-export const JTW_S2_C2_P7_ID = 'jtw-s2-c2-p7'
-export const JTW_S2_C2_P8_ID = 'jtw-s2-c2-p8'
-export const JTW_S2_C3_P1_ID = 'jtw-s2-c3-p1'
-export const JTW_S2_C3_P2_ID = 'jtw-s2-c3-p2'
-export const JTW_S2_C3_P3_ID = 'jtw-s2-c3-p3'
-export const JTW_S2_C3_P4_ID = 'jtw-s2-c3-p4'
-export const JTW_S2_C3_P5_ID = 'jtw-s2-c3-p5'
-export const JTW_S2_C3_P6_ID = 'jtw-s2-c3-p6'
-export const JTW_S2_C3_P7_ID = 'jtw-s2-c3-p7'
-export const JTW_S2_C3_P8_ID = 'jtw-s2-c3-p8'
-export const JTW_S2_C4_P1_ID = 'jtw-s2-c4-p1'
-export const JTW_S2_C4_P2_ID = 'jtw-s2-c4-p2'
-export const JTW_S2_C4_P3_ID = 'jtw-s2-c4-p3'
-export const JTW_S2_C4_P4_ID = 'jtw-s2-c4-p4'
-export const JTW_S2_C4_P5_ID = 'jtw-s2-c4-p5'
-export const JTW_S2_C4_P6_ID = 'jtw-s2-c4-p6'
-export const JTW_S2_C4_P7_ID = 'jtw-s2-c4-p7'
-export const JTW_S2_C4_P8_ID = 'jtw-s2-c4-p8'
-export const JTW_S2_C5_P1_ID = 'jtw-s2-c5-p1'
-export const JTW_S2_C5_P2_ID = 'jtw-s2-c5-p2'
-export const JTW_S2_C5_P3_ID = 'jtw-s2-c5-p3'
-export const JTW_S2_C5_P4_ID = 'jtw-s2-c5-p4'
-export const JTW_S2_C5_P5_ID = 'jtw-s2-c5-p5'
-export const JTW_S2_C5_P6_ID = 'jtw-s2-c5-p6'
-export const JTW_S2_C5_P7_ID = 'jtw-s2-c5-p7'
-export const JTW_S2_C5_P8_ID = 'jtw-s2-c5-p8'
-export const JTW_S2_C6_P1_ID = 'jtw-s2-c6-p1'
-export const JTW_S2_C6_P2_ID = 'jtw-s2-c6-p2'
-export const JTW_S2_C6_P3_ID = 'jtw-s2-c6-p3'
-export const JTW_S2_C6_P4_ID = 'jtw-s2-c6-p4'
-export const JTW_S2_C6_P5_ID = 'jtw-s2-c6-p5'
-export const JTW_S2_C6_P6_ID = 'jtw-s2-c6-p6'
-export const JTW_S2_C6_P7_ID = 'jtw-s2-c6-p7'
-export const JTW_S2_C6_P8_ID = 'jtw-s2-c6-p8'
+export const JTW_S2_STORY_LINE_ID = 'journey-to-the-west-s2';
+export const JTW_S2_C1_P1_ID = 'jtw-s2-c1-p1';
+export const JTW_S2_C1_P2_ID = 'jtw-s2-c1-p2';
+export const JTW_S2_C1_P3_ID = 'jtw-s2-c1-p3';
+export const JTW_S2_C1_P4_ID = 'jtw-s2-c1-p4';
+export const JTW_S2_C1_P5_ID = 'jtw-s2-c1-p5';
+export const JTW_S2_C1_P6_ID = 'jtw-s2-c1-p6';
+export const JTW_S2_C1_P7_ID = 'jtw-s2-c1-p7';
+export const JTW_S2_C1_P8_ID = 'jtw-s2-c1-p8';
+export const JTW_S2_C2_P1_ID = 'jtw-s2-c2-p1';
+export const JTW_S2_C2_P2_ID = 'jtw-s2-c2-p2';
+export const JTW_S2_C2_P3_ID = 'jtw-s2-c2-p3';
+export const JTW_S2_C2_P4_ID = 'jtw-s2-c2-p4';
+export const JTW_S2_C2_P5_ID = 'jtw-s2-c2-p5';
+export const JTW_S2_C2_P6_ID = 'jtw-s2-c2-p6';
+export const JTW_S2_C2_P7_ID = 'jtw-s2-c2-p7';
+export const JTW_S2_C2_P8_ID = 'jtw-s2-c2-p8';
+export const JTW_S2_C3_P1_ID = 'jtw-s2-c3-p1';
+export const JTW_S2_C3_P2_ID = 'jtw-s2-c3-p2';
+export const JTW_S2_C3_P3_ID = 'jtw-s2-c3-p3';
+export const JTW_S2_C3_P4_ID = 'jtw-s2-c3-p4';
+export const JTW_S2_C3_P5_ID = 'jtw-s2-c3-p5';
+export const JTW_S2_C3_P6_ID = 'jtw-s2-c3-p6';
+export const JTW_S2_C3_P7_ID = 'jtw-s2-c3-p7';
+export const JTW_S2_C3_P8_ID = 'jtw-s2-c3-p8';
+export const JTW_S2_C4_P1_ID = 'jtw-s2-c4-p1';
+export const JTW_S2_C4_P2_ID = 'jtw-s2-c4-p2';
+export const JTW_S2_C4_P3_ID = 'jtw-s2-c4-p3';
+export const JTW_S2_C4_P4_ID = 'jtw-s2-c4-p4';
+export const JTW_S2_C4_P5_ID = 'jtw-s2-c4-p5';
+export const JTW_S2_C4_P6_ID = 'jtw-s2-c4-p6';
+export const JTW_S2_C4_P7_ID = 'jtw-s2-c4-p7';
+export const JTW_S2_C4_P8_ID = 'jtw-s2-c4-p8';
+export const JTW_S2_C5_P1_ID = 'jtw-s2-c5-p1';
+export const JTW_S2_C5_P2_ID = 'jtw-s2-c5-p2';
+export const JTW_S2_C5_P3_ID = 'jtw-s2-c5-p3';
+export const JTW_S2_C5_P4_ID = 'jtw-s2-c5-p4';
+export const JTW_S2_C5_P5_ID = 'jtw-s2-c5-p5';
+export const JTW_S2_C5_P6_ID = 'jtw-s2-c5-p6';
+export const JTW_S2_C5_P7_ID = 'jtw-s2-c5-p7';
+export const JTW_S2_C5_P8_ID = 'jtw-s2-c5-p8';
+export const JTW_S2_C6_P1_ID = 'jtw-s2-c6-p1';
+export const JTW_S2_C6_P2_ID = 'jtw-s2-c6-p2';
+export const JTW_S2_C6_P3_ID = 'jtw-s2-c6-p3';
+export const JTW_S2_C6_P4_ID = 'jtw-s2-c6-p4';
+export const JTW_S2_C6_P5_ID = 'jtw-s2-c6-p5';
+export const JTW_S2_C6_P6_ID = 'jtw-s2-c6-p6';
+export const JTW_S2_C6_P7_ID = 'jtw-s2-c6-p7';
+export const JTW_S2_C6_P8_ID = 'jtw-s2-c6-p8';
 
 export const JTW_S2_BATCH_PART_IDS = [
-  JTW_S2_C1_P3_ID, JTW_S2_C1_P4_ID, JTW_S2_C1_P5_ID, JTW_S2_C1_P6_ID,
-  JTW_S2_C1_P7_ID, JTW_S2_C1_P8_ID, JTW_S2_C2_P1_ID, JTW_S2_C2_P2_ID,
-  JTW_S2_C2_P3_ID, JTW_S2_C2_P4_ID,
-  JTW_S2_C2_P5_ID, JTW_S2_C2_P6_ID,
-  JTW_S2_C2_P7_ID, JTW_S2_C2_P8_ID,
-  JTW_S2_C3_P1_ID, JTW_S2_C3_P2_ID, JTW_S2_C3_P3_ID, JTW_S2_C3_P4_ID,
-  JTW_S2_C3_P5_ID, JTW_S2_C3_P6_ID, JTW_S2_C3_P7_ID, JTW_S2_C3_P8_ID,
-  JTW_S2_C4_P1_ID, JTW_S2_C4_P2_ID, JTW_S2_C4_P3_ID,
-  JTW_S2_C4_P4_ID, JTW_S2_C4_P5_ID, JTW_S2_C4_P6_ID, JTW_S2_C4_P7_ID,
-  JTW_S2_C4_P8_ID, JTW_S2_C5_P1_ID, JTW_S2_C5_P2_ID, JTW_S2_C5_P3_ID,
-  JTW_S2_C5_P4_ID, JTW_S2_C5_P5_ID,
-  JTW_S2_C5_P6_ID, JTW_S2_C5_P7_ID, JTW_S2_C5_P8_ID,
-  JTW_S2_C6_P1_ID, JTW_S2_C6_P2_ID, JTW_S2_C6_P3_ID, JTW_S2_C6_P4_ID,
-  JTW_S2_C6_P5_ID, JTW_S2_C6_P6_ID, JTW_S2_C6_P7_ID, JTW_S2_C6_P8_ID,
-] as const
+  JTW_S2_C1_P3_ID,
+  JTW_S2_C1_P4_ID,
+  JTW_S2_C1_P5_ID,
+  JTW_S2_C1_P6_ID,
+  JTW_S2_C1_P7_ID,
+  JTW_S2_C1_P8_ID,
+  JTW_S2_C2_P1_ID,
+  JTW_S2_C2_P2_ID,
+  JTW_S2_C2_P3_ID,
+  JTW_S2_C2_P4_ID,
+  JTW_S2_C2_P5_ID,
+  JTW_S2_C2_P6_ID,
+  JTW_S2_C2_P7_ID,
+  JTW_S2_C2_P8_ID,
+  JTW_S2_C3_P1_ID,
+  JTW_S2_C3_P2_ID,
+  JTW_S2_C3_P3_ID,
+  JTW_S2_C3_P4_ID,
+  JTW_S2_C3_P5_ID,
+  JTW_S2_C3_P6_ID,
+  JTW_S2_C3_P7_ID,
+  JTW_S2_C3_P8_ID,
+  JTW_S2_C4_P1_ID,
+  JTW_S2_C4_P2_ID,
+  JTW_S2_C4_P3_ID,
+  JTW_S2_C4_P4_ID,
+  JTW_S2_C4_P5_ID,
+  JTW_S2_C4_P6_ID,
+  JTW_S2_C4_P7_ID,
+  JTW_S2_C4_P8_ID,
+  JTW_S2_C5_P1_ID,
+  JTW_S2_C5_P2_ID,
+  JTW_S2_C5_P3_ID,
+  JTW_S2_C5_P4_ID,
+  JTW_S2_C5_P5_ID,
+  JTW_S2_C5_P6_ID,
+  JTW_S2_C5_P7_ID,
+  JTW_S2_C5_P8_ID,
+  JTW_S2_C6_P1_ID,
+  JTW_S2_C6_P2_ID,
+  JTW_S2_C6_P3_ID,
+  JTW_S2_C6_P4_ID,
+  JTW_S2_C6_P5_ID,
+  JTW_S2_C6_P6_ID,
+  JTW_S2_C6_P7_ID,
+  JTW_S2_C6_P8_ID,
+] as const;
 
 export interface JtwS2PartConfig {
-  id: (typeof JTW_S2_BATCH_PART_IDS)[number]
-  nextId: string
-  chapter: string
-  part: string
-  scaffold: string
-  title: string
-  story: readonly string[]
-  question: string
-  options: readonly JtwEvidenceOption[]
-  template?: string
-  studioTitle?: string
-  extraQuestion?: string
-  extraOptions?: readonly JtwEvidenceOption[]
+  id: (typeof JTW_S2_BATCH_PART_IDS)[number];
+  nextId: string;
+  chapter: string;
+  part: string;
+  scaffold: string;
+  title: string;
+  story: readonly string[];
+  question: string;
+  options: readonly JtwEvidenceOption[];
+  template?: string;
+  studioTitle?: string;
+  extraQuestion?: string;
+  extraOptions?: readonly JtwEvidenceOption[];
 }
 
 export const JTW_S2_PART_CONFIGS: Record<string, JtwS2PartConfig> = {
   [JTW_S2_C1_P3_ID]: {
-    id: JTW_S2_C1_P3_ID, nextId: JTW_S2_C1_P4_ID, chapter: '第一章 · 长安的出发纸条', part: 'Part 3', scaffold: '离屏预测',
-    title: '先在桌面上走一遍',
-    story: ['玄奘把四张行动卡放在桌面：读路条、带行囊、过城门、停在第一座山下。', '小童指着最后一张问：“是到西天了吗？”玄奘摇头：“今天先在山下停住，再读下一张路条。”'],
-    question: '这段程序今天会停在哪里？',
-    options: [{ id: 'arrived-west', label: '已经到达西天', correct: false }, { id: 'mountain-stop', label: '停在第一座山下', correct: true }],
+    id: JTW_S2_C1_P3_ID,
+    nextId: JTW_S2_C1_P4_ID,
+    chapter: 'Chapter 1 · Departure note from Chang’an',
+    part: 'Part 3',
+    scaffold: 'Off-screen predictions',
+    title: 'Walk around the table first',
+    story: [
+      'Xuanzang puts four action cards on the table: read the route, carry the bag, pass the city gate and stop at the foot of the first mountain.',
+      'The child pointed at the last one and asked, "Have we arrived in the West?" Xuanzang shook his head: "Let\'s stop at the foot of the mountain today and then read the next road."',
+    ],
+    question: 'Where does this program stop today?',
+    options: [
+      { id: 'arrived-west', label: 'Already arrived in the West', correct: false },
+      { id: 'mountain-stop', label: 'Stop at the bottom of the first mountain', correct: true },
+    ],
   },
   [JTW_S2_C1_P4_ID]: {
-    id: JTW_S2_C1_P4_ID, nextId: JTW_S2_C1_P5_ID, chapter: '第一章 · 长安的出发纸条', part: 'Part 4', scaffold: 'Build 1',
-    title: '把三步真的跑起来', template: 'blocks_jtw_s2_c1_p4', studioTitle: '西游记 S2 · 三步到山下',
-    story: ['纸条不会自己走。玄奘要把“行囊带好、走三格、等一等、再走三格”接在 Start 和 End 中间。'],
-    question: '真实运行后，玄奘应该在哪里停下？',
-    options: [{ id: 'mountain-stop', label: '停在山下，不说已经走完全程', correct: true }, { id: 'pass-mountain', label: '越过山继续走', correct: false }],
+    id: JTW_S2_C1_P4_ID,
+    nextId: JTW_S2_C1_P5_ID,
+    chapter: 'Chapter 1 · Departure note from Chang’an',
+    part: 'Part 4',
+    scaffold: 'Build 1',
+    title: 'Really run the three steps',
+    template: 'blocks_jtw_s2_c1_p4',
+    studioTitle: 'Journey to the West S2 · Three steps to the bottom of the mountain',
+    story: [
+      'The note doesn\'t go away on its own. Xuanzang should be connected between Start and End with "Put your luggage, walk three squares, wait, and then walk three squares".',
+    ],
+    question: 'After the program runs, where should Xuanzang stop?',
+    options: [
+      {
+        id: 'mountain-stop',
+        label:
+          'Stopping at the bottom of the mountain, not to mention that we have completed the journey',
+        correct: true,
+      },
+      { id: 'pass-mountain', label: 'Keep walking over the mountain', correct: false },
+    ],
   },
   [JTW_S2_C1_P5_ID]: {
-    id: JTW_S2_C1_P5_ID, nextId: JTW_S2_C1_P6_ID, chapter: '第一章 · 长安的出发纸条', part: 'Part 5', scaffold: 'Build 2',
-    title: '让路牌自己回答', template: 'blocks_jtw_s2_c1_p5', studioTitle: '西游记 S2 · 会回答的五行山路牌',
-    story: ['玄奘在山下停住。路牌没有抢着说话；只有小童点它时，它才亮起来，说：“五行山。”', '山后传来很轻的声音，好像有人一直在等。'],
-    question: '点路牌时，谁的脚本应该启动？',
-    options: [{ id: 'sign-only', label: '只启动路牌的 On Tap 脚本', correct: true }, { id: 'everyone', label: '玄奘和路牌一起从头运行', correct: false }],
+    id: JTW_S2_C1_P5_ID,
+    nextId: JTW_S2_C1_P6_ID,
+    chapter: 'Chapter 1 · Departure note from Chang’an',
+    part: 'Part 5',
+    scaffold: 'Build 2',
+    title: 'Let the road signs answer their own questions',
+    template: 'blocks_jtw_s2_c1_p5',
+    studioTitle: 'Journey to the West S2 · Will answer Five Elements Mountain street sign',
+    story: [
+      'Xuanzang stopped at the foot of the mountain. The street sign didn\'t rush to speak; only when a child clicked on it did it light up and say: "Five Elements Mountain."',
+      'There was a soft sound from behind the mountain, as if someone had been waiting.',
+    ],
+    question: 'Whose script should be launched when clicking on a street sign?',
+    options: [
+      { id: 'sign-only', label: 'Start the On Tap script for street signs only', correct: true },
+      { id: 'everyone', label: 'Xuanzang runs from scratch with street signs', correct: false },
+    ],
   },
   [JTW_S2_C1_P6_ID]: {
-    id: JTW_S2_C1_P6_ID, nextId: JTW_S2_C1_P7_ID, chapter: '第一章 · 长安的出发纸条', part: 'Part 6', scaffold: 'Debug',
-    title: '“到了”说得太早了', template: 'blocks_jtw_s2_c1_p6', studioTitle: '西游记 S2 · 修好提前到达',
-    story: ['错误版本把第二次走路放在等待前面，玄奘一下冲到山下，停顿却落在了终点。', '先说清预期和实际，再只移动 Wait 2，让停顿回到两段路中间。'],
-    question: '预期和实际的第一处不同是什么？',
-    options: [{ id: 'wait-middle', label: '预期在两段路中间等，实际先走完才等', correct: true }, { id: 'wrong-bag', label: '行囊文字写错了', correct: false }],
+    id: JTW_S2_C1_P6_ID,
+    nextId: JTW_S2_C1_P7_ID,
+    chapter: 'Chapter 1 · Departure note from Chang’an',
+    part: 'Part 6',
+    scaffold: 'Debug',
+    title: '"Arrived" is said too soon',
+    template: 'blocks_jtw_s2_c1_p6',
+    studioTitle: 'Journey to the West S2 · Repaired and arrived early',
+    story: [
+      'The wrong version puts the second walk before waiting. Xuanzang rushes down the mountain in one go, but pauses at the end.',
+      'First clarify the expectations and actuals, and then move only Wait 2 so that the pause returns to the middle of the two sections.',
+    ],
+    question: 'What is the first difference between expectations and reality?',
+    options: [
+      {
+        id: 'wait-middle',
+        label:
+          'I was expected to wait in the middle of the two sections, but actually I finished walking first and then waited.',
+        correct: true,
+      },
+      { id: 'wrong-bag', label: 'The text on the luggage is wrong', correct: false },
+    ],
   },
   [JTW_S2_C1_P7_ID]: {
-    id: JTW_S2_C1_P7_ID, nextId: JTW_S2_C1_P8_ID, chapter: '第一章 · 长安的出发纸条', part: 'Part 7', scaffold: 'Personal Ship',
-    title: '我的第一次西行出发', template: 'blocks_jtw_s2_c1_p7', studioTitle: 'My First Westward Departure',
-    story: ['这一次，行囊和步速由你决定：水壶、书卷或围巾；慢慢走或正常走。', '保存后关掉工作区，再重新打开并运行。请同伴复述三步；如果第二步和第三步颠倒，就回去修改。'],
-    question: '同伴复述的三步顺序应该是？',
-    options: [{ id: 'bag-gate-mountain', label: '带行囊 → 过城门 → 停在山下', correct: true }, { id: 'bag-mountain-gate', label: '带行囊 → 停在山下 → 过城门', correct: false }],
-    extraQuestion: '你完成持久化检查了吗？',
-    extraOptions: [{ id: 'reopened-reran', label: '已保存、关闭、重新打开并再次运行', correct: true }, { id: 'only-dragged', label: '只拖了积木，没有重新运行', correct: false }],
+    id: JTW_S2_C1_P7_ID,
+    nextId: JTW_S2_C1_P8_ID,
+    chapter: 'Chapter 1 · Departure note from Chang’an',
+    part: 'Part 7',
+    scaffold: 'Personal Ship',
+    title: 'My first trip westward',
+    template: 'blocks_jtw_s2_c1_p7',
+    studioTitle: 'My First Westward Departure',
+    story: [
+      'This time, it’s up to you to pack and pace: water bottle, book or scarf; walk slowly or walk normally.',
+      'After saving, close the workspace, reopen it and run it. Ask your partner to repeat the three steps; if the second and third steps are reversed, go back and revise them.',
+    ],
+    question: 'What should be the three-step sequence for peer retelling?',
+    options: [
+      {
+        id: 'bag-gate-mountain',
+        label: 'Bring your luggage → pass through the city gate → stop at the foot of the mountain',
+        correct: true,
+      },
+      {
+        id: 'bag-mountain-gate',
+        label: 'Bring your luggage → stop at the foot of the mountain → pass through the city gate',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'Have you completed the persistence check?',
+    extraOptions: [
+      { id: 'reopened-reran', label: 'Saved, closed, reopened and run again', correct: true },
+      {
+        id: 'only-dragged',
+        label: 'I only dragged the building blocks and did not re-run it.',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C1_P8_ID]: {
-    id: JTW_S2_C1_P8_ID, nextId: JTW_S2_C2_P1_ID, chapter: '第一章 · 长安的出发纸条', part: 'Part 8', scaffold: 'Retell',
-    title: '山下传来的声音',
-    story: ['玄奘在第一座山下停住。山石后传来声音，但这一章不急着救出任何人。', '他收好第一张路条，在旅程页上盖下“山下坐标”印章，准备先听清楚谁在等待。'],
-    question: '怎样用“因为—所以—程序—结果—后来”复述这一章？',
-    options: [{ id: 'causal-retell', label: '因为路很远，所以先拆三步；程序跑到山下；后来听见等待的声音', correct: true }, { id: 'magic-arrival', label: '因为按了按钮，所以一下走完全程并救出悟空', correct: false }],
-    extraQuestion: '这一章保存的坐标印章是？',
-    extraOptions: [{ id: 'mountain-coordinate', label: '第一座山下', correct: true }, { id: 'west-destination', label: '西天终点', correct: false }],
+    id: JTW_S2_C1_P8_ID,
+    nextId: JTW_S2_C2_P1_ID,
+    chapter: 'Chapter 1 · Departure note from Chang’an',
+    part: 'Part 8',
+    scaffold: 'Retell',
+    title: 'The sound coming from the mountain',
+    story: [
+      'Xuanzang stopped at the foot of the first mountain. There was a voice coming from behind the rocks, but this chapter was not in a hurry to rescue anyone.',
+      'He put away the first road note and stamped "Mountain Coordinates" on the journey page, preparing to hear clearly who was waiting.',
+    ],
+    question: 'How to retell this chapter using "because-so-procedure-result-later"?',
+    options: [
+      {
+        id: 'causal-retell',
+        label:
+          'Because the road is very far, we first split three steps; the program ran down the mountain; then I heard the sound of waiting.',
+        correct: true,
+      },
+      {
+        id: 'magic-arrival',
+        label:
+          'Because I pressed the button, I walked the entire distance in one go and rescued Wukong',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'What is the coordinate seal saved in this chapter?',
+    extraOptions: [
+      { id: 'mountain-coordinate', label: 'Under the first mountain', correct: true },
+      { id: 'west-destination', label: 'The end of the western sky', correct: false },
+    ],
   },
   [JTW_S2_C2_P1_ID]: {
-    id: JTW_S2_C2_P1_ID, nextId: JTW_S2_C2_P2_ID, chapter: '第二章 · 山下是谁在等', part: 'Part 1', scaffold: 'Read',
-    title: '一个人在走，一个人在等',
-    story: ['玄奘翻回旅程页：印章停在第一座山下。山路上有一串绿色脚印，石缝里有一圈安静的等待光。', '脚印属于能继续走的玄奘；等待光属于暂时还不能离开的悟空。'],
-    question: '现在谁能走，谁在等待？',
-    options: [{ id: 'xuanzang-walks', label: '玄奘能走，悟空在山下等待', correct: true }, { id: 'wukong-walks', label: '悟空先离开，玄奘留在石缝里', correct: false }],
+    id: JTW_S2_C2_P1_ID,
+    nextId: JTW_S2_C2_P2_ID,
+    chapter: 'Chapter 2 · Who is waiting at the foot of the mountain?',
+    part: 'Part 1',
+    scaffold: 'Read',
+    title: 'One is walking, one is waiting',
+    story: [
+      'Xuanzang Turn back to the journey page: The seal stops at the foot of the first mountain. There is a string of green footprints on the mountain road, and there is a quiet circle waiting for the light in the crevices of the rocks.',
+      'The footprints belong to Xuanzang who can continue walking; waiting for the light belongs to Wukong who cannot leave yet.',
+    ],
+    question: 'Who can leave now and who is waiting?',
+    options: [
+      {
+        id: 'xuanzang-walks',
+        label: 'Xuanzang can walk, Wukong is waiting at the foot of the mountain',
+        correct: true,
+      },
+      {
+        id: 'wukong-walks',
+        label: 'Wukong leaves first, Xuanzang stays in the crevices of the rocks',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C2_P2_ID]: {
-    id: JTW_S2_C2_P2_ID, nextId: JTW_S2_C2_P3_ID, chapter: '第二章 · 山下是谁在等', part: 'Part 2', scaffold: 'Why',
-    title: '为什么两个人不一起启动',
-    story: ['玄奘听见声音，想靠近看清楚；悟空已经在山下等了很久，想让来人听见自己。', '两个人的愿望不同，启动方式也不同：Start 管玄奘的行走，On Tap 管悟空的回应。'],
-    question: '哪一句理由来自人物愿望？',
-    options: [{ id: 'different-motives', label: '玄奘想靠近，悟空想回应，所以用不同事件', correct: true }, { id: 'system-rule', label: '因为系统规定，所以必须分开', correct: false }],
-    extraQuestion: '两个事件标签分别属于谁？',
-    extraOptions: [{ id: 'start-x-tap-w', label: 'Start → 玄奘；On Tap → 悟空', correct: true }, { id: 'start-both', label: 'Start → 两个人同时运行', correct: false }],
+    id: JTW_S2_C2_P2_ID,
+    nextId: JTW_S2_C2_P3_ID,
+    chapter: 'Chapter 2 · Who is waiting at the foot of the mountain?',
+    part: 'Part 2',
+    scaffold: 'Why',
+    title: "Why don't the two of them start together?",
+    story: [
+      'Xuanzang heard the sound and wanted to get closer to see clearly; Wukong had been waiting at the foot of the mountain for a long time, hoping that the visitor would hear him.',
+      "The two people have different wishes and different starting methods: Start is responsible for Xuanzang's walking, and On Tap is responsible for Wukong's response.",
+    ],
+    question: "Which reason comes from the character's wish?",
+    options: [
+      {
+        id: 'different-motives',
+        label: 'Xuanzang wants to get closer, Wukong wants to respond, so use different events',
+        correct: true,
+      },
+      {
+        id: 'system-rule',
+        label: 'Because of system regulations, they must be separated',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'Who do the two event labels belong to?',
+    extraOptions: [
+      { id: 'start-x-tap-w', label: 'Start → Xuanzang；On Tap → Wukong', correct: true },
+      { id: 'start-both', label: 'Start → Two people run at the same time', correct: false },
+    ],
   },
   [JTW_S2_C2_P3_ID]: {
-    id: JTW_S2_C2_P3_ID, nextId: JTW_S2_C2_P4_ID, chapter: '第二章 · 山下是谁在等', part: 'Part 3', scaffold: '离屏预测',
-    title: '两把不同的启动钥匙',
-    story: ['桌面上有一面绿旗和一张悟空卡。举绿旗时，只有玄奘沿脚印走；点悟空卡时，只有悟空回应。', '如果两个人一举旗就同时说话，观众就分不清是谁先靠近、谁一直在等。'],
-    question: '正确的事件隔离是什么？',
-    options: [{ id: 'isolated-events', label: '绿旗只启动玄奘；点悟空只启动悟空', correct: true }, { id: 'simultaneous', label: '绿旗让两个人同时启动', correct: false }],
+    id: JTW_S2_C2_P3_ID,
+    nextId: JTW_S2_C2_P4_ID,
+    chapter: 'Chapter 2 · Who is waiting at the foot of the mountain?',
+    part: 'Part 3',
+    scaffold: 'Off-screen predictions',
+    title: 'Two different starting keys',
+    story: [
+      'There is a green flag and a Wukong card on the table. When the green flag is raised, only Xuanzang follows the footprints; when the Wukong card is clicked, only Wukong responds.',
+      'If two people speak at the same time as soon as they raise the flag, the audience will not be able to tell who approached first and who has been waiting.',
+    ],
+    question: 'What is the correct event isolation?',
+    options: [
+      {
+        id: 'isolated-events',
+        label: 'Green flag only starts Xuanzang; click Wukong only starts Wukong',
+        correct: true,
+      },
+      {
+        id: 'simultaneous',
+        label: 'Green flag lets two people start at the same time',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C2_P4_ID]: {
-    id: JTW_S2_C2_P4_ID, nextId: JTW_S2_C2_P5_ID, chapter: '第二章 · 山下是谁在等', part: 'Part 4', scaffold: 'Build 1',
-    title: '走近声音，但不替悟空回答', template: 'blocks_jtw_s2_c2_p4', studioTitle: '西游记 S2 · 是谁在说话',
-    story: ['玄奘沿脚印走三格，停下来听两拍，再问：“是谁在说话？”', '这次只搭玄奘的 Start 脚本；悟空的 On Tap 仍保持安静，留给下一次互动。'],
-    question: '运行绿旗后，舞台应该怎样？',
-    options: [{ id: 'xuanzang-asks', label: '玄奘停在山旁发问，悟空没有自动回答', correct: true }, { id: 'wukong-auto', label: '悟空自动跳出来回答', correct: false }],
+    id: JTW_S2_C2_P4_ID,
+    nextId: JTW_S2_C2_P5_ID,
+    chapter: 'Chapter 2 · Who is waiting at the foot of the mountain?',
+    part: 'Part 4',
+    scaffold: 'Build 1',
+    title: "Approach the sound, but don't answer for Wukong",
+    template: 'blocks_jtw_s2_c2_p4',
+    studioTitle: 'Journey to the West S2 · Who is speaking?',
+    story: [
+      'Xuanzang Walk three spaces along the footprints, stop and listen to two beats, and then ask: "Who is talking?"',
+      'This time only the Start script of Xuanzang is used; the On Tap of Wukong remains quiet and is left for the next interaction.',
+    ],
+    question: 'What should the stage look like after running the green flag?',
+    options: [
+      {
+        id: 'xuanzang-asks',
+        label: 'Xuanzang stopped by the mountain and asked, Wukong did not answer automatically.',
+        correct: true,
+      },
+      { id: 'wukong-auto', label: 'Wukong automatically pops up to answer', correct: false },
+    ],
   },
   [JTW_S2_C2_P5_ID]: {
-    id: JTW_S2_C2_P5_ID, nextId: 'jtw-s2-c2-p6', chapter: '第二章 · 山下是谁在等', part: 'Part 5', scaffold: 'Build 2',
-    title: '询问以后，悟空才回应', template: 'blocks_jtw_s2_c2_p5', studioTitle: '西游记 S2 · 询问以后再回应',
-    story: ['玄奘已经停在山边问：“是谁在说话？”小童先点悟空的淡色身影，山缝亮了，却没有回答。', '把 Show、回答和 Hop 接在悟空的 On Tap 与 End 中间。先按 Go 听完玄奘询问，再点悟空；两组脚印才会汇成一条。'],
-    question: '哪一种运行顺序能证明回应发生在询问以后？',
-    options: [{ id: 'go-then-tap', label: '先 Go 让玄奘询问，再点悟空回应', correct: true }, { id: 'start-both', label: '一按 Go，两个人同时说话', correct: false }],
+    id: JTW_S2_C2_P5_ID,
+    nextId: 'jtw-s2-c2-p6',
+    chapter: 'Chapter 2 · Who is waiting at the foot of the mountain?',
+    part: 'Part 5',
+    scaffold: 'Build 2',
+    title: 'After asking, Wukong responded',
+    template: 'blocks_jtw_s2_c2_p5',
+    studioTitle: 'Journey to the West S2 · Ask and respond later',
+    story: [
+      'Xuanzang had stopped at the edge of the mountain and asked: "Who is talking?" The child clicked on Wukong\'s pale figure first, and the cracks in the mountain lit up, but there was no answer.',
+      "Connect Show, Answer and Hop between On Tap and End of Wukong. Press Go first and listen to Xuanzang's inquiry, then click Wukong; the two sets of footprints will merge into one.",
+    ],
+    question:
+      'Which sequence of operations would prove that the response occurred after the query?',
+    options: [
+      {
+        id: 'go-then-tap',
+        label: 'First Go to ask Xuanzang, then click Wukong to respond',
+        correct: true,
+      },
+      {
+        id: 'start-both',
+        label: 'Press Go and two people can talk at the same time',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C2_P6_ID]: {
-    id: JTW_S2_C2_P6_ID, nextId: 'jtw-s2-c2-p7', chapter: '第二章 · 山下是谁在等', part: 'Part 6', scaffold: 'Debug',
-    title: '谁回答得太早？', template: 'blocks_jtw_s2_c2_p6', studioTitle: '西游记 S2 · 修好提前回答',
-    story: ['一阵风把悟空脚本最上面的 On Tap 换成了 Start。按 Go 后，玄奘还没问完，悟空已经显现、回答又跳了一下。', '先运行错误版并找出“悟空太早”，只把他的事件换回 On Tap。保存后先只 Go，再点悟空，比较两个事件的不同结果。'],
-    question: '错误 Go 中，哪位角色发生得太早？',
-    options: [{ id: 'wukong-too-early', label: '悟空在玄奘询问前就回答了', correct: true }, { id: 'xuanzang-too-early', label: '玄奘不该走近山边', correct: false }],
-    extraQuestion: '修复后怎样做两次回归测试？',
-    extraOptions: [{ id: 'fixed-go-then-tap', label: '第一次只 Go，看悟空等待；第二次再点悟空', correct: true }, { id: 'tap-only', label: '只点悟空，不再测试 Go', correct: false }],
+    id: JTW_S2_C2_P6_ID,
+    nextId: 'jtw-s2-c2-p7',
+    chapter: 'Chapter 2 · Who is waiting at the foot of the mountain?',
+    part: 'Part 6',
+    scaffold: 'Debug',
+    title: 'Who answered too early?',
+    template: 'blocks_jtw_s2_c2_p6',
+    studioTitle: 'Journey to the West S2 · Fixed Answer in advance',
+    story: [
+      'A gust of wind replaced On Tap at the top of the Wukong script with Start. After pressing Go, before Xuanzang finished asking, Wukong appeared and the answer jumped again.',
+      'Run the error version first and find "Wukong too early" and just change his event back to On Tap. After saving, just Go first, then click Wukong to compare the different results of the two events.',
+    ],
+    question: "Which character's mistake happens too early in Go?",
+    options: [
+      { id: 'wukong-too-early', label: 'Wukong answered before Xuanzang asked', correct: true },
+      {
+        id: 'xuanzang-too-early',
+        label: 'Xuanzangshould not go near the mountainside',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'How to do two regression tests after repair?',
+    extraOptions: [
+      {
+        id: 'fixed-go-then-tap',
+        label:
+          'The first time you just go, watch Wukong and wait; the second time you click Wukong',
+        correct: true,
+      },
+      { id: 'tap-only', label: 'Just click Wukong and no longer test Go', correct: false },
+    ],
   },
   [JTW_S2_C2_P7_ID]: {
-    id: JTW_S2_C2_P7_ID, nextId: JTW_S2_C2_P8_ID, chapter: '第二章 · 山下是谁在等', part: 'Part 7', scaffold: 'Personal Ship',
-    title: '悟空离山后的第一步', template: 'blocks_jtw_s2_c2_p7', studioTitle: 'My First Step West',
-    story: ['玄奘的询问路线保持不变。这一次由你决定悟空现身后说什么，以及用跳一下还是转一下表示准备同行。', '先 Go 听完询问，再 Tap 悟空。保存、关闭、重开并再次运行，请同伴说出两个事件的先后。'],
-    question: '同伴应该怎样复述两个事件？',
-    options: [{ id: 'ask-then-answer', label: '玄奘先询问，悟空被点后才显现回应', correct: true }, { id: 'answer-first', label: '悟空先自动回答，玄奘后来才靠近', correct: false }],
-    extraQuestion: '你完成持久化检查了吗？',
-    extraOptions: [{ id: 'reopened-reran', label: '已保存、关闭、重开，先 Go 再 Tap', correct: true }, { id: 'drag-only', label: '只搭好积木，没有重新运行', correct: false }],
+    id: JTW_S2_C2_P7_ID,
+    nextId: JTW_S2_C2_P8_ID,
+    chapter: 'Chapter 2 · Who is waiting at the foot of the mountain?',
+    part: 'Part 7',
+    scaffold: 'Personal Ship',
+    title: "Wukong's first step after leaving the mountain",
+    template: 'blocks_jtw_s2_c2_p7',
+    studioTitle: 'My First Step West',
+    story: [
+      "The line of inquiry for Xuanzang remains unchanged. This time it's up to you to decide what to say after Wukong appears, and whether to jump or turn to indicate that you're ready to go.",
+      'Go first and listen to the inquiry, then Tap Wukong. Save, close, reopen and run again, and ask your partner to tell the sequence of the two events.',
+    ],
+    question: 'How should the companion retell the two events?',
+    options: [
+      {
+        id: 'ask-then-answer',
+        label: 'Xuanzang asks first, and the response will appear after Wukong is clicked.',
+        correct: true,
+      },
+      {
+        id: 'answer-first',
+        label: 'Wukong answered automatically first, Xuanzang came closer later',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'Have you completed the persistence check?',
+    extraOptions: [
+      { id: 'reopened-reran', label: 'Saved, closed, reopened, Go then Tap', correct: true },
+      { id: 'drag-only', label: 'Only building blocks, no re-running', correct: false },
+    ],
   },
   [JTW_S2_C2_P8_ID]: {
-    id: JTW_S2_C2_P8_ID, nextId: JTW_S2_C3_P1_ID, chapter: '第二章 · 山下是谁在等', part: 'Part 8', scaffold: 'Retell',
-    title: '两种事件汇成同行的路',
-    story: ['玄奘沿脚印靠近并询问；悟空一直等到有人点他，才显现并说出自己的愿望。', '旅程页把两组事件脚印盖成“双事件脚印印章”，但不会替你新建答案工程。'],
-    question: '怎样因果复述这一章？',
-    options: [{ id: 'dual-event-retell', label: '因为两人愿望不同，所以分用 Go 与 Tap；询问后才回应，后来决定同行', correct: true }, { id: 'one-start-retell', label: '因为都在同一页，所以 Go 时两人同时说话', correct: false }],
-    extraQuestion: '读回的作品应该来自哪里？',
-    extraOptions: [{ id: 'read-p7', label: '来自 P7 保存并真实运行的个人作品', correct: true }, { id: 'new-answer-project', label: '复述页另造一份标准答案工程', correct: false }],
+    id: JTW_S2_C2_P8_ID,
+    nextId: JTW_S2_C3_P1_ID,
+    chapter: 'Chapter 2 · Who is waiting at the foot of the mountain?',
+    part: 'Part 8',
+    scaffold: 'Retell',
+    title: 'Two events merge into a path together',
+    story: [
+      'Xuanzang approached along the footprints and asked; Wukong waited until someone clicked on him before appearing and telling his wish.',
+      'The journey page stamps the two sets of event footprints into "double event footprint stamps", but will not create a new answer project for you.',
+    ],
+    question: 'How to retell this chapter causally?',
+    options: [
+      {
+        id: 'dual-event-retell',
+        label:
+          'Because the two had different wishes, they used Go and Tap respectively; they only responded after asking, and later decided to go together.',
+        correct: true,
+      },
+      {
+        id: 'one-start-retell',
+        label: 'Because they are both on the same page, they both talk at the same time during Go.',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'Where should the work being read back come from?',
+    extraOptions: [
+      { id: 'read-p7', label: 'Personal works saved and actually run from P7', correct: true },
+      {
+        id: 'new-answer-project',
+        label: 'Create another standard answer project for the retelling page',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C3_P1_ID]: {
-    id: JTW_S2_C3_P1_ID, nextId: JTW_S2_C3_P2_ID, chapter: '第三章 · 鹰愁涧的水纹', part: 'Part 1', scaffold: 'Read',
-    title: '窄路旁的三条线索',
-    story: ['师徒来到鹰愁涧。行囊变沉，山路变窄，水面却闪过一道白色影子。', '悟空没有立刻下结论，而是把重行囊、窄路和白色倒影逐一记下。'],
-    question: '哪三条都是眼前可见的线索？',
-    options: [{ id: 'three-clues', label: '重行囊、窄路、白色倒影', correct: true }, { id: 'horse-known', label: '已经知道倒影一定是白龙马', correct: false }],
+    id: JTW_S2_C3_P1_ID,
+    nextId: JTW_S2_C3_P2_ID,
+    chapter: 'Chapter 3 · Water patterns of Eagle Sorrow Stream',
+    part: 'Part 1',
+    scaffold: 'Read',
+    title: 'Three clues on the narrow road',
+    story: [
+      'The master and apprentice came to Eagle Sorrow Stream. The luggage became heavier, the mountain road became narrower, but a white shadow flashed across the water.',
+      'Wukong did not draw a conclusion immediately, but wrote down the heavy luggage, the narrow road and the white reflection one by one.',
+    ],
+    question: 'Which three are visible clues?',
+    options: [
+      { id: 'three-clues', label: 'Heavy luggage, narrow road, white reflection', correct: true },
+      {
+        id: 'horse-known',
+        label: 'Already know that the reflection must be White Dragon Horse',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C3_P2_ID]: {
-    id: JTW_S2_C3_P2_ID, nextId: JTW_S2_C3_P3_ID, chapter: '第三章 · 鹰愁涧的水纹', part: 'Part 2', scaffold: 'Why',
-    title: '为什么先稳住再观察',
-    story: ['玄奘想稳稳带好行囊，悟空想先看清水纹来自哪里。', '他们没有冲进水里，而是先沿窄路走到石边，让碰撞产生新的可见线索。'],
-    question: '为什么先稳住行囊、再观察路线？',
-    options: [{ id: 'safe-observe', label: '窄路需要稳住负担，未知倒影需要先收集证据', correct: true }, { id: 'system-rule', label: '因为系统规定必须这么做', correct: false }],
+    id: JTW_S2_C3_P2_ID,
+    nextId: JTW_S2_C3_P3_ID,
+    chapter: 'Chapter 3 · Water patterns of Eagle Sorrow Stream',
+    part: 'Part 2',
+    scaffold: 'Why',
+    title: 'Why stabilize first and then observe?',
+    story: [
+      'Xuanzang wants to pack his luggage safely, Wukong wants to see where the water pattern comes from first.',
+      'Instead of rushing into the water, they first walked along the narrow path to the edge of the stone, allowing the collision to create new visible clues.',
+    ],
+    question: 'Why secure your luggage first and then observe the route?',
+    options: [
+      {
+        id: 'safe-observe',
+        label:
+          'The narrow road requires steadying the burden, and the unknown reflection requires collecting evidence first.',
+        correct: true,
+      },
+      {
+        id: 'system-rule',
+        label: 'Because the system stipulates that this must be done',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C3_P3_ID]: {
-    id: JTW_S2_C3_P3_ID, nextId: JTW_S2_C3_P4_ID, chapter: '第三章 · 鹰愁涧的水纹', part: 'Part 3', scaffold: '离屏预测',
-    title: '走几格才会碰到水纹石',
-    story: ['悟空站在第 2 格，水纹石在第 6 格。桌面程序只写 Right 4。', '小童先在方格纸上移动四次，再预测碰撞事件会不会被触发。'],
-    question: 'Right 4 运行后会发生什么？',
-    options: [{ id: 'touch-stone', label: '悟空到第 6 格碰到石头，触发水纹', correct: true }, { id: 'short', label: '悟空只到第 5 格，不会碰到石头', correct: false }],
+    id: JTW_S2_C3_P3_ID,
+    nextId: JTW_S2_C3_P4_ID,
+    chapter: 'Chapter 3 · Water patterns of Eagle Sorrow Stream',
+    part: 'Part 3',
+    scaffold: 'Off-screen predictions',
+    title: 'Go a few blocks before you encounter a rhinestone',
+    story: [
+      'Wukong stands on the 2nd square, and the rhodolite is on the 6th square. Desktop programs only write Right 4.',
+      'The child first moves four times on the graph paper and then predicts whether the collision event will be triggered.',
+    ],
+    question: 'What happens after Right 4 is run?',
+    options: [
+      {
+        id: 'touch-stone',
+        label: 'Wukong Go to the 6th square and touch the stone to trigger the water pattern.',
+        correct: true,
+      },
+      {
+        id: 'short',
+        label: 'Wukong reaches only square 5, so he does not touch the stone',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C3_P4_ID]: {
-    id: JTW_S2_C3_P4_ID, nextId: JTW_S2_C3_P5_ID, chapter: '第三章 · 鹰愁涧的水纹', part: 'Part 4', scaffold: 'Build 1',
-    title: '让碰撞留下水纹证据', template: 'blocks_jtw_s2_c3_p4', studioTitle: '西游记 S2 · 鹰愁涧水纹',
-    story: ['悟空向右走四格，说“这里有水纹”，等待两拍。碰到水纹石时，石头变大并响起 Chime。'],
-    question: '哪一个结果证明真的发生了碰撞？',
-    options: [{ id: 'ripple-chime', label: '石头变大并响起 Chime', correct: true }, { id: 'speech-only', label: '只看见悟空说话就算碰撞', correct: false }],
+    id: JTW_S2_C3_P4_ID,
+    nextId: JTW_S2_C3_P5_ID,
+    chapter: 'Chapter 3 · Water patterns of Eagle Sorrow Stream',
+    part: 'Part 4',
+    scaffold: 'Build 1',
+    title: 'Let the collision leave evidence of water marks',
+    template: 'blocks_jtw_s2_c3_p4',
+    studioTitle: 'Journey to the West S2 · Eagle Sorrow Stream water pattern',
+    story: [
+      'Wukong Go four squares to the right, say "There are water patterns here", and wait for two beats. When touching a hydrolite, the stone grows in size and chimes.',
+    ],
+    question: 'Which result proves that a collision actually occurred?',
+    options: [
+      { id: 'ripple-chime', label: 'The stone grows larger and sounds Chime', correct: true },
+      {
+        id: 'speech-only',
+        label: 'Just seeing Wukong talking is considered a collision',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C3_P5_ID]: {
-    id: JTW_S2_C3_P5_ID, nextId: JTW_S2_C3_P6_ID, chapter: '第三章 · 鹰愁涧的水纹', part: 'Part 5', scaffold: 'Build 2',
-    title: '让白色倒影回应碰撞', template: 'blocks_jtw_s2_c3_p5', studioTitle: '西游记 S2 · 白龙马现身',
-    story: ['保留悟空和水纹石的程序。碰撞发生后，白色倒影显现，说“我愿意同行”，再跳一下。'],
-    question: '白龙马为什么使用 On Bump？',
-    options: [{ id: 'responds-to-clue', label: '它的现身是对碰撞线索的回应', correct: true }, { id: 'always-visible', label: '它应该从一开始就自动出现', correct: false }],
+    id: JTW_S2_C3_P5_ID,
+    nextId: JTW_S2_C3_P6_ID,
+    chapter: 'Chapter 3 · Water patterns of Eagle Sorrow Stream',
+    part: 'Part 5',
+    scaffold: 'Build 2',
+    title: 'Let the white reflection respond to the collision',
+    template: 'blocks_jtw_s2_c3_p5',
+    studioTitle: 'Journey to the West S2 · White Dragon Horse appears',
+    story: [
+      'Preserve the procedures for Wukong and rhodonite. After the collision, a white reflection appeared, saying "I am willing to go together" and jumping again.',
+    ],
+    question: 'White Dragon HorseWhy use On Bump?',
+    options: [
+      {
+        id: 'responds-to-clue',
+        label: 'Its appearance is a response to collision cues',
+        correct: true,
+      },
+      {
+        id: 'always-visible',
+        label: 'It should appear automatically from the beginning',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C3_P6_ID]: {
-    id: JTW_S2_C3_P6_ID, nextId: JTW_S2_C3_P7_ID, chapter: '第三章 · 鹰愁涧的水纹', part: 'Part 6', scaffold: 'Debug',
-    title: '差一格，水纹没有出现', template: 'blocks_jtw_s2_c3_p6', studioTitle: '西游记 S2 · 修好差一格',
-    story: ['错误版只走 Right 3，悟空停在石头旁边，没有真正碰到。先按 Go 看见“差一格”，再把距离改回 4 并重跑。'],
-    question: '错误运行与预期的第一处不同是什么？',
-    options: [{ id: 'one-cell-short', label: '实际停在第 5 格，预期到第 6 格触发碰撞', correct: true }, { id: 'wrong-speech', label: '对白文字写错了', correct: false }],
-    extraQuestion: '修复后怎样做回归测试？',
-    extraOptions: [{ id: 'rerun-bump', label: '改成 Right 4，再 Go，确认水纹和白龙马都回应', correct: true }, { id: 'edit-only', label: '只改数字，不再运行', correct: false }],
+    id: JTW_S2_C3_P6_ID,
+    nextId: JTW_S2_C3_P7_ID,
+    chapter: 'Chapter 3 · Water patterns of Eagle Sorrow Stream',
+    part: 'Part 6',
+    scaffold: 'Debug',
+    title: 'Just one frame missing, the water pattern didn’t appear.',
+    template: 'blocks_jtw_s2_c3_p6',
+    studioTitle: 'Journey to the West S2 · One space short of repair',
+    story: [
+      'The wrong version only takes Right 3, and Wukong stops next to the stone without actually touching it. First press Go and see "One space missing", then change the distance back to 4 and run again.',
+    ],
+    question: 'What is the first difference between the error and the expected behavior?',
+    options: [
+      {
+        id: 'one-cell-short',
+        label:
+          'It actually stops at the 5th square, and the collision is expected to be triggered at the 6th square.',
+        correct: true,
+      },
+      { id: 'wrong-speech', label: 'The dialogue text is wrong', correct: false },
+    ],
+    extraQuestion: 'How to do regression testing after repair?',
+    extraOptions: [
+      {
+        id: 'rerun-bump',
+        label:
+          'Change to Right 4, then Go, confirm that both water patterns and White Dragon Horse respond',
+        correct: true,
+      },
+      { id: 'edit-only', label: 'Only change the numbers, no more running', correct: false },
+    ],
   },
   [JTW_S2_C3_P7_ID]: {
-    id: JTW_S2_C3_P7_ID, nextId: JTW_S2_C3_P8_ID, chapter: '第三章 · 鹰愁涧的水纹', part: 'Part 7', scaffold: 'Personal Ship',
-    title: '我的水纹距离和欢迎动作', template: 'blocks_jtw_s2_c3_p7', studioTitle: 'My Eagle Sorrow Stream Discovery',
-    story: ['把水纹石放在第 5、6 或 7 格，并让悟空的距离与它对齐。再从“跳一下欢迎”或“变大后恢复并稳稳同行”中选择一种回应。', '保存、关闭、重开并运行，请同伴复述你的距离和回应版本。'],
-    question: '怎样证明距离设计没有靠猜？',
-    options: [{ id: 'distance-matches', label: '石头位置减去悟空起点，正好等于 Right 的格数', correct: true }, { id: 'any-distance', label: '任意距离都能触发碰撞', correct: false }],
-    extraQuestion: '持久化与同伴检查完成了吗？',
-    extraOptions: [{ id: 'peer-reopen', label: '已保存、重开、重跑，并让同伴复述选择', correct: true }, { id: 'not-rerun', label: '只选择版本，没有重开重跑', correct: false }],
+    id: JTW_S2_C3_P7_ID,
+    nextId: JTW_S2_C3_P8_ID,
+    chapter: 'Chapter 3 · Water patterns of Eagle Sorrow Stream',
+    part: 'Part 7',
+    scaffold: 'Personal Ship',
+    title: 'My water mark distance and welcome action',
+    template: 'blocks_jtw_s2_c3_p7',
+    studioTitle: 'My Eagle Sorrow Stream Discovery',
+    story: [
+      'Place the rhodolite in the 5th, 6th or 7th space aligned with it at a distance of Wukong. Then choose a response from "Bounce to welcome" or "Get bigger and then recover and hold steady."',
+      'Save, close, reopen and run, asking a partner to retell your version of the distance and response.',
+    ],
+    question: 'How to prove that distance design is not based on guesswork?',
+    options: [
+      {
+        id: 'distance-matches',
+        label:
+          'The position of the stone minus the Wukong starting point is exactly equal to the number of Right cells.',
+        correct: true,
+      },
+      { id: 'any-distance', label: 'Collision can be triggered at any distance', correct: false },
+    ],
+    extraQuestion: 'Are persistence and peer checks completed?',
+    extraOptions: [
+      {
+        id: 'peer-reopen',
+        label: 'Saved, restarted, rerun, and had a companion repeat the choice',
+        correct: true,
+      },
+      { id: 'not-rerun', label: 'Only select version, no restart and rerun', correct: false },
+    ],
   },
   [JTW_S2_C3_P8_ID]: {
-    id: JTW_S2_C3_P8_ID, nextId: 'jtw-s2-c4-p1', chapter: '第三章 · 鹰愁涧的水纹', part: 'Part 8', scaffold: 'Retell',
-    title: '从倒影到同行伙伴',
-    story: ['重行囊和窄路让师徒放慢判断；水面白影只是线索。悟空走到石边触发水纹，白龙马才显现并表示愿意同行。', '旅程页盖下“碰撞水纹印章”，并读回 P7 的真实距离与欢迎版本。'],
-    question: '哪一句完整连接了原因、程序和结果？',
-    options: [{ id: 'stream-retell', label: '因为倒影未知，所以先走到石边；碰撞触发水纹，后来白龙马现身同行', correct: true }, { id: 'known-first', label: '因为早已知道答案，所以不用碰撞就让白龙马出现', correct: false }],
-    extraQuestion: '复述页使用哪份作品？',
-    extraOptions: [{ id: 'read-p7', label: '读取 P7 保存并运行过的个人作品', correct: true }, { id: 'standard-copy', label: '新建标准答案覆盖个人选择', correct: false }],
+    id: JTW_S2_C3_P8_ID,
+    nextId: 'jtw-s2-c4-p1',
+    chapter: 'Chapter 3 · Water patterns of Eagle Sorrow Stream',
+    part: 'Part 8',
+    scaffold: 'Retell',
+    title: 'From reflection to companion',
+    story: [
+      'Heavy luggage and narrow roads make masters and apprentices slow down their judgment; the white shadows on the water are just clues. Wukong walked to the edge of the stone to trigger the water pattern, and White Dragon Horse appeared and expressed his willingness to go with him.',
+      'The journey page is stamped with the "Colliding Water Seal" and read back to P7\'s version of True Distance and Welcome.',
+    ],
+    question: 'Which sentence completely connects cause, procedure, and effect?',
+    options: [
+      {
+        id: 'stream-retell',
+        label:
+          'Because the reflection was unknown, I walked to the edge of the stone first; the collision triggered water ripples, and later White Dragon Horse appeared and walked with me.',
+        correct: true,
+      },
+      {
+        id: 'known-first',
+        label:
+          'Because I already know the answer, I let White Dragon Horse appear without collision.',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'Which work is used for the retelling page?',
+    extraOptions: [
+      { id: 'read-p7', label: 'Read personal works saved and run by P7', correct: true },
+      {
+        id: 'standard-copy',
+        label: 'Create new standard answers to cover personal choices',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C4_P1_ID]: {
-    id: JTW_S2_C4_P1_ID, nextId: 'jtw-s2-c4-p2', chapter: '第四章 · 高老庄的传话练习', part: 'Part 1', scaffold: 'Read',
-    title: '蓝边路线卡送错了谁',
-    story: ['高老庄外，八戒拿着一张蓝边路线卡。他想加入西行队伍，也想证明自己能认真做队伍里的一份工作。', '可是他一着急，就把“去村口集合”说给了田边的风车。真正等消息的白龙马什么也没听见。悟空没有笑他，只把六张颜色卡排在地上：“我们先选一种大家都认得的信号。”'],
-    question: '八戒现在想证明什么？',
-    options: [{ id: 'check-and-deliver', label: '认真核对并把消息送到', correct: true }, { id: 'run-fastest', label: '自己跑得最快', correct: false }, { id: 'never-wrong', label: '自己从不犯错', correct: false }],
-    extraQuestion: '哪一处证明消息送错了对象？',
-    extraOptions: [{ id: 'windmill-not-horse', label: '风车听到，等消息的白龙马没听见', correct: true }, { id: 'horse-received', label: '白龙马已经收到并去了村口', correct: false }],
+    id: JTW_S2_C4_P1_ID,
+    nextId: 'jtw-s2-c4-p2',
+    chapter: 'Chapter 4 · Gao Laozhuang’s communication practice',
+    part: 'Part 1',
+    scaffold: 'Read',
+    title: 'The blue-edged route card was sent to the wrong person.',
+    story: [
+      'Outside Gaolaozhuang, Bajie was holding a blue-edged route card. He wants to join the Westbound team and also wants to prove that he can do a serious job in the team.',
+      'But when he was anxious, he told the windmill on the edge of the field to "gather at the entrance of the village." White Dragon Horse, who was really waiting for news, heard nothing. Wukong didn\'t laugh at him, just arranged the six color cards on the ground: "Let\'s first choose a signal that everyone recognizes."',
+    ],
+    question: 'What does Bajie want to prove now?',
+    options: [
+      { id: 'check-and-deliver', label: 'Check carefully and send the message to', correct: true },
+      { id: 'run-fastest', label: 'Run the fastest by yourself', correct: false },
+      { id: 'never-wrong', label: 'I never make mistakes', correct: false },
+    ],
+    extraQuestion: 'Where does it prove that the message was sent to the wrong person?',
+    extraOptions: [
+      {
+        id: 'windmill-not-horse',
+        label:
+          "The windmill heard it, but the White Dragon Horse who was waiting for the news didn't hear it.",
+        correct: true,
+      },
+      {
+        id: 'horse-received',
+        label: 'White Dragon Horse has been received and went to the village entrance',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C4_P2_ID]: {
-    id: JTW_S2_C4_P2_ID, nextId: 'jtw-s2-c4-p3', chapter: '第四章 · 高老庄的传话练习', part: 'Part 2', scaffold: 'Why',
-    title: '为什么先认同一种信号',
-    story: ['八戒停在六张颜色卡前，没有再追着风车喊。悟空把蓝边路线卡放在中间：“跑得快，不等于送对。先看看我们都认得哪一种信号。”', '白龙马还在村口等。八戒点点头：“我先核对，不只顾着跑。”这一次先说清原因，下一张故事卡才会试着给发送者和接收者配颜色。'],
-    question: '八戒真正要证明的是什么？',
-    options: [{ id: 'check-and-deliver', label: '能核对并把消息送到正确伙伴', correct: true }, { id: 'run-fastest', label: '只要跑得最快就一定送对', correct: false }, { id: 'never-wrong', label: '加入队伍的人从来不能犯错', correct: false }],
-    extraQuestion: '哪一句把共同信号和正确送达连起来？',
-    extraOptions: [{ id: 'both-sides-recognise', label: '因为两边都要认得同一种信号，所以先核对再发送', correct: true }, { id: 'sender-only', label: '只要发送者喜欢这个颜色，接收者一定会行动', correct: false }, { id: 'system-rule', label: '因为系统规定，所以不用看故事证据', correct: false }],
+    id: JTW_S2_C4_P2_ID,
+    nextId: 'jtw-s2-c4-p3',
+    chapter: 'Chapter 4 · Gao Laozhuang’s communication practice',
+    part: 'Part 2',
+    scaffold: 'Why',
+    title: 'Why identify with a signal first?',
+    story: [
+      'Bajie stopped in front of the six color cards and stopped shouting after the windmill. Wukong puts the blue line card in the middle: "Running fast does not mean sending the right ones. Let\'s first see which signals we all recognize."',
+      "White Dragon Horse is still waiting at the entrance of the village. Bajie nodded: \"I'll check first, don't just run away.\" This time, let's explain the reason first, and then we will try to match the colors of the sender and receiver in the next story card.",
+    ],
+    question: 'What does Bajie really want to prove?',
+    options: [
+      {
+        id: 'check-and-deliver',
+        label: 'Able to verify and send messages to the correct partner',
+        correct: true,
+      },
+      {
+        id: 'run-fastest',
+        label: 'As long as you run the fastest, you will get the right one.',
+        correct: false,
+      },
+      {
+        id: 'never-wrong',
+        label: 'People who join the team can never make mistakes',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'Which sentence connects a common signal with correct delivery?',
+    extraOptions: [
+      {
+        id: 'both-sides-recognise',
+        label:
+          'Because both parties have to recognize the same signal, they check it first before sending it.',
+        correct: true,
+      },
+      {
+        id: 'sender-only',
+        label: 'As long as the sender likes the color, the receiver will definitely take action',
+        correct: false,
+      },
+      {
+        id: 'system-rule',
+        label: 'Because the system stipulates it, there is no need to look at the story evidence.',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C4_P3_ID]: {
-    id: JTW_S2_C4_P3_ID, nextId: 'jtw-s2-c4-p4', chapter: '第四章 · 高老庄的传话练习', part: 'Part 3', scaffold: '离屏预测',
-    title: '哪一对颜色能把消息接通',
-    story: ['这是尚未批准正式角色和庭院素材的规划卡：左边的悟空是发送者，右边的八戒是接收者；白龙马只在村口等待路线卡。', '先比较两版：悟空发送蓝色、八戒接收蓝色；悟空仍发送蓝色、八戒改等橙色。现在只做预测，下一 Part 才把 Send 和 Get 变成真正的积木。'],
-    question: '悟空发蓝色，八戒也等蓝色时，结果是什么？',
-    options: [{ id: 'bajie-acts', label: '八戒会行动，因为发送和接收都是蓝色', correct: true }, { id: 'bajie-waits-on-match', label: '八戒继续等待，即使两边都是蓝色', correct: false }],
-    extraQuestion: '悟空仍发蓝色，八戒改等橙色时呢？',
-    extraOptions: [{ id: 'bajie-waits', label: '八戒继续等待，因为蓝色与橙色没有配成一对', correct: true }, { id: 'bajie-acts-on-mismatch', label: '八戒会行动，因为任何颜色都能接通', correct: false }],
+    id: JTW_S2_C4_P3_ID,
+    nextId: 'jtw-s2-c4-p4',
+    chapter: 'Chapter 4 · Gao Laozhuang’s communication practice',
+    part: 'Part 3',
+    scaffold: 'Off-screen predictions',
+    title: 'Which pair of colors can connect the message?',
+    story: [
+      'This is a planning card that has not yet approved official roles and yard materials: Wukong on the left is the sender, Bajie on the right is the receiver; White Dragon Horse is only waiting for the route card at the entrance of the village.',
+      'First compare the two versions: Wukong sends blue, Bajie receives blue; Wukong still sends blue, Bajie changes to orange. Now we only make predictions, and the next part will turn Send and Get into real building blocks.',
+    ],
+    question: 'Wukong turns blue, and Bajie also waits for it to turn blue, what is the result?',
+    options: [
+      {
+        id: 'bajie-acts',
+        label: 'Bajie will act because sending and receiving are both blue',
+        correct: true,
+      },
+      {
+        id: 'bajie-waits-on-match',
+        label: 'Bajie continues to wait, even if both sides are blue',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'Wukong is still blue, what about when Bajie changes to orange?',
+    extraOptions: [
+      {
+        id: 'bajie-waits',
+        label: 'Bajie continued to wait because blue and orange did not pair up',
+        correct: true,
+      },
+      {
+        id: 'bajie-acts-on-mismatch',
+        label: 'Bajie can act because any color can be connected',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C4_P4_ID]: {
-    id: JTW_S2_C4_P4_ID, nextId: JTW_S2_C4_P5_ID, chapter: '第四章 · 高老庄的传话练习', part: 'Part 4', scaffold: 'Build 1',
-    title: '把蓝色传话真的跑起来', template: 'blocks_jtw_s2_c4_p4', studioTitle: '西游记 S2 · 蓝色路线卡',
-    story: ['规划卡现在要变成真实程序：点悟空，他先说明任务并发出蓝色；八戒只有接到蓝色才走到路线卡旁。'],
-    question: '真实运行应从哪里开始？',
-    options: [{ id: 'tap-wukong', label: '点悟空后，八戒收到蓝色才行动', correct: true }, { id: 'go-all', label: '只按 Go 让两人同时行动', correct: false }],
+    id: JTW_S2_C4_P4_ID,
+    nextId: JTW_S2_C4_P5_ID,
+    chapter: 'Chapter 4 · Gao Laozhuang’s communication practice',
+    part: 'Part 4',
+    scaffold: 'Build 1',
+    title: 'Make the blue messenger really run',
+    template: 'blocks_jtw_s2_c4_p4',
+    studioTitle: 'Journey to the West S2 · Blue Route Card',
+    story: [
+      'The planning card will now become a real program: click Wukong, he will first explain the task and send out a blue color; Bajie will only walk to the route card after receiving the blue color.',
+    ],
+    question: 'Where should the real run start?',
+    options: [
+      {
+        id: 'tap-wukong',
+        label: 'After clicking Wukong, Bajie will take action after receiving the blue color',
+        correct: true,
+      },
+      {
+        id: 'go-all',
+        label: 'Just press Go to make two people act at the same time',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C4_P5_ID]: {
-    id: JTW_S2_C4_P5_ID, nextId: JTW_S2_C4_P6_ID, chapter: '第四章 · 高老庄的传话练习', part: 'Part 5', scaffold: 'Build 2',
-    title: '让白龙马回复“收到了”', template: 'blocks_jtw_s2_c4_p5', studioTitle: '西游记 S2 · 黄色收到回执',
-    story: ['八戒接到蓝色并送卡后，白龙马还要让悟空知道村口真的收到了。八戒发黄色，白龙马接黄色后才出现回应。'],
-    question: '黄色回执应该接在哪里？',
-    options: [{ id: 'bajie-to-horse', label: '八戒 Send 黄，白龙马 Get 黄', correct: true }, { id: 'horse-start', label: '白龙马用 Start 自动说收到了', correct: false }],
+    id: JTW_S2_C4_P5_ID,
+    nextId: JTW_S2_C4_P6_ID,
+    chapter: 'Chapter 4 · Gao Laozhuang’s communication practice',
+    part: 'Part 5',
+    scaffold: 'Build 2',
+    title: 'Have White Dragon Horse reply "Received"',
+    template: 'blocks_jtw_s2_c4_p5',
+    studioTitle: 'Journey to the West S2 · Yellow receipt received',
+    story: [
+      'After Bajie received the blue card and sent the card, White Dragon Horse also wanted to let Wukong know that the village entrance had really been received. Bajie is yellow, and White Dragon Horse responds after receiving yellow.',
+    ],
+    question: 'Where should I receive the yellow receipt?',
+    options: [
+      {
+        id: 'bajie-to-horse',
+        label: 'Bajie Send Huang, White Dragon Horse Get Huang',
+        correct: true,
+      },
+      {
+        id: 'horse-start',
+        label: 'White Dragon HorseUse Start to automatically say received',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C4_P6_ID]: {
-    id: JTW_S2_C4_P6_ID, nextId: JTW_S2_C4_P7_ID, chapter: '第四章 · 高老庄的传话练习', part: 'Part 6', scaffold: 'Debug',
-    title: '找到橙色断点', template: 'blocks_jtw_s2_c4_p6', studioTitle: '西游记 S2 · 修好消息错色',
-    story: ['悟空确实发送了蓝色，八戒却等着橙色。先点悟空观察：消息到八戒前断开，白龙马也继续等待。'],
-    question: '第一处偏差在哪里？',
-    options: [{ id: 'orange-get', label: '八戒在等橙色，但悟空发送蓝色', correct: true }, { id: 'wukong-speed', label: '悟空说话不够快', correct: false }],
-    extraQuestion: '修复时只改什么？',
-    extraOptions: [{ id: 'get-blue', label: '只把八戒 Get 橙色改成 Get 蓝色', correct: true }, { id: 'start-bajie', label: '把八戒改成 Start 绕过消息', correct: false }],
+    id: JTW_S2_C4_P6_ID,
+    nextId: JTW_S2_C4_P7_ID,
+    chapter: 'Chapter 4 · Gao Laozhuang’s communication practice',
+    part: 'Part 6',
+    scaffold: 'Debug',
+    title: 'Find orange breakpoint',
+    template: 'blocks_jtw_s2_c4_p6',
+    studioTitle: 'Journey to the West S2 · Fixed wrong color of message',
+    story: [
+      'Wukong did send blue, but Bajie was waiting for orange. Click Wukong first to observe: the message is disconnected before it reaches Bajie, and White Dragon Horse also continues to wait.',
+    ],
+    question: 'Where is the first deviation?',
+    options: [
+      {
+        id: 'orange-get',
+        label: 'Bajie was waiting for orange, but Wukong sent blue',
+        correct: true,
+      },
+      { id: 'wukong-speed', label: 'Wukongcan’t speak fast enough', correct: false },
+    ],
+    extraQuestion: 'What do you only change when repairing?',
+    extraOptions: [
+      { id: 'get-blue', label: 'Just change Bajie Get Orange to Get Blue', correct: true },
+      { id: 'start-bajie', label: 'Change Bajie to Start to bypass the message', correct: false },
+    ],
   },
   [JTW_S2_C4_P7_ID]: {
-    id: JTW_S2_C4_P7_ID, nextId: JTW_S2_C4_P8_ID, chapter: '第四章 · 高老庄的传话练习', part: 'Part 7', scaffold: 'Personal Ship',
-    title: '我的路线色和送卡方向', template: 'blocks_jtw_s2_c4_p7', studioTitle: 'My Gao Village Route Message',
-    story: ['选择绿、蓝或紫作为路线色，同步配好 Send/Get，再选择左路或右路。黄色只留给收到回执。保存、重开并让同伴预测。'],
-    question: '个人版本仍必须守住哪条规则？',
-    options: [{ id: 'same-route-colour', label: '路线 Send/Get 同色，且不占用黄色回执', correct: true }, { id: 'different-colours', label: '发送和接收故意用不同颜色', correct: false }],
-    extraQuestion: '怎样证明作品不是临时状态？',
-    extraOptions: [{ id: 'reopen-rerun', label: '保存、关闭、重开、重跑并让同伴预测', correct: true }, { id: 'run-once', label: '只运行一次，不读取保存作品', correct: false }],
+    id: JTW_S2_C4_P7_ID,
+    nextId: JTW_S2_C4_P8_ID,
+    chapter: 'Chapter 4 · Gao Laozhuang’s communication practice',
+    part: 'Part 7',
+    scaffold: 'Personal Ship',
+    title: 'My route color and card delivery direction',
+    template: 'blocks_jtw_s2_c4_p7',
+    studioTitle: 'My Gao Village Route Message',
+    story: [
+      'Select green, blue or purple as the route color, synchronize Send/Get, and then select left or right. Yellow is reserved only for receipt of receipt. Save, reopen and let your peers predict.',
+    ],
+    question: 'Which rule does the personal version still have to abide by?',
+    options: [
+      {
+        id: 'same-route-colour',
+        label: 'Route Send/Get are of the same color and do not occupy yellow receipts',
+        correct: true,
+      },
+      {
+        id: 'different-colours',
+        label: 'Send and receive are intentionally in different colors',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'How to prove that the work is not temporary?',
+    extraOptions: [
+      {
+        id: 'reopen-rerun',
+        label: 'Save, close, reopen, rerun and let your peers predict',
+        correct: true,
+      },
+      { id: 'run-once', label: 'Run only once, do not read and save the work', correct: false },
+    ],
   },
   [JTW_S2_C4_P8_ID]: {
-    id: JTW_S2_C4_P8_ID, nextId: JTW_S2_C5_P1_ID, chapter: '第四章 · 高老庄的传话练习', part: 'Part 8', scaffold: 'Retell',
-    title: '八戒把路线卡送到了',
-    story: ['读取上一 Part 保存的颜色和方向：八戒先核对同色消息，送到以后让白龙马发回黄色确认。他不是从不犯错，而是会找到断点并修好。'],
-    question: '哪一句完整讲回人物、程序和结果？',
-    options: [{ id: 'c4-retell', label: '因为八戒想认真送达，所以先核对同色消息；修好错色后路线卡送到，后来他加入队伍', correct: true }, { id: 'fast-retell', label: '因为八戒跑得最快，所以颜色不同也能送到', correct: false }],
-    extraQuestion: '复述使用哪份程序证据？',
-    extraOptions: [{ id: 'read-c4-p7', label: '读取 P7 保存并真实运行的个人作品', correct: true }, { id: 'new-answer', label: '新建标准答案覆盖个人作品', correct: false }],
+    id: JTW_S2_C4_P8_ID,
+    nextId: JTW_S2_C5_P1_ID,
+    chapter: 'Chapter 4 · Gao Laozhuang’s communication practice',
+    part: 'Part 8',
+    scaffold: 'Retell',
+    title: 'Bajie delivered the route card',
+    story: [
+      'Read the color and direction saved in the previous Part: Bajie first checks the message of the same color and sends it to White Dragon Horse to send back a yellow confirmation. It’s not that he never makes mistakes, but he finds the breaking points and fixes them.',
+    ],
+    question: 'Which sentence fully talks about the characters, procedures and results?',
+    options: [
+      {
+        id: 'c4-retell',
+        label:
+          'Because Bajie wanted to deliver the message carefully, he first checked the message of the same color; after fixing the wrong color, the route card was delivered, and he later joined the team.',
+        correct: true,
+      },
+      {
+        id: 'fast-retell',
+        label: 'Because Bajie runs the fastest, it can be delivered in different colors',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'Which piece of procedural evidence is used in the retelling?',
+    extraOptions: [
+      {
+        id: 'read-c4-p7',
+        label: 'Read personal works saved by P7 and actually run them',
+        correct: true,
+      },
+      {
+        id: 'new-answer',
+        label: 'Create new standard answers to cover personal works',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C5_P1_ID]: {
-    id: JTW_S2_C5_P1_ID, nextId: JTW_S2_C5_P2_ID, chapter: '第五章 · 流沙河的接力', part: 'Part 1', scaffold: 'Read',
-    title: '河把一句话分成两段',
-    story: ['悟空在左岸，八戒在中间石台，悟净在右岸。悟空能直接把话送给八戒，悟净只能先看见八戒；一次喊话到不了最远处。'],
-    question: '哪两段关系符合画面？',
-    options: [{ id: 'two-legs', label: '悟空到八戒，八戒再到悟净', correct: true }, { id: 'direct-far-bank', label: '悟空直接跳过八戒到悟净', correct: false }],
-    extraQuestion: '中间石台上的八戒要承担什么？',
-    extraOptions: [{ id: 'receive-then-send', label: '先接住第一段，再发送第二段', correct: true }, { id: 'wait-only', label: '只等待，不继续发送', correct: false }],
+    id: JTW_S2_C5_P1_ID,
+    nextId: JTW_S2_C5_P2_ID,
+    chapter: 'Chapter 5 · Relay on Liusha River',
+    part: 'Part 1',
+    scaffold: 'Read',
+    title: 'The river divides a sentence into two paragraphs',
+    story: [
+      'Wukong is on the left bank, Bajie is on the stone platform in the middle, and Wujing is on the right bank. Wukong can send words directly to Bajie, but Wujing can only see Bajie first; a single call cannot reach the farthest distance.',
+    ],
+    question: 'Which two relationships fit the picture?',
+    options: [
+      { id: 'two-legs', label: 'Wukong to Bajie, Bajie to Wujing', correct: true },
+      { id: 'direct-far-bank', label: 'Wukong Skip Bajie directly to Wujing', correct: false },
+    ],
+    extraQuestion: 'What does Bajie on the stone platform in the middle have to bear?',
+    extraOptions: [
+      {
+        id: 'receive-then-send',
+        label: 'Receive the first segment first, then send the second segment',
+        correct: true,
+      },
+      { id: 'wait-only', label: "Just wait, don't continue sending", correct: false },
+    ],
   },
   [JTW_S2_C5_P2_ID]: {
-    id: JTW_S2_C5_P2_ID, nextId: JTW_S2_C5_P3_ID, chapter: '第五章 · 流沙河的接力', part: 'Part 2', scaffold: 'Why',
-    title: '悟净为什么先确认',
-    story: ['悟净想加入一支目标清楚、彼此不丢下的队伍。他没有抢着表现，而是先听完、再复述，最后才行动。'],
-    question: '悟净此刻真正想要什么？',
-    options: [{ id: 'join-together', label: '加入一支彼此不丢下的队伍', correct: true }, { id: 'praise', label: '只想马上得到表扬', correct: false }, { id: 'alone', label: '想一个人完成全部路线', correct: false }],
-    extraQuestion: '哪一组动作证明他的稳重？',
-    extraOptions: [{ id: 'listen-retell-act', label: '先听完、再复述、最后行动', correct: true }, { id: 'act-first', label: '先行动，再猜收到什么', correct: false }],
+    id: JTW_S2_C5_P2_ID,
+    nextId: JTW_S2_C5_P3_ID,
+    chapter: 'Chapter 5 · Relay on Liusha River',
+    part: 'Part 2',
+    scaffold: 'Why',
+    title: 'Why did Wu Jing confirm first?',
+    story: [
+      'Wu Jing wants to join a team with clear goals and never abandon each other. He did not rush to perform, but listened first, then repeated it, and finally acted.',
+    ],
+    question: 'What does Wu Jing really want at this moment?',
+    options: [
+      {
+        id: 'join-together',
+        label: 'Join a team that never leaves each other behind',
+        correct: true,
+      },
+      { id: 'praise', label: 'Just want to be praised immediately', correct: false },
+      { id: 'alone', label: 'I want to complete the entire route alone', correct: false },
+    ],
+    extraQuestion: 'Which set of actions proves his stability?',
+    extraOptions: [
+      {
+        id: 'listen-retell-act',
+        label: 'Listen first, then repeat, and finally take action',
+        correct: true,
+      },
+      { id: 'act-first', label: 'Act first, guess what you’ll get later', correct: false },
+    ],
   },
   [JTW_S2_C5_P3_ID]: {
-    id: JTW_S2_C5_P3_ID, nextId: JTW_S2_C5_P4_ID, chapter: '第五章 · 流沙河的接力', part: 'Part 3', scaffold: '离屏预测',
-    title: '消息会停在哪个伙伴',
-    story: ['排好悟空发蓝、八戒接蓝、八戒发黄、悟净接黄。现在拿走八戒的黄色 Send，沿线预测消息在哪里停住。'],
-    question: '拿走八戒 Send 黄后，消息停在哪里？',
-    options: [{ id: 'stops-at-bajie', label: '停在八戒，因为他收到蓝色后没有继续发送', correct: true }, { id: 'reaches-wujing', label: '仍会自动到悟净', correct: false }],
-    extraQuestion: '完整接力的角色顺序是什么？',
-    extraOptions: [{ id: 'wukong-bajie-wujing', label: '悟空 → 八戒 → 悟净', correct: true }, { id: 'wukong-wujing-bajie', label: '悟空 → 悟净 → 八戒', correct: false }],
+    id: JTW_S2_C5_P3_ID,
+    nextId: JTW_S2_C5_P4_ID,
+    chapter: 'Chapter 5 · Relay on Liusha River',
+    part: 'Part 3',
+    scaffold: 'Off-screen predictions',
+    title: 'Which partner will the message stop at?',
+    story: [
+      "Arrange Wukong to turn blue, Bajie to blue, Bajie to yellow, and Wujing to yellow. Now take Bajie's yellow Send and predict along the line where the message will stop.",
+    ],
+    question: 'After taking Bajie Send Huang, where does the message stop?',
+    options: [
+      {
+        id: 'stops-at-bajie',
+        label: 'Stopped at Bajie because he did not continue sending after receiving blue',
+        correct: true,
+      },
+      { id: 'reaches-wujing', label: 'Will still reach Wujing automatically', correct: false },
+    ],
+    extraQuestion: 'What is the order of roles for a complete relay?',
+    extraOptions: [
+      { id: 'wukong-bajie-wujing', label: 'Wukong → Bajie → Wujing', correct: true },
+      { id: 'wukong-wujing-bajie', label: 'Wukong → Wujing → Bajie', correct: false },
+    ],
   },
   [JTW_S2_C5_P4_ID]: {
-    id: JTW_S2_C5_P4_ID, nextId: JTW_S2_C5_P5_ID, chapter: '第五章 · 流沙河的接力', part: 'Part 4', scaffold: 'Build 1',
-    title: '三个伙伴把路线接起来', template: 'blocks_jtw_s2_c5_p4', studioTitle: '西游记 S2 · 两段消息接力',
-    story: ['把规划图变成三条真实脚本：悟空发蓝，八戒接蓝后发黄，悟净接黄后显示浅水标记。'],
-    question: '中间伙伴为什么不可省略？',
-    options: [{ id: 'relay-middle', label: '八戒既接第一段，也发第二段', correct: true }, { id: 'decoration', label: '八戒只在石台上作装饰', correct: false }],
+    id: JTW_S2_C5_P4_ID,
+    nextId: JTW_S2_C5_P5_ID,
+    chapter: 'Chapter 5 · Relay on Liusha River',
+    part: 'Part 4',
+    scaffold: 'Build 1',
+    title: 'Three partners connected the route',
+    template: 'blocks_jtw_s2_c5_p4',
+    studioTitle: 'Journey to the West S2 · Two message relays',
+    story: [
+      'Turn the planning diagram into three real scripts: Wukong turns blue, Bajie turns yellow after connecting to blue, and Wujing turns to shallow water after connecting to yellow.',
+    ],
+    question: 'Why can’t the middle partner be omitted?',
+    options: [
+      {
+        id: 'relay-middle',
+        label:
+          'Bajie not only receives the first paragraph, but also pronounces the second paragraph.',
+        correct: true,
+      },
+      { id: 'decoration', label: 'Bajie only decorated the stone platform', correct: false },
+    ],
   },
   [JTW_S2_C5_P5_ID]: {
-    id: JTW_S2_C5_P5_ID, nextId: 'jtw-s2-c5-p6', chapter: '第五章 · 流沙河的接力', part: 'Part 5', scaffold: 'Build 2',
-    title: '紫色回执回到悟空', template: 'blocks_jtw_s2_c5_p5', studioTitle: '西游记 S2 · 紫色路线回执',
-    story: ['浅水标记已经显示，但悟空还不知道最远处是否收到。悟净发紫色，悟空用第二条 Get 紫脚本跳一下并确认路线接通。'],
-    question: '紫色在这条程序里承担什么？',
-    options: [{ id: 'receipt-back', label: '从悟净返回悟空的收到回执', correct: true }, { id: 'forward-first', label: '替代最开始的蓝色前进消息', correct: false }],
+    id: JTW_S2_C5_P5_ID,
+    nextId: 'jtw-s2-c5-p6',
+    chapter: 'Chapter 5 · Relay on Liusha River',
+    part: 'Part 5',
+    scaffold: 'Build 2',
+    title: 'Purple receipt back to Wukong',
+    template: 'blocks_jtw_s2_c5_p5',
+    studioTitle: 'Journey to the West S2 · Purple Route Receipt',
+    story: [
+      "The shallow water mark has been shown, but Wukong does not yet know if the furthest point has been received. Wu Jing's hair is purple, Wukong uses the second Get purple script to jump and confirm that the route is connected.",
+    ],
+    question: 'What does purple do in this program?',
+    options: [
+      { id: 'receipt-back', label: 'Return receipt of Wukong from Wujing', correct: true },
+      { id: 'forward-first', label: 'Replaces the original blue forward message', correct: false },
+    ],
   },
   [JTW_S2_C5_P6_ID]: {
-    id: JTW_S2_C5_P6_ID, nextId: JTW_S2_C5_P7_ID, chapter: '第五章 · 流沙河的接力', part: 'Part 6', scaffold: 'Debug',
-    title: '找到中间接力断点', template: 'blocks_jtw_s2_c5_p6', studioTitle: '西游记 S2 · 修好中间断点',
-    story: ['蓝色消息到了八戒，悟净却一直没有显示浅水标记。错误版少了八戒的黄色 Send。', '先点悟空运行错误版，根据“八戒说了、悟净没说”定位第一处断点；只补回 Send 黄，再重跑完整蓝→黄→紫接力。'],
-    question: '哪一句准确定位了断点？',
-    options: [{ id: 'middle-send-missing', label: '悟空没坏，悟净也没坏，缺的是八戒继续发送', correct: true }, { id: 'ends-broken', label: '悟空和悟净同时坏了', correct: false }],
+    id: JTW_S2_C5_P6_ID,
+    nextId: JTW_S2_C5_P7_ID,
+    chapter: 'Chapter 5 · Relay on Liusha River',
+    part: 'Part 6',
+    scaffold: 'Debug',
+    title: 'Find the intermediate transition breakpoint',
+    template: 'blocks_jtw_s2_c5_p6',
+    studioTitle: 'Journey to the West S2 · Fix the middle breakpoint',
+    story: [
+      "The blue message reached Bajie, but Wujing never showed the shallow water mark. The wrong version is missing Bajie's yellow Send.",
+      'First click Wukong to run the wrong version, and locate the first breakpoint based on "Bajie said it, Wujing didn\'t say it"; only make up for Send yellow, and then rerun the complete blue→yellow→purple relay.',
+    ],
+    question: 'Which sentence accurately locates the breakpoint?',
+    options: [
+      {
+        id: 'middle-send-missing',
+        label:
+          'Wukong is not broken, Wujing is not broken either, what is missing is Bajie and continues to send.',
+        correct: true,
+      },
+      {
+        id: 'ends-broken',
+        label: 'Wukong and Wu Jing were broken at the same time',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C5_P7_ID]: {
-    id: JTW_S2_C5_P7_ID, nextId: JTW_S2_C5_P8_ID, chapter: '第五章 · 流沙河的接力', part: 'Part 7', scaffold: 'Personal Ship',
-    title: '我的三色接力图', template: 'blocks_jtw_s2_c5_p7', studioTitle: 'My Flowing Sands Relay',
-    story: ['为前进第一段、前进第二段和返回回执选择三种互不相同的颜色，并同步修改每组 Send/Get。', '让同伴故意换错一色；你沿角色顺序找到断点、修复、保存、重开并再次运行。'],
-    question: '个人版本必须保持什么？',
-    options: [{ id: 'three-matched-pairs', label: '三种颜色互不相同，每一段 Send/Get 都同色', correct: true }, { id: 'one-colour-all', label: '三段全部用同一颜色', correct: false }],
-    extraQuestion: '怎样证明接力作品已保存？',
-    extraOptions: [{ id: 'peer-reopen-run', label: '同伴换错一色后修复，并保存、重开、重跑', correct: true }, { id: 'drag-only', label: '只换颜色，不运行也不重开', correct: false }],
+    id: JTW_S2_C5_P7_ID,
+    nextId: JTW_S2_C5_P8_ID,
+    chapter: 'Chapter 5 · Relay on Liusha River',
+    part: 'Part 7',
+    scaffold: 'Personal Ship',
+    title: 'My three-color relay diagram',
+    template: 'blocks_jtw_s2_c5_p7',
+    studioTitle: 'My Flowing Sands Relay',
+    story: [
+      'Choose three different colors for the forward first paragraph, forward second paragraph, and return receipts, and modify each set of Send/Get simultaneously.',
+      'Have a companion intentionally switch to the wrong color; you follow the character sequence to find the breakpoint, fix it, save it, restart it, and run it again.',
+    ],
+    question: 'What must the personal version maintain?',
+    options: [
+      {
+        id: 'three-matched-pairs',
+        label:
+          'The three colors are different from each other, and each Send/Get section has the same color.',
+        correct: true,
+      },
+      { id: 'one-colour-all', label: 'Use the same color for all three sections', correct: false },
+    ],
+    extraQuestion: 'How to prove that the relay work has been saved?',
+    extraOptions: [
+      {
+        id: 'peer-reopen-run',
+        label: 'Repair the companion after changing the wrong color, save, restart, and run again.',
+        correct: true,
+      },
+      { id: 'drag-only', label: 'Just change the color, do not run or restart', correct: false },
+    ],
   },
   [JTW_S2_C5_P8_ID]: {
-    id: JTW_S2_C5_P8_ID, nextId: JTW_S2_C6_P1_ID, chapter: '第五章 · 流沙河的接力', part: 'Part 8', scaffold: 'Retell',
-    title: '悟净接住最后一段',
-    story: ['读取 P7 保存的三色接力。消息从悟空到八戒，再到悟净，最后回到悟空；悟净走到队伍一侧。', '章印记录的不是颜色答案，而是“接收者成为下一段发送者”的因果。'],
-    question: '怎样完整讲回这一章？',
-    options: [{ id: 'c5-retell', label: '因为河隔开消息，所以悟空先发给八戒；八戒继续发送，修好断点后悟净加入', correct: true }, { id: 'direct-retell', label: '悟空一次就直接把消息送到悟净', correct: false }],
-    extraQuestion: '复述使用哪份作品？',
-    extraOptions: [{ id: 'read-c5-p7', label: '读取 P7 保存并真实运行的个人接力', correct: true }, { id: 'new-answer', label: '另建标准答案覆盖个人选择', correct: false }],
+    id: JTW_S2_C5_P8_ID,
+    nextId: JTW_S2_C6_P1_ID,
+    chapter: 'Chapter 5 · Relay on Liusha River',
+    part: 'Part 8',
+    scaffold: 'Retell',
+    title: 'Wu Jing caught the last part',
+    story: [
+      'Read the three-color relay saved by P7. The news went from Wukong to Bajie, then to Wujing, and finally back to Wukong; Wujing walked to one side of the team.',
+      'What the seal records is not the color answer, but the cause and effect of "the receiver becomes the next sender".',
+    ],
+    question: 'How to tell this chapter completely?',
+    options: [
+      {
+        id: 'c5-retell',
+        label:
+          'Because the river separates the message, Wukong is sent to Bajie first; Bajie continues to send, and Wujing joins after fixing the breakpoint.',
+        correct: true,
+      },
+      {
+        id: 'direct-retell',
+        label: 'Wukong Send the message directly to Wujing in one go',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'Which work is used for the retelling?',
+    extraOptions: [
+      {
+        id: 'read-c5-p7',
+        label: 'Load individual relays saved by P7 and run for real',
+        correct: true,
+      },
+      {
+        id: 'new-answer',
+        label: 'Create another standard answer to cover personal choice',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C6_P1_ID]: {
-    id: JTW_S2_C6_P1_ID, nextId: JTW_S2_C6_P2_ID, chapter: '第六章 · 四人一马第一次同行', part: 'Part 1', scaffold: 'Read',
-    title: '五位伙伴怎样来到队伍里',
-    story: ['玄奘是启程者；悟空、白龙马、八戒、悟净依次加入。每个人带着不同能力，五条散线要合成三页计划。'],
-    question: '哪一个加入顺序符合本季故事？',
-    options: [{ id: 'team-order', label: '悟空 → 白龙马 → 八戒 → 悟净', correct: true }, { id: 'wrong-order', label: '悟净 → 八戒 → 悟空 → 白龙马', correct: false }],
+    id: JTW_S2_C6_P1_ID,
+    nextId: JTW_S2_C6_P2_ID,
+    chapter: 'Chapter 6 · Four people and one horse travel together for the first time',
+    part: 'Part 1',
+    scaffold: 'Read',
+    title: 'How did the five partners join the team?',
+    story: [
+      'Xuanzang is the starter; Wukong, White Dragon Horse, Bajie, and Wujing join in turn. Everyone has different abilities, and five scattered lines need to be combined into a three-page plan.',
+    ],
+    question: 'Which order of entry fits the story of this season?',
+    options: [
+      { id: 'team-order', label: 'Wukong → White Dragon Horse → Bajie → Wujing', correct: true },
+      { id: 'wrong-order', label: 'Wujing → Bajie → Wukong → White Dragon Horse', correct: false },
+    ],
   },
   [JTW_S2_C6_P2_ID]: {
-    id: JTW_S2_C6_P2_ID, nextId: JTW_S2_C6_P3_ID, chapter: '第六章 · 四人一马第一次同行', part: 'Part 2', scaffold: 'Why',
-    title: '他们为什么继续同行',
-    story: ['玄奘仍看着远方目标；悟空愿意探路，白龙马稳稳驮运行囊，八戒认真核对，悟净接住伙伴的消息。'],
-    question: '哪一组理由来自故事证据？',
-    options: [{ id: 'grounded-motives', label: '远方目标、探路、运送、核对和接力让队伍不散', correct: true }, { id: 'story-not-over', label: '只因为故事还没写完', correct: false }],
-    extraQuestion: '选择理由时要避免什么？',
-    extraOptions: [{ id: 'avoid-system', label: '不能只说“系统让他们继续”', correct: true }, { id: 'ignore-actions', label: '不用看人物做过什么', correct: false }],
+    id: JTW_S2_C6_P2_ID,
+    nextId: JTW_S2_C6_P3_ID,
+    chapter: 'Chapter 6 · Four people and one horse travel together for the first time',
+    part: 'Part 2',
+    scaffold: 'Why',
+    title: 'Why do they continue to travel together?',
+    story: [
+      'Xuanzang is still looking at the target in the distance; Wukong is willing to explore the way, White Dragon Horse is holding the bag steadily, Bajie is checking it carefully, and Wujing is catching the message from his companions.',
+    ],
+    question: 'Which set of reasons comes from story evidence?',
+    options: [
+      {
+        id: 'grounded-motives',
+        label:
+          'Distant goals, pathfinding, transportation, verification and relays keep the team together',
+        correct: true,
+      },
+      { id: 'story-not-over', label: 'Just because the story is not finished yet', correct: false },
+    ],
+    extraQuestion: 'What to avoid when choosing a reason?',
+    extraOptions: [
+      {
+        id: 'avoid-system',
+        label: 'Can\'t just say "the system lets them continue"',
+        correct: true,
+      },
+      {
+        id: 'ignore-actions',
+        label: 'No need to look at what the character has done',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C6_P3_ID]: {
-    id: JTW_S2_C6_P3_ID, nextId: JTW_S2_C6_P4_ID, chapter: '第六章 · 四人一马第一次同行', part: 'Part 3', scaffold: '离屏预测',
-    title: '三页计划先在桌面排好',
-    story: ['第一页集合，第二页过桥，第三页向西。蓝色把出发交给八戒，黄色把第二段交给悟净，End 留在第三页。'],
-    question: '正确的页面顺序是什么？',
-    options: [{ id: 'three-page-order', label: '集合 → 过桥 → 向西', correct: true }, { id: 'end-on-page-two', label: '集合 → End → 过桥', correct: false }],
-    extraQuestion: 'End 应该放在哪里？',
-    extraOptions: [{ id: 'end-page-three', label: '第三页队伍到旗旁以后', correct: true }, { id: 'end-page-two', label: '第二页刚过桥时', correct: false }],
+    id: JTW_S2_C6_P3_ID,
+    nextId: JTW_S2_C6_P4_ID,
+    chapter: 'Chapter 6 · Four people and one horse travel together for the first time',
+    part: 'Part 3',
+    scaffold: 'Off-screen predictions',
+    title: 'Arrange the three-page plan on the desktop first',
+    story: [
+      'Collect on the first page, cross the bridge on the second page, and go west on the third page. Blue gives the starting point to Bajie, yellow gives the second paragraph to Wu Jing, and ends on the third page.',
+    ],
+    question: 'What is the correct page order?',
+    options: [
+      { id: 'three-page-order', label: 'Assemble → Cross the bridge → Head west', correct: true },
+      { id: 'end-on-page-two', label: 'Assemble → End → Cross the bridge', correct: false },
+    ],
+    extraQuestion: 'Where should End be placed?',
+    extraOptions: [
+      {
+        id: 'end-page-three',
+        label: 'On the third page, after the team reaches the flag',
+        correct: true,
+      },
+      { id: 'end-page-two', label: 'Page 2 Just after crossing the bridge', correct: false },
+    ],
   },
   [JTW_S2_C6_P4_ID]: {
-    id: JTW_S2_C6_P4_ID, nextId: JTW_S2_C6_P5_ID, chapter: '第六章 · 四人一马第一次同行', part: 'Part 4', scaffold: 'Build 1',
-    title: '集合页把消息送到过桥页', template: 'blocks_jtw_s2_c6_p4', studioTitle: '西游记 S2 · 三页同行上半段',
-    story: ['玄奘在集合页说出目标、发蓝色并进入第二页；八戒在过桥页接蓝、走四格、说话、发黄再进入第三页。'],
-    question: '页面与消息怎样接起来？',
-    options: [{ id: 'p1-blue-p2-yellow', label: '第一页发蓝到第二页，第二页发黄到第三页', correct: true }, { id: 'all-page-one', label: '所有角色都在第一页同时开始', correct: false }],
+    id: JTW_S2_C6_P4_ID,
+    nextId: JTW_S2_C6_P5_ID,
+    chapter: 'Chapter 6 · Four people and one horse travel together for the first time',
+    part: 'Part 4',
+    scaffold: 'Build 1',
+    title: 'The collection page sends the message to the bridge page',
+    template: 'blocks_jtw_s2_c6_p4',
+    studioTitle: 'Journey to the West S2 · The first half of a three-page journey',
+    story: [
+      'Xuanzang says the target on the assembly page, turns blue and enters the second page; Bajie receives blue on the bridge page, moves four squares, speaks, turns yellow and enters the third page.',
+    ],
+    question: 'How to connect pages and messages?',
+    options: [
+      {
+        id: 'p1-blue-p2-yellow',
+        label:
+          'The first page turns blue to the second page, and the second page turns yellow to the third page.',
+        correct: true,
+      },
+      {
+        id: 'all-page-one',
+        label: 'All characters start at the same time on the first page',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C6_P5_ID]: {
-    id: JTW_S2_C6_P5_ID, nextId: JTW_S2_C6_P6_ID, chapter: '第六章 · 四人一马第一次同行', part: 'Part 5', scaffold: 'Build 2',
-    title: '第三页让完整队伍到旗旁', template: 'blocks_jtw_s2_c6_p5', studioTitle: '西游记 S2 · 完整队伍三页剧',
-    story: ['悟净接黄后显示路牌；白龙马走到旗旁；点悟空时他跳一下说“出发”。所有脚本最后稳定 End。'],
-    question: '什么证明第三页真正完成？',
-    options: [{ id: 'team-at-end', label: '路牌显示、白龙马到旗旁、悟空回应且脚本到 End', correct: true }, { id: 'confetti-only', label: '只出现彩带，不检查程序', correct: false }],
+    id: JTW_S2_C6_P5_ID,
+    nextId: JTW_S2_C6_P6_ID,
+    chapter: 'Chapter 6 · Four people and one horse travel together for the first time',
+    part: 'Part 5',
+    scaffold: 'Build 2',
+    title: 'Page 3: Bring the complete team to the flag',
+    template: 'blocks_jtw_s2_c6_p5',
+    studioTitle: 'Journey to the West S2 · Complete team three-page drama',
+    story: [
+      'After Wu Jing received the yellow flag, he showed the road sign; White Dragon Horse walked to the flag; when he clicked Wukong, he jumped and said "Let\'s go". All scripts finally stabilize End.',
+    ],
+    question: 'What proves that page three is actually finished?',
+    options: [
+      {
+        id: 'team-at-end',
+        label:
+          'The street sign is displayed, White Dragon Horse goes to the flag, Wukong responds and the script goes to End',
+        correct: true,
+      },
+      {
+        id: 'confetti-only',
+        label: 'Only the ribbon appears and the program is not checked',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C6_P6_ID]: {
-    id: JTW_S2_C6_P6_ID, nextId: JTW_S2_C6_P7_ID, chapter: '第六章 · 四人一马第一次同行', part: 'Part 6', scaffold: 'Debug',
-    title: '修好回头页和错色消息', template: 'blocks_jtw_s2_c6_p6', studioTitle: '西游记 S2 · 修好三页同行',
-    story: ['错误版让第二页出口回到第一页，又让悟净等待紫色。一次只修一处：先比较死循环证据，再比较消息断点证据。'],
-    question: '两处错误分别是什么？',
-    options: [{ id: 'page-and-colour', label: '第二页回第一页；悟净 Get 紫而八戒 Send 黄', correct: true }, { id: 'speed-only', label: '只有角色速度太慢', correct: false }],
-    extraQuestion: '调试顺序应该怎样？',
-    extraOptions: [{ id: 'one-change-rerun', label: '一次改一处，每次都重跑并记录证据', correct: true }, { id: 'change-all-no-run', label: '同时乱改且不运行', correct: false }],
+    id: JTW_S2_C6_P6_ID,
+    nextId: JTW_S2_C6_P7_ID,
+    chapter: 'Chapter 6 · Four people and one horse travel together for the first time',
+    part: 'Part 6',
+    scaffold: 'Debug',
+    title: 'Fixed return page and wrong color message',
+    template: 'blocks_jtw_s2_c6_p6',
+    studioTitle: 'Journey to the West S2 · Fix three pages of traveling together',
+    story: [
+      'The wrong version makes the second page exit return to the first page, and makes Wu Jing wait for purple. Only fix one point at a time: first compare the infinite loop evidence, and then compare the message breakpoint evidence.',
+    ],
+    question: 'What are the two errors?',
+    options: [
+      {
+        id: 'page-and-colour',
+        label: 'The second page returns to the first page; Wu Jing Get Zier Bajie Send Yellow',
+        correct: true,
+      },
+      { id: 'speed-only', label: 'Only the character is too slow', correct: false },
+    ],
+    extraQuestion: 'What should be the debugging sequence?',
+    extraOptions: [
+      {
+        id: 'one-change-rerun',
+        label: 'Make changes one at a time, rerun each time and record the evidence',
+        correct: true,
+      },
+      {
+        id: 'change-all-no-run',
+        label: 'Modify randomly at the same time and not run',
+        correct: false,
+      },
+    ],
   },
   [JTW_S2_C6_P7_ID]: {
-    id: JTW_S2_C6_P7_ID, nextId: JTW_S2_C6_P8_ID, chapter: '第六章 · 四人一马第一次同行', part: 'Part 7', scaffold: 'Personal Ship',
-    title: '我的完整队伍三页剧', template: 'blocks_jtw_s2_c6_p7', studioTitle: 'My Westbound Team Play',
-    story: ['选择队旗动作、团队对白和一种无声可见庆祝。请同伴从第一页运行；若不知道何时点悟空，就改清楚提示。'],
-    question: '同伴测试通过的标准是什么？',
-    options: [{ id: 'peer-reaches-end', label: '同伴无需答案图也能从第一页到第三页 End', correct: true }, { id: 'owner-only', label: '只有作者知道怎样运行', correct: false }],
-    extraQuestion: '声音关闭时仍要看见什么？',
-    extraOptions: [{ id: 'visible-celebration', label: '队旗动作和可见庆祝仍能证明结果', correct: true }, { id: 'sound-only', label: '只能靠声音判断成功', correct: false }],
+    id: JTW_S2_C6_P7_ID,
+    nextId: JTW_S2_C6_P8_ID,
+    chapter: 'Chapter 6 · Four people and one horse travel together for the first time',
+    part: 'Part 7',
+    scaffold: 'Personal Ship',
+    title: 'My complete team three-page drama',
+    template: 'blocks_jtw_s2_c6_p7',
+    studioTitle: 'My Westbound Team Play',
+    story: [
+      'Choose from flag gestures, team dialogue and a silent, visible celebration. Please ask your friends to run from the first page; if you don’t know when to click Wukong, please change the prompt clearly.',
+    ],
+    question: 'What are the criteria for passing the peer test?',
+    options: [
+      {
+        id: 'peer-reaches-end',
+        label:
+          'The companion can go from the first page to the third page without the answer diagram. End',
+        correct: true,
+      },
+      { id: 'owner-only', label: 'Only the author knows how to run it', correct: false },
+    ],
+    extraQuestion: 'What do you still see when the sound is turned off?',
+    extraOptions: [
+      {
+        id: 'visible-celebration',
+        label: 'Team flag gestures and visible celebrations still prove the result',
+        correct: true,
+      },
+      { id: 'sound-only', label: 'You can only judge success by sound', correct: false },
+    ],
   },
   [JTW_S2_C6_P8_ID]: {
-    id: JTW_S2_C6_P8_ID, nextId: 'season-end', chapter: '第六章 · 四人一马第一次同行', part: 'Part 8', scaffold: 'Season Retell',
-    title: '西行队伍集合完成',
-    story: ['读取 P7 保存的三页作品。玄奘启程，四位伙伴依次加入；曾经断开的颜色和页面都被修好。', '队伍在第三页稳定停下。本季完整结束，不自动进入下一季。'],
-    question: '哪一句完整讲回本季？',
-    options: [{ id: 'season-retell', label: '玄奘出发，伙伴依次加入；修好消息和页面后，四人一马一起向西', correct: true }, { id: 'instant-team', label: '所有伙伴一开始就同时出现，不需要修复', correct: false }],
-    extraQuestion: '季终后应该怎样继续？',
-    extraOptions: [{ id: 'rest-or-replay', label: '可以重玩、讲给家人或以后再进 S3', correct: true }, { id: 'auto-s3', label: '立刻自动进入 S3', correct: false }],
+    id: JTW_S2_C6_P8_ID,
+    nextId: 'season-end',
+    chapter: 'Chapter 6 · Four people and one horse travel together for the first time',
+    part: 'Part 8',
+    scaffold: 'Season Retell',
+    title: 'The westbound team has assembled',
+    story: [
+      'Read the three pages of work saved by P7. Xuanzang set off, and four partners joined in turn; the colors and pages that had been disconnected were repaired.',
+      'The line came to a steady halt on page three. This season ends in its entirety and does not automatically advance to the next season.',
+    ],
+    question: 'Which sentence completely tells the story of this season?',
+    options: [
+      {
+        id: 'season-retell',
+        label:
+          'Xuanzang set off, and the partners joined in turn; after fixing the message and page, the four of them and one horse headed west together',
+        correct: true,
+      },
+      {
+        id: 'instant-team',
+        label: 'All partners appear at the same time from the start, no fix required',
+        correct: false,
+      },
+    ],
+    extraQuestion: 'How should we continue after the season ends?',
+    extraOptions: [
+      {
+        id: 'rest-or-replay',
+        label: 'Can be replayed, told to family, or returned to S3 later',
+        correct: true,
+      },
+      { id: 'auto-s3', label: 'Automatically enter S3 immediately', correct: false },
+    ],
   },
-}
+};
 
 export const S2_C1_P1_STORY = [
-  '清晨，玄奘在长安整理行囊。桌上的地图很长，一直伸向很远的西方。',
-  '他没有把整段旅程塞进今天，而是在纸条上画下三步：带好行囊，走过城门，再到第一座山下。',
-] as const
+  "In the early morning, Xuanzang packed his bags in Chang'an. The map on the table is very long, stretching far to the west.",
+  'Instead of cramming the entire journey into today, he drew three steps on the note: pack your bags, walk through the city gate, and then go to the bottom of the first mountain.',
+] as const;
 
 export const S2_C1_P1_CLASSIC_CARD =
-  '原著故事中，玄奘从长安启程向西。本课程把长旅程拆成孩子今天能看见、能排序的三步。'
+  "In the original story, Xuanzang set off from Chang'an to the west. This course breaks down a long journey into three steps that children can see and sequence today.";
 
 export const S2_C1_P1_ROUTE_CARDS: readonly JtwEvidenceOption[] = [
-  { id: 'pack-bag', label: '带好行囊', correct: true },
-  { id: 'pass-gate', label: '走过城门', correct: true },
-  { id: 'reach-mountain', label: '到第一座山下', correct: true },
-]
+  { id: 'pack-bag', label: 'Pack your bags', correct: true },
+  { id: 'pass-gate', label: 'Walk through the city gate', correct: true },
+  { id: 'reach-mountain', label: 'Go to the first mountain', correct: true },
+];
 
 export const S2_C1_P1_SCOPE_OPTIONS: readonly JtwEvidenceOption[] = [
-  { id: 'whole-journey', label: '今天一次走完整条西行路', correct: false },
-  { id: 'three-steps', label: '今天先完成纸条上的三步', correct: true },
-]
+  {
+    id: 'whole-journey',
+    label: 'Today I walked the entire westbound road in one go',
+    correct: false,
+  },
+  { id: 'three-steps', label: 'Complete the three steps on the note today', correct: true },
+];
 
 export function s2c1p1RouteDone(order: string[]): boolean {
-  return order.join('|') === 'pack-bag|pass-gate|reach-mountain'
+  return order.join('|') === 'pack-bag|pass-gate|reach-mountain';
 }
 
 export const S2_C1_P2_STORY = [
-  '玄奘把大地图卷好，只留下一张小纸条。第一行画行囊，第二行画城门，第三行画山影。',
-  '小童问：“为什么不把一百天的路全写下？”玄奘回答：“因为今天要先把今天的三步走清楚。走到第一座山，我们再读下一张路条。”',
-] as const
+  'Xuanzang rolled up the big map, leaving only a small piece of paper. The first line draws the luggage, the second line draws the city gate, and the third line draws the shadow of the mountain.',
+  'The child asked: "Why don\'t you write down the entire hundred-day journey?" Xuanzang replied: "Because today we have to walk through today\'s three steps clearly. When we reach the first mountain, we will read the next note."',
+] as const;
 
 export const S2_C1_P2_MOTIVE_OPTIONS: readonly JtwEvidenceOption[] = [
-  { id: 'afraid-to-walk', label: '因为玄奘害怕走路', correct: false },
-  { id: 'break-down-goal', label: '因为远目标很大，要先把今天能做的事拆清楚', correct: true },
-  { id: 'forgot-destination', label: '因为玄奘忘记了目的地', correct: false },
-]
+  { id: 'afraid-to-walk', label: 'Because Xuanzang is afraid of walking', correct: false },
+  {
+    id: 'break-down-goal',
+    label: 'Because the long-term goal is huge, we must first break down what we can do today.',
+    correct: true,
+  },
+  { id: 'forgot-destination', label: 'Because Xuanzang forgot the destination', correct: false },
+];
 
 export const S2_C1_P2_REASON_OPTIONS: readonly JtwEvidenceOption[] = [
-  { id: 'map-long-three-steps', label: '因为地图很长，所以先写今天的三步', correct: true },
-  { id: 'system-rule', label: '因为系统规定，所以只能写三步', correct: false },
-  { id: 'finish-today', label: '因为今天就能走完整条路，所以只写三步', correct: false },
-]
+  {
+    id: 'map-long-three-steps',
+    label: 'Because the map is very long, I will write today’s three steps first.',
+    correct: true,
+  },
+  {
+    id: 'system-rule',
+    label: 'Because of system regulations, I can only write three steps.',
+    correct: false,
+  },
+  {
+    id: 'finish-today',
+    label: 'Because I can walk the entire route today, I will only write down three steps.',
+    correct: false,
+  },
+];

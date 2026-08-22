@@ -87,7 +87,12 @@ function mockBuild(
     return;
   }
   listProjects.mockResolvedValue([
-    { id: 'proj_jtw_jump', title: '西游记 · 木筏跳了位置', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_jtw_jump',
+      title: 'Journey to the West · Raft jumped position',
+      kind: 'blocks',
+      status: 'active',
+    },
   ] as never);
   const project = JSON.parse(JSON.stringify(jtwC3JumpProject(version, cell))) as BlocksProject;
   mutate?.(project);
@@ -97,7 +102,9 @@ function mockBuild(
     history: { past: [], future: [] },
     storyProgress: {
       schemaVersion: 1,
-      completed: runCompleted ? { 'jtw-s1-c3-p6': { completedAt: '2026-07-27T06:00:00.000Z' } } : {},
+      completed: runCompleted
+        ? { 'jtw-s1-c3-p6': { completedAt: '2026-07-27T06:00:00.000Z' } }
+        : {},
     },
     otherFiles: [],
   } as never);
@@ -124,13 +131,25 @@ function renderPage() {
 /** Read both screens, state the expectation, run the bug, name the break+fix. */
 async function throughTheDebugLoop() {
   fireEvent.click(screen.getByTestId('jtw-c3p6-story-next'));
-  fireEvent.click(screen.getByRole('button', { name: /从上一页的右边离开/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /After leaving the right side of the previous page, he should enter from the left side of the next page - he kept walking to the right until the road connected\./i,
+    }),
+  );
   fireEvent.click(screen.getByTestId('jtw-c3p6-bug-run-button'));
   await waitFor(() =>
     expect(screen.getByTestId('jtw-c3p6-bug-run')).toHaveAttribute('data-ran', '1'),
   );
-  fireEvent.click(screen.getByRole('button', { name: /Page 1 → Page 2：他在花果山海岸的右边离开/ }));
-  fireEvent.click(screen.getByRole('button', { name: /改 Page 2 的起点/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Page 1 → Page 2: He left on the right side of the coast of Flower-Fruit Mountain, but appeared again on the right side of the middle of the sea/i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Change the starting point \(Home\): Drag the raft back with the Monkey King /i,
+    }),
+  );
 }
 
 function pickPeer(rowId: string, label: RegExp) {
@@ -151,7 +170,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
+describe('JourneyWestC3Part6Page — Raft jumped location', () => {
   it('shows the locked screen when C3-P5 is not complete', async () => {
     fetchProgress.mockResolvedValue({
       story_line_id: 'journey-to-the-west-s1',
@@ -165,11 +184,13 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
   it('reads the whole teaching text across two screens', async () => {
     renderPage();
     await screen.findByTestId('jtw-part-c3-p6');
-    expect(screen.getByTestId('jtw-c3p6-story-count')).toHaveTextContent('1 / 2 段');
-    expect(screen.getByTestId('jtw-c3p6-story')).toHaveTextContent('他又出现在右边');
+    expect(screen.getByTestId('jtw-c3p6-story-count')).toHaveTextContent(/1\s*\/\s*2\s*part/i);
+    expect(screen.getByTestId('jtw-c3p6-story')).toHaveTextContent(/appeared on the right again/i);
     fireEvent.click(screen.getByTestId('jtw-c3p6-story-next'));
-    expect(screen.getByTestId('jtw-c3p6-story-count')).toHaveTextContent('2 / 2 段');
-    expect(screen.getByTestId('jtw-c3p6-story')).toHaveTextContent('起点格');
+    expect(screen.getByTestId('jtw-c3p6-story-count')).toHaveTextContent(/2\s*\/\s*2\s*parts?/i);
+    expect(screen.getByTestId('jtw-c3p6-story')).toHaveTextContent(
+      /not the building blocks.*starting grid/i,
+    );
   });
 
   it('will not run the bug until the expectation has been stated', async () => {
@@ -177,24 +198,40 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
     await screen.findByTestId('jtw-part-c3-p6');
     expect(screen.getByTestId('jtw-c3p6-bug-run-button')).toBeDisabled();
     // The wrong expectation is refused with a hint, and still keeps Go shut.
-    fireEvent.click(screen.getByRole('button', { name: /从右边离开，就从下一页的右边继续/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('他这一程一直朝右走');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /If you leave on the right, continue on the right on the next page - the position should be the same/i,
+      }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      "Think again of the invisible line: He's been walking to the right this entire time. If the next page placed him on the right, he would have to go back to continue—the audience would think he had been moved over.",
+    );
     expect(screen.getByTestId('jtw-c3p6-bug-run-button')).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: /从上一页的右边离开/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /After leaving the right side of the previous page, he should enter from the left side of the next page - he kept walking to the right until the road connected\./i,
+      }),
+    );
     expect(screen.getByTestId('jtw-c3p6-bug-run-button')).toBeEnabled();
   });
 
   it('refuses the first-deviation pick before the bug has really been run', async () => {
     renderPage();
     await screen.findByTestId('jtw-part-c3-p6');
-    expect(screen.getByTestId('jtw-c3p6-break-locked')).toHaveTextContent('先把错误版真的跑一遍');
+    expect(screen.getByTestId('jtw-c3p6-break-locked')).toHaveTextContent(
+      /run through the wrong page first/i,
+    );
   });
 
   it('measures the discontinuity from a REAL run of the shipped bug', async () => {
     renderPage();
     await screen.findByTestId('jtw-part-c3-p6');
-    fireEvent.click(screen.getByRole('button', { name: /从上一页的右边离开/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /After leaving the right side of the previous page, he should enter from the left side of the next page - he kept walking to the right until the road connected\./i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-c3p6-bug-run-button'));
     await waitFor(() =>
       expect(screen.getByTestId('jtw-c3p6-bug-run')).toHaveAttribute('data-ran', '1'),
@@ -213,19 +250,35 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
   it('refuses the wrong deviation and the wrong minimal fix with hints', async () => {
     renderPage();
     await screen.findByTestId('jtw-part-c3-p6');
-    fireEvent.click(screen.getByRole('button', { name: /从上一页的右边离开/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /After leaving the right side of the previous page, he should enter from the left side of the next page - he kept walking to the right until the road connected\./i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-c3p6-bug-run-button'));
     await waitFor(() =>
       expect(screen.getByTestId('jtw-c3p6-bug-run')).toHaveAttribute('data-ran', '1'),
     );
     fireEvent.click(screen.getByRole('button', { name: /Page 2 → Page 3/ }));
-    expect(screen.getByTestId('jtw-c3p6-break')).toHaveTextContent('最早不对的是哪一次');
+    expect(screen.getByTestId('jtw-c3p6-break')).toHaveTextContent(
+      'Look at each frame: Page 1 He walked from 3-9 to 7-9 without jumping on this page; Page 2 → Page 3 That time, he also left from the right and entered from the left. What was the first time something went wrong?',
+    );
     // The fix question does not exist until the deviation is right.
     expect(screen.queryByTestId('jtw-c3p6-fix')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Page 1 → Page 2：他在花果山海岸的右边离开/ }));
-    fireEvent.click(screen.getByRole('button', { name: /改 Page 1 的退出位置/ }));
-    expect(screen.getByTestId('jtw-c3p6-fix')).toHaveTextContent('只改 Page 2 的起点，一处就够');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Page 1 → Page 2: He left on the right side of the coast of Flower-Fruit Mountain, but appeared again on the right side of the middle of the sea/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Change the exit position of Page 1: let him not go so far, stop on the left and then leave\./i,
+      }),
+    );
+    expect(screen.getByTestId('jtw-c3p6-fix')).toHaveTextContent(
+      "Changing Page 1's exit position changes two things: how far he walked on the first page, and the story itself on the first page (he had to walk to the shore to get on the raft). And the starting point of the next page is still wrong - he still appears on the right. Just change the starting point of Page 2, one place is enough.",
+    );
     expect(screen.getByTestId('jtw-c3p6-open-studio')).toBeDisabled();
   });
 
@@ -243,7 +296,10 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
     await throughTheDebugLoop();
     fireEvent.click(screen.getByTestId('jtw-c3p6-open-studio'));
     await waitFor(() =>
-      expect(createProject).toHaveBeenCalledWith({ title: '西游记 · 木筏跳了位置', template }),
+      expect(createProject).toHaveBeenCalledWith({
+        title: 'Journey to the West · Raft jumped position',
+        template,
+      }),
     );
     expect(await screen.findByTestId('studio-stub')).toBeInTheDocument();
   });
@@ -269,7 +325,9 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
       ),
     );
     expect(screen.getByTestId('jtw-c3p6-run-button')).toBeDisabled();
-    expect(screen.getByTestId('jtw-c3p6-diff')).toHaveTextContent('还没有位置被改动');
+    expect(screen.getByTestId('jtw-c3p6-diff')).toHaveTextContent(
+      'No positions have been changed yet.',
+    );
     await throughTheDebugLoop();
     expect(screen.getByTestId('jtw-c3p6-continue')).toBeDisabled();
   });
@@ -323,7 +381,9 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
         'in_progress',
       ),
     );
-    expect(screen.getByTestId('jtw-c3p6-diff')).toHaveTextContent('还没有位置被改动');
+    expect(screen.getByTestId('jtw-c3p6-diff')).toHaveTextContent(
+      'No positions have been changed yet.',
+    );
     expect(screen.getByTestId('jtw-c3p6-run-button')).toBeDisabled();
   });
 
@@ -363,14 +423,19 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
     );
 
     // The peer answers are judged; a wrong one keeps continue shut.
-    pickPeer('from', /从右边冒出来的/);
-    pickPeer('to', /继续向右/);
+    pickPeer('from', /Coming out from the right, you can’t tell where the previous page is\./i);
+    pickPeer('to', /Continue to the right and go to the forest on the other side/i);
     expect(screen.getByTestId('jtw-c3p6-continue')).toBeDisabled();
-    pickPeer('from', /从左边进来的/);
+    pickPeer(
+      'from',
+      /Coming in from the left - the shore with the peach trees on the previous page/i,
+    );
     expect(screen.getByTestId('jtw-c3p6-peer')).toHaveAttribute('data-correct', '1');
 
     // 远行印 is C3-P8's aggregation — this page draws no seal, and says so.
-    expect(screen.getByTestId('jtw-c3p6-seal-note')).toHaveTextContent('远行印还没有亮');
+    expect(screen.getByTestId('jtw-c3p6-seal-note')).toHaveTextContent(
+      /travel seal has not been lit yet/i,
+    );
 
     fireEvent.click(screen.getByTestId('jtw-c3p6-continue'));
     await waitFor(() => expect(completePart).toHaveBeenCalled());
@@ -392,10 +457,7 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
     expect(selections.page_trace).toEqual(['1', '2', '3']);
     expect(selections.run_stop).toEqual(['end']);
     expect(selections.exit_page).toEqual(['3']);
-    expect(selections.peer_continuity).toEqual([
-      'from:from-left-shore',
-      'to:to-right-far-shore',
-    ]);
+    expect(selections.peer_continuity).toEqual(['from:from-left-shore', 'to:to-right-far-shore']);
     expect(selections.saved_version).toBeUndefined();
     expect(await screen.findByTestId('jtw-map-stub')).toBeInTheDocument();
   });
@@ -429,7 +491,9 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
     // The malformed boundary row is dropped, never guessed.
     expect(screen.getByTestId('jtw-c3p6-bug-boundaries').querySelectorAll('li')).toHaveLength(1);
     expect(screen.getByTestId('jtw-c3p6-peer')).toHaveAttribute('data-correct', '1');
-    expect(screen.getByTestId('jtw-c3p6-resolved')).toHaveTextContent('一条不断开的方向线');
+    expect(screen.getByTestId('jtw-c3p6-resolved')).toHaveTextContent(
+      'The borders of the three pages are connected into an unbroken direction line.',
+    );
     expect(screen.getByTestId('jtw-c3p6-continue')).toBeEnabled();
   });
 
@@ -437,7 +501,11 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
     fetchProgress.mockResolvedValue(progressAfterC3P5('starry'));
     renderPage();
     await screen.findByTestId('jtw-part-c3-p6');
-    fireEvent.click(screen.getByRole('button', { name: /从上一页的右边离开/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /After leaving the right side of the previous page, he should enter from the left side of the next page - he kept walking to the right until the road connected\./i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-c3p6-bug-run-button'));
     await waitFor(() =>
       expect(screen.getByTestId('jtw-c3p6-bug-run')).toHaveAttribute('data-ran', '1'),
@@ -450,7 +518,11 @@ describe('JourneyWestC3Part6Page — 木筏跳了位置', () => {
   it('keeps the raft and the monkey king on the same Page 2 cell while running', async () => {
     renderPage();
     await screen.findByTestId('jtw-part-c3-p6');
-    fireEvent.click(screen.getByRole('button', { name: /从上一页的右边离开/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /After leaving the right side of the previous page, he should enter from the left side of the next page - he kept walking to the right until the road connected\./i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-c3p6-bug-run-button'));
     await waitFor(() =>
       expect(screen.getByTestId('jtw-c3p6-bug-run')).toHaveAttribute('data-ran', '1'),

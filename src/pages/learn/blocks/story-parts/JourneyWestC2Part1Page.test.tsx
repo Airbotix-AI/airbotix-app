@@ -66,11 +66,19 @@ function renderPage() {
 
 /** Motive + the three real clues + the 因为/所以 sentence. */
 function completeEvidence() {
-  fireEvent.click(screen.getByRole('button', { name: /他想让伙伴看清发生了什么/ }));
-  fireEvent.click(screen.getByRole('button', { name: '水声变大' }));
-  fireEvent.click(screen.getByRole('button', { name: '石头变湿' }));
-  fireEvent.click(screen.getByRole('button', { name: '水雾变浓' }));
-  fireEvent.click(screen.getByRole('button', { name: /停在湿石外观察/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /He wanted his partners to see what was going on and find a route they could take/i,
+    }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'The sound of water becomes louder' }));
+  fireEvent.click(screen.getByRole('button', { name: 'stones get wet' }));
+  fireEvent.click(screen.getByRole('button', { name: 'The mist becomes thicker' }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Stop outside the wet rocks to observe and help your friends find a feasible route\./i,
+    }),
+  );
 }
 
 async function runPreview() {
@@ -91,7 +99,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestC2Part1Page · C2-P1 水声把大家带到哪里', () => {
+describe('JourneyWestC2Part1Page · C2-P1 Where does the sound of water take everyone?', () => {
   it('ships the full story text, the hidden cave mouth and the exact read-only chain', async () => {
     // Contract: exactly when_flag → play_sound(Chime) → wait(2) → end.
     expect(
@@ -106,7 +114,7 @@ describe('JourneyWestC2Part1Page · C2-P1 水声把大家带到哪里', () => {
     for (const paragraph of C2_P1_STORY_BEFORE) {
       expect(screen.getByText(paragraph)).toBeInTheDocument();
     }
-    expect(screen.getByTestId('jtw-c2p1-story')).toHaveTextContent('孙悟空');
+    expect(screen.getByTestId('jtw-c2p1-story')).toHaveTextContent('Sun Wukong');
     expect(screen.getByTestId('jtw-c2p1-story')).toHaveTextContent('On Bump');
     // The cave mouth starts hidden, the monkey waits visible at the left.
     expect(screen.getByTestId('jtw-c2p1-cave-mouth')).toHaveAttribute('data-visible', 'false');
@@ -127,19 +135,25 @@ describe('JourneyWestC2Part1Page · C2-P1 水声把大家带到哪里', () => {
     expect(screen.queryByTestId('jtw-part-c2-p1')).not.toBeInTheDocument();
   });
 
-  it('rejects 看见洞口 as evidence with the hint and keeps continue locked', async () => {
+  it('rejects see the hole as evidence with the hint and keeps continue locked', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c2-p1')).toBeInTheDocument());
     completeEvidence();
     await runPreview();
-    fireEvent.click(screen.getByRole('button', { name: /还不知道——水帘是合上的/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I don’t know yet—the water curtain is closed, and there is no hole exposed in the picture\./i,
+      }),
+    );
 
     // Everything else is done — adding the cave mouth breaks the clue evidence.
     expect(screen.getByTestId('jtw-c2p1-continue')).toBeEnabled();
-    fireEvent.click(screen.getByRole('button', { name: '看见洞口' }));
-    expect(screen.getByRole('status')).toHaveTextContent('洞口藏在水帘后面');
+    fireEvent.click(screen.getByRole('button', { name: 'see the hole' }));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'The entrance to the cave is hidden behind a curtain of water, and no one can see it in the picture—it cannot be used as evidence.',
+    );
     expect(screen.getByTestId('jtw-c2p1-continue')).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: '看见洞口' }));
+    fireEvent.click(screen.getByRole('button', { name: 'see the hole' }));
     expect(screen.getByTestId('jtw-c2p1-continue')).toBeEnabled();
   });
 
@@ -163,14 +177,24 @@ describe('JourneyWestC2Part1Page · C2-P1 水声把大家带到哪里', () => {
     expect(screen.getByTestId('jtw-c2p1-continue')).toBeDisabled(); // preview + prediction pending
     await runPreview();
 
-    fireEvent.click(screen.getByRole('button', { name: /已经知道了——洞口就亮在画面里/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('答案要从画面里找');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Already know - the entrance to the cave is in the picture/i,
+      }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Look at the picture again: with the water curtain closed, is the hole exposed? The answer can be found in the picture.',
+    );
     expect(screen.getByTestId('jtw-c2p1-continue')).toBeDisabled();
     expect(screen.queryByTestId('jtw-c2p1-resolved')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /还不知道——水帘是合上的/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I don’t know yet—the water curtain is closed, and there is no hole exposed in the picture\./i,
+      }),
+    );
     // 三类线索从近到远点亮，视线停在关闭的水帘。
-    expect(screen.getByTestId('jtw-c2p1-resolved')).toHaveTextContent('从近到远');
+    expect(screen.getByTestId('jtw-c2p1-resolved')).toHaveTextContent('from near to far');
     const lights = screen.getByTestId('jtw-c2p1-clue-lights').querySelectorAll('[data-lit="true"]');
     expect(Array.from(lights).map((light) => light.getAttribute('data-clue'))).toEqual([
       'water-louder',
@@ -186,7 +210,11 @@ describe('JourneyWestC2Part1Page · C2-P1 水声把大家带到哪里', () => {
     await waitFor(() => expect(screen.getByTestId('jtw-c2p1-continue')).toBeInTheDocument());
     completeEvidence();
     await runPreview();
-    fireEvent.click(screen.getByRole('button', { name: /还不知道——水帘是合上的/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I don’t know yet—the water curtain is closed, and there is no hole exposed in the picture\./i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-c2p1-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
@@ -226,15 +254,15 @@ describe('JourneyWestC2Part1Page · C2-P1 水声把大家带到哪里', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getByTestId('jtw-c2p1-resolved')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: /他想让伙伴看清发生了什么/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: '水声变大' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    expect(screen.getByRole('button', { name: '看见洞口' })).toHaveAttribute(
+    expect(
+      screen.getByRole('button', {
+        name: /He wanted his partners to see what was going on and find a route they could take/i,
+      }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByRole('button', { name: 'The sound of water becomes louder' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'see the hole' })).toHaveAttribute(
       'aria-pressed',
       'false',
     );

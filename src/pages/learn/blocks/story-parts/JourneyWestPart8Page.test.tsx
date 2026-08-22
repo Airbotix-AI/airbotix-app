@@ -33,8 +33,14 @@ const listProjects = vi.mocked(blocksApi.listBlocksProjects);
 const loadProject = vi.mocked(blocksApi.loadBlocksProject);
 
 const instantSleep = () => Promise.resolve();
-const GREETING = '你们好，我可以过来吗？';
-const CARD_LABELS = ['仙石动静', '石猴出现', '伙伴看见', '第一次问好', '听见水声'];
+const GREETING = 'Hello, can I come over?';
+const CARD_LABELS = [
+  '🔔 Immortal Stone Movement',
+  'Stone monkey appears',
+  '👀 Partner sees',
+  '💬 Hello for the first time',
+  '🌊 Hear the sound of water',
+];
 
 const P7_DONE: StoryLineProgress = {
   story_line_id: 'journey-to-the-west-s1',
@@ -96,9 +102,7 @@ const P8_DONE_LIT: StoryLineProgress = {
     },
   ],
   unlocked_part_ids: [...P7_DONE.unlocked_part_ids, 'jtw-s1-c2-p1'],
-  chapter_seals: [
-    { seal_id: 'jtw-s1-c1-birth-seal', chapter_code: 'C1', lit: true, missing: [] },
-  ],
+  chapter_seals: [{ seal_id: 'jtw-s1-c1-birth-seal', chapter_code: 'C1', lit: true, missing: [] }],
 };
 
 const SAVED_P7_CHAIN: Block[] = [
@@ -115,7 +119,7 @@ const SAVED_P7_CHAIN: Block[] = [
 function savedP7Project(blocks: Block[]): BlocksProject {
   return {
     version: 1,
-    name: '西游记 · 我的石猴亮相',
+    name: 'Journey to the West · My Stone Monkey Appears',
     lessonId: 'jtw-s1-c1-p7',
     pages: [
       {
@@ -138,7 +142,12 @@ function savedP7Project(blocks: Block[]): BlocksProject {
 
 function mockSavedWork(blocks: Block[] = SAVED_P7_CHAIN, savedVersion = 6) {
   listProjects.mockResolvedValue([
-    { id: 'proj_p7', title: '西游记 · 我的石猴亮相', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_p7',
+      title: 'Journey to the West · My Stone Monkey Appears',
+      kind: 'blocks',
+      status: 'active',
+    },
   ]);
   loadProject.mockResolvedValue({
     project: savedP7Project(blocks),
@@ -178,9 +187,7 @@ function orderCards() {
 
 async function runSavedWork() {
   fireEvent.click(screen.getByTestId('jtw-p8-run'));
-  await waitFor(() =>
-    expect(screen.getByTestId('jtw-p8-stage').dataset.runState).toBe('done'),
-  );
+  await waitFor(() => expect(screen.getByTestId('jtw-p8-stage').dataset.runState).toBe('done'));
 }
 
 beforeEach(() => {
@@ -196,7 +203,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestPart8Page · C1-P8 新伙伴听见了水声', () => {
+describe('JourneyWestPart8Page · C1-P8 New partner heard the sound of water', () => {
   it('blocks kids who have not finished P7 (server unlock is the truth)', async () => {
     fetchProgress.mockResolvedValue({
       ...P7_DONE,
@@ -214,7 +221,9 @@ describe('JourneyWestPart8Page · C1-P8 新伙伴听见了水声', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c1-p8')).toBeInTheDocument());
     expect(screen.getByText(C1_P8_STORY_BEFORE)).toBeInTheDocument();
-    expect(screen.getByTestId('jtw-p8-story')).toHaveTextContent('水帘洞只是下一章的线索');
+    expect(screen.getByTestId('jtw-p8-story')).toHaveTextContent(
+      'The original work is still only up to the first chapter: the fairy stone gave birth to the stone monkey, and he just met Flower-Fruit Mountain. Water Curtain Cave is just a clue to the next chapter - no one has passed through the water curtain yet.',
+    );
     await waitFor(() =>
       expect(screen.getByTestId('jtw-p8-saved-chain').querySelectorAll('.bsx-block')).toHaveLength(
         8,
@@ -226,8 +235,8 @@ describe('JourneyWestPart8Page · C1-P8 新伙伴听见了水声', () => {
     expect(screen.getByTestId('jtw-p8-light-seal')).toBeDisabled();
 
     // A wrong order (hello before appearing) does not unlock the run either.
-    fireEvent.click(screen.getByRole('button', { name: /第一次问好/ }));
-    fireEvent.click(screen.getByRole('button', { name: /仙石动静/ }));
+    fireEvent.click(screen.getByRole('button', { name: /💬 Hello for the first time/i }));
+    fireEvent.click(screen.getByRole('button', { name: /🔔 Immortal Stone Movement/i }));
     expect(screen.getByTestId('jtw-p8-run')).toBeDisabled();
   });
 
@@ -260,11 +269,21 @@ describe('JourneyWestPart8Page · C1-P8 新伙伴听见了水声', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c1-p8')).toBeInTheDocument());
     await waitFor(() => expect(screen.getByTestId('jtw-p8-run')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /因为伙伴接纳了他/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Because his partner accepted him, they walked together; and because the sound of water kept making, he decided to observe the route first\./i,
+      }),
+    );
     orderCards();
     await runSavedWork();
-    fireEvent.click(screen.getByRole('button', { name: /把积木的名字按顺序念一遍/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('只念积木名或只连两件事都不够');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Chime, Show, Hop, Say, End - read the names of the building blocks in order/i,
+      }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Just saying the name of the building block or even two things is not enough - use "because-so-result-later" to connect at least four nodes of the movement of the fairy stone, the appearance of the stone monkey, the sight of the partner, the first greeting, and the sound of the water.',
+    );
     expect(screen.getByTestId('jtw-p8-light-seal')).toBeDisabled();
   });
 
@@ -273,10 +292,18 @@ describe('JourneyWestPart8Page · C1-P8 新伙伴听见了水声', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c1-p8')).toBeInTheDocument());
     await waitFor(() => expect(screen.getByTestId('jtw-p8-run')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /因为伙伴接纳了他/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Because his partner accepted him, they walked together; and because the sound of water kept making, he decided to observe the route first\./i,
+      }),
+    );
     orderCards();
     await runSavedWork();
-    fireEvent.click(screen.getByRole('button', { name: /后来大家一起听见了水声/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Because the fairy stone made a noise, the stone monkey first let everyone see him\. As a result, his friends understood his movements, greeted him, and accepted him\. Later, everyone heard the sound of water\./i,
+      }),
+    );
     // Before the server confirms, no seal exists on the page at all.
     expect(screen.queryByTestId('jtw-p8-seal')).not.toBeInTheDocument();
 
@@ -308,9 +335,13 @@ describe('JourneyWestPart8Page · C1-P8 新伙伴听见了水声', () => {
     // auto-navigate into C2 (or anywhere else).
     await waitFor(() => expect(screen.getByTestId('jtw-p8-seal')).toBeInTheDocument());
     expect(screen.getByTestId('jtw-p8-seal').dataset.lit).toBe('true');
-    expect(screen.getByTestId('jtw-p8-seal')).toHaveTextContent('出世印');
-    expect(screen.getByTestId('jtw-p8-seal')).toHaveTextContent('我能把故事动作按先后排清楚');
-    expect(screen.getByTestId('jtw-p8-resolved')).toHaveTextContent('湿石一块块亮起来');
+    expect(screen.getByTestId('jtw-p8-seal')).toHaveTextContent('birth seal');
+    expect(screen.getByTestId('jtw-p8-seal')).toHaveTextContent(
+      "I can put the story's actions in order.",
+    );
+    expect(screen.getByTestId('jtw-p8-resolved')).toHaveTextContent(
+      'The perspective moves along the clear spring to the waterfall: the wet stones light up piece by piece, and tiny bright spots shine on the water curtain. No one automatically jumps to the next chapter.',
+    );
     expect(screen.getByTestId('jtw-p8-continue-now')).toBeInTheDocument();
     expect(screen.getByTestId('jtw-p8-continue-later')).toBeInTheDocument();
     expect(screen.queryByTestId('jtw-map-stub')).not.toBeInTheDocument();
@@ -338,8 +369,12 @@ describe('JourneyWestPart8Page · C1-P8 新伙伴听见了水声', () => {
     // P8 itself is completed, but frontend state can never light the seal —
     // the server still reports a gap, so the celebration stays off.
     expect(screen.getByTestId('jtw-p8-seal').dataset.lit).toBe('false');
-    expect(screen.getByTestId('jtw-p8-seal')).toHaveTextContent('出世印还没亮');
-    expect(screen.getByTestId('jtw-p8-seal')).not.toHaveTextContent('我能把故事动作按先后排清楚');
+    expect(screen.getByTestId('jtw-p8-seal')).toHaveTextContent(
+      'The Seal of Birth has not yet been revealed - this chapter is still missing in the server records',
+    );
+    expect(screen.getByTestId('jtw-p8-seal')).not.toHaveTextContent(
+      "I can put the story's actions in order.",
+    );
   });
 
   it('restores the saved retell evidence after a refresh', async () => {
@@ -349,7 +384,9 @@ describe('JourneyWestPart8Page · C1-P8 新伙伴听见了水声', () => {
     await waitFor(() => expect(screen.getByTestId('jtw-p8-seal')).toBeInTheDocument());
     expect(screen.getByTestId('jtw-p8-seal').dataset.lit).toBe('true');
     expect(
-      screen.getByRole('button', { name: /后来大家一起听见了水声/ }),
+      screen.getByRole('button', {
+        name: /Because the fairy stone made a noise, the stone monkey first let everyone see him\. As a result, his friends understood his movements, greeted him, and accepted him\. Later, everyone heard the sound of water\./i,
+      }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('jtw-p8-continue-now')).toBeInTheDocument();
   });

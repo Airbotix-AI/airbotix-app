@@ -68,7 +68,8 @@ export const JTW_C3_SLOW_SPEED = 1;
  * this text through the mission contract's `allowedSayText` and the build
  * contract accepts nothing else.
  */
-export const JTW_C3_LISTEN_CLUE = '晨雾里看不清，我先听浪声。';
+export const JTW_C3_LISTEN_CLUE =
+  "The fog is thick, so I'll listen for the waves.";
 
 export const JTW_C3_P5_PAGE_IDS: readonly [string, string, string] = [
   'jtw-c3-p5-page-1',
@@ -150,32 +151,34 @@ export interface JtwC3WeatherVersion {
 
 const STARRY: JtwC3WeatherVersion = {
   id: 'starry',
-  label: '🌙 星夜海面',
+  label: '🌙 Starry night sea surface',
   templateId: 'blocks_jtw_c3_p5_starry',
   scene: JTW_C3_PAGE2_STARRY_SCENE,
   background: JTW_C3_PAGE2_STARRY_BACKGROUND,
   resolvedBackground: JTW_C3_PAGE2_STARRY_RESOLVED_BACKGROUND,
-  resolvedAlt: '星夜的海：云退开了，一条亮着的海路从这边一直连到对岸的灯',
+  resolvedAlt:
+    'The sea at starry night: the clouds recede, and a lit sea road connects from here to the lights on the other side.',
   expression: JTW_C3_STARRY_EXPRESSION,
   chain: [{ op: 'when_flag' }, ...JTW_C3_STARRY_EXPRESSION, ...JTW_C3_P5_ROUTE_TAIL],
   soundLabel: '✨ Sparkle',
   mutedEvidence:
-    '把声音关掉也读得出来：⏱ Wait 2 那一下停顿看得见，画面上的云要退开、月光要落到海面，木筏才动。',
+    'You can read it even if the sound is turned off: ⏱ Wait 2 The pause is visible. The clouds on the screen have to retreat and the moonlight has to fall to the sea before the raft moves.',
 };
 
 const MORNING: JtwC3WeatherVersion = {
   id: 'morning',
-  label: '🌫 晨雾海面',
+  label: '🌫 Morning fog on the sea',
   templateId: 'blocks_jtw_c3_p5_morning',
   scene: JTW_C3_PAGE2_MORNING_SCENE,
   background: JTW_C3_PAGE2_MORNING_BACKGROUND,
   resolvedBackground: JTW_C3_PAGE2_RESOLVED_BACKGROUND,
-  resolvedAlt: '晨雾的海：雾散开一条路，海面上画出一条能走的海路',
+  resolvedAlt:
+    'The sea of ​​morning fog: the fog spreads and a walkable sea path is drawn on the sea',
   expression: JTW_C3_MORNING_EXPRESSION,
   chain: [{ op: 'when_flag' }, ...JTW_C3_MORNING_EXPRESSION, ...JTW_C3_P5_ROUTE_TAIL],
   soundLabel: '💨 Whoosh',
   mutedEvidence:
-    '把声音关掉也读得出来：🐢 Speed 把木筏放慢是看得见的，💬 那句话也写在画面上，雾里他确实先听再走。',
+    'It can be read even when the sound is turned off: 🐢 Speed ​​slowing down the raft can be seen, 💬 That sentence is also written on the screen, and in the fog he does listen before walking.',
 };
 
 /** Both valid versions, in the order the scene names them (星夜 then 晨雾). */

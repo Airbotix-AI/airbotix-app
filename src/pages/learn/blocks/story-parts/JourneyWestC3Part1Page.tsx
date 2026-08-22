@@ -80,9 +80,9 @@ const MONKEY_LEFT_PERCENT = (JTW_C3_PAGE1_START_CELL.gx / (GRID_W - 1)) * 100;
 const MONKEY_TOP_PERCENT = (JTW_C3_PAGE1_START_CELL.gy / (GRID_H - 1)) * 100;
 
 const STAGE_BEFORE_ALT =
-  '花果山海岸：左边是长着桃树的山，右边的海一直连到天边，中间是一片空着的沙滩';
+  'Flower-Fruit Mountain coast: peach-covered hills on the left, sea to the horizon on the right and an open beach between them';
 const STAGE_RESOLVED_ALT =
-  '同一片海岸，海上的风纹亮成凉凉的青色，一直连到天边';
+  'On the same coast, the wind patterns on the sea light up into a cool blue color, reaching to the horizon.';
 
 /**
  * Page 1 的舞台：猴王站在山脚的海岸上望向海面。
@@ -209,7 +209,7 @@ export function JourneyWestC3Part1Page() {
       >
         <p className="text-[16px] font-bold text-ink">{C3_P1_LOCKED_HINT}</p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -219,9 +219,11 @@ export function JourneyWestC3Part1Page() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c3-p1">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第三章 一叶木筏求师路 · Part 1
+          Journey to the West · Chapter 3 One Leaf Raft’s Journey to Seeking a Master · Part 1
         </p>
-        <h1 className="text-[28px] font-black text-ink">快乐的家，也装不下所有问题</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          A happy home cannot contain all the problems
+        </h1>
       </header>
 
       {/* ── story_before：故事卡A、B 全文，两屏；读过哪一屏是被记录的证据 ── */}
@@ -265,15 +267,15 @@ export function JourneyWestC3Part1Page() {
             </button>
           )}
           <span className="text-[12px] font-bold text-ink-soft" data-testid="jtw-c3p1-story-count">
-            {screensRead.length} / {C3_P1_SCREEN_IDS.length} 段
+            {screensRead.length} / {C3_P1_SCREEN_IDS.length} part
           </span>
         </div>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C3_P1_CLASSIC_CARD}
         </aside>
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C3_P1_STORY_BRIDGE}
         </aside>
       </section>
@@ -417,7 +419,7 @@ export function JourneyWestC3Part1Page() {
         >
           <img
             src={JTW_C3_MONKEY_FRIENDS_SPRITE}
-            alt="三只群猴从山上下来，站到岸边"
+            alt="Three monkeys came down from the mountain and stood on the shore"
             data-testid="jtw-c3p1-friends"
             className="mb-3 w-full max-w-sm"
           />
@@ -428,7 +430,7 @@ export function JourneyWestC3Part1Page() {
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -437,12 +439,12 @@ export function JourneyWestC3Part1Page() {
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C3_P1_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C3_P1_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

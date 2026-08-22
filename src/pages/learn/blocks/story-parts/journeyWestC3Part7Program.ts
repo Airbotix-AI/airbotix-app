@@ -40,7 +40,7 @@ export const C3_P7_PART_ID = 'jtw-s1-c3-p7';
 export const C3_P7_NEXT_PART_ID = 'jtw-s1-c3-p8';
 /** 教学脚本 C3 Part 7 / 本章卡: the saved work is `Across the Sea to Learn`. */
 export const C3_P7_WORK_NAME = 'Across the Sea to Learn';
-export const C3_P7_PROJECT_TITLE = `西游记 · ${C3_P7_WORK_NAME}`;
+export const C3_P7_PROJECT_TITLE = `Journey to the West · ${C3_P7_WORK_NAME}`;
 
 /** How many recent projects the part page scans for the child's own route. */
 export const C3_P7_RECENT_PROJECTS_TO_SCAN = 8;
@@ -110,21 +110,21 @@ export function c3p7BuildDone(build: C3PersonalRouteBuild | undefined): boolean 
 // ─── story_before — teaching script C3 Part 7, two screens ───────────────────
 
 export const C3_P7_STORY_SCREENS: readonly [string, string] = [
-  '公共的那条路已经修好了：三页接得上，木筏不再跳到海的另一头。可那是我们一起搭的路。现在轮到你自己做一条——离开花果山、渡过中间那片海、走到师门所在的山林，三页都由你来写。作品的名字叫「Across the Sea to Learn」，意思是"渡海去学习"：他不是去拿宝物，也还没有开始取经，他是去找一位能教他的师父。',
-  `三页各有各的职责：Page 1 说清楚离家和登筏，Page 2 让人看见观察、前进和停顿，Page 3 靠岸、听见山林里的歌声，然后稳稳地结束。每一页放 ${JTW_C3_P7_MIN_ACTIONS}–${JTW_C3_P7_MAX_ACTIONS} 块有意义的动作，Page 1 和 Page 2 各要一块出口，Page 3 要一块 End——加起来至少 ${JTW_C3_P7_MIN_CHILD_BLOCKS} 块，全都是你自己放的。搭好以后保存、关掉、重新打开，再从 Page 1 完整跑一遍：能重开、重开后还一样，这条路才真的是你的。`,
+  'The public road has been repaired: three pages can be connected, and the raft no longer jumps to the other side of the sea. But that\'s the road we take together. Now it\'s your turn to make one yourself - leave Flower-Fruit Mountain, cross the sea in the middle, and walk to the mountain forest where the master is located. You will write the three pages. The name of the work is "Across the Sea to Learn", which means "crossing the sea to learn": He is not going to get treasures, nor has he started to learn scriptures yet. He is looking for a master who can teach him.',
+  `Each of the three pages has its own responsibility: Page 1 clearly explains leaving home and boarding the raft, Page 2 allows people to see observation, progress and pause, Page 3 approaches the shore, hears the singing in the mountains and forests, and ends steadily. put on each page ${JTW_C3_P7_MIN_ACTIONS}–${JTW_C3_P7_MAX_ACTIONS} meaningful actions, Page 1 and Page 2 each need an exit, and Page 3 needs an End - adding up to at least ${JTW_C3_P7_MIN_CHILD_BLOCKS} Blocks, all placed by you yourself. After setting it up, save it, close it, reopen it, and then run it completely from Page 1: If you can reopen it and it's still the same after reopening, then this road is really yours.`,
 ];
 export const C3_P7_SCREEN_IDS: readonly [string, string] = [
   'part-7-my-own-route',
   'part-7-what-three-pages-owe',
 ];
-export const C3_P7_NEXT_SCREEN_LABEL = '再读下一段';
-export const C3_P7_PREV_SCREEN_LABEL = '回上一段';
+export const C3_P7_NEXT_SCREEN_LABEL = 'Read the next paragraph';
+export const C3_P7_PREV_SCREEN_LABEL = 'Go back to the previous paragraph';
 
 export const C3_P7_CLASSIC_CARD =
-  '原著第一回里，猴王漂洋求师走了很多年、经过不止一片海和不止一处人间。三页是我们讲这段路的方法，不是说原著只有三片海。你可以换天气、换节奏、换他说的那句话，但他为什么出发不能换：他是去求师学习的。';
+  "In the first chapter of the original work, the Monkey King traveled across the ocean to seek teachers for many years, passing through more than one sea and more than one human world. Three pages is how we talk about this section of the road. It does not mean that the original work only has three seas. You can change the weather, change the rhythm, and change the words he said, but you can't change why he set out: he went to learn from a teacher.";
 
 export const C3_P7_STORY_BRIDGE =
-  '每一页的动作让这一段路真的发生了什么，出口上的数字把故事交给下一页，最后那块 End 说明"讲完了"。三样缺一样，读的人就接不上：没有动作是空壳，没有出口是死页，没有 End 是停不下来。';
+  'The action on each page makes what really happened in this section of the journey, the number on the exit transfers the story to the next page, and the last piece of End indicates "finished". If one of the three things is missing, the readers will not be able to read it: without action, it is an empty shell, without exit, it is a dead page, and without End, it cannot stop.';
 
 export function c3p7StoryRead(screens: readonly string[]): boolean {
   return C3_P7_SCREEN_IDS.every((screenId) => screens.includes(screenId));
@@ -132,16 +132,16 @@ export function c3p7StoryRead(screens: readonly string[]): boolean {
 
 // ─── ①选一片海（模板分支白名单） ─────────────────────────────────────────────
 
-export const C3_P7_WEATHER_TITLE = '① 先选这一程要渡的是哪一片海';
+export const C3_P7_WEATHER_TITLE = '① First choose which sea you want to cross on this journey';
 export const C3_P7_WEATHER_NOTE =
-  '选哪一张卡，工作区里就真的画哪一片海，保存下来的作品里存的也是这一片——不是页面上的一个记号。两片海都成立，选定以后想换要回工作区重新开始。';
+  'Whichever card you choose, the actual sea will be drawn in the workspace, and the saved work will also contain this sea - not a mark on the page. Both seas are established. If you want to change after selecting, you have to go back to the work area and start over.';
 export const C3_P7_WEATHER_LOCKED_NOTE =
-  '你已经在这一片海上开工了。想换另一片海，要回到工作区重新开始一份作品——这里不会偷偷替你换掉存下来的那一片。';
+  'You have already started work on this piece of sea. If you want to change to another piece of the sea, you have to go back to the workspace and start a new work - we will not secretly replace the saved piece for you.';
 
 // ─── ②在真正的工作区里写三页 ────────────────────────────────────────────────
 
-export const C3_P7_BUILD_TITLE = `② 去真正的工作区，写你自己的「${C3_P7_WORK_NAME}」`;
-export const C3_P7_BUILD_NOTE = `三页的脚本槽里都只有一个 Start，没有示范链可以照抄。每页放 ${JTW_C3_P7_MIN_ACTIONS}–${JTW_C3_P7_MAX_ACTIONS} 块动作，Page 1 的 📄 Page 点成 ${JTW_C3_SEA_PAGE}、Page 2 的点成 ${JTW_C3_FAR_SHORE_PAGE}、Page 3 用 🏁 End 收尾，然后按 Go 跑一次保存。`;
+export const C3_P7_BUILD_TITLE = `② Go to the real workspace and write your own "${C3_P7_WORK_NAME}」`;
+export const C3_P7_BUILD_NOTE = `There is only one Start in the three-page script slot, and there is no demonstration chain to copy. put per page ${JTW_C3_P7_MIN_ACTIONS}–${JTW_C3_P7_MAX_ACTIONS} Block action, click on the 📄 Page of Page 1 ${JTW_C3_SEA_PAGE}, Page 2 points ${JTW_C3_FAR_SHORE_PAGE}, Page 3 End with 🏁 End, then press Go to run once and save.`;
 
 /** The structure checklist the page renders — the scene's 最低结构, spelled out. */
 export interface C3P7StructureRow {
@@ -149,49 +149,57 @@ export interface C3P7StructureRow {
   label: string;
 }
 
-export const C3_P7_STRUCTURE_TITLE = '这一份作品要满足的最低结构';
+export const C3_P7_STRUCTURE_TITLE = 'The minimum structure that this work must satisfy';
 export const C3_P7_STRUCTURE_ROWS: readonly C3P7StructureRow[] = [
   {
     id: 'pages',
-    label: `三页各写一段：${c3p2PageLabel(1)}离家 · ${c3p2PageLabel(JTW_C3_SEA_PAGE)}观察 · ${c3p2PageLabel(JTW_C3_FAR_SHORE_PAGE)}到达`,
+    label: `Write one paragraph on each of the three pages:${c3p2PageLabel(1)}Leaving home · ${c3p2PageLabel(JTW_C3_SEA_PAGE)}observe · ${c3p2PageLabel(JTW_C3_FAR_SHORE_PAGE)}arrive`,
   },
   {
     id: 'actions',
-    label: `每页 ${JTW_C3_P7_MIN_ACTIONS}–${JTW_C3_P7_MAX_ACTIONS} 块有意义的动作——只放一块出口的页面是空壳`,
+    label: `per page ${JTW_C3_P7_MIN_ACTIONS}–${JTW_C3_P7_MAX_ACTIONS} Block meaningful actions - a page with only one exit is an empty shell`,
   },
   {
     id: 'exits',
-    label: `Page 1 的出口写 ${JTW_C3_SEA_PAGE}，Page 2 的出口写 ${JTW_C3_FAR_SHORE_PAGE}，Page 3 用 🏁 End 稳稳结束`,
+    label: `Page 1 export write ${JTW_C3_SEA_PAGE}, the exit of Page 2 writes ${JTW_C3_FAR_SHORE_PAGE}, Page 3 ends steadily with 🏁 End`,
   },
   {
     id: 'raft',
-    label: `Page 1 走满 ${JTW_C3_P7_BOARD_LEG} 格才上得了停在 ${JTW_C3_P7_PAGE1_RAFT_CELL.gx}-${JTW_C3_P7_PAGE1_RAFT_CELL.gy} 的木筏；Page 2 也要走满 ${JTW_C3_SEA_LEG} 格，脚才一直在筏上`,
+    label: `Page 1 full ${JTW_C3_P7_BOARD_LEG} The talent is good enough to stop at ${JTW_C3_P7_PAGE1_RAFT_CELL.gx}-${JTW_C3_P7_PAGE1_RAFT_CELL.gy} The raft; Page 2 must also be filled ${JTW_C3_SEA_LEG} Just keep your feet on the raft`,
   },
   {
     id: 'observe',
-    label: '海上那一页要有 ⏱ Wait 或 🐢 Speed——看不清的时候先观察，再继续',
+    label:
+      'The page at sea should have ⏱ Wait or 🐢 Speed ​​- if you can’t see clearly, observe first before continuing.',
   },
-  { id: 'arrive', label: '彼岸那一页要说一句预设的话，说明他听见了山林里的歌声' },
+  {
+    id: 'arrive',
+    label:
+      'On the page on the other side, there is a preset sentence, which means that he heard the singing in the mountains and forests.',
+  },
   {
     id: 'ledger',
-    label: `至少 ${JTW_C3_P7_MIN_CHILD_BLOCKS} 块由你主导：两块以上移动、一个声音、一个 Wait 或 Speed、两个 📄 Page 和一个 🏁 End`,
+    label: `At least ${JTW_C3_P7_MIN_CHILD_BLOCKS} You control the blocks: two more blocks to move, a sound, a Wait or Speed, two 📄 Page and one 🏁 End`,
   },
 ];
 
-export const C3_P7_OPEN_STUDIO_NEW = '开始写我的三页 →';
-export const C3_P7_OPEN_STUDIO_RESUME = '继续写 →';
-export const C3_P7_OPEN_STUDIO_DONE = '再看看我的作品';
-export const C3_P7_OPEN_STUDIO_BUSY = '正在准备这一片海…';
-export const C3_P7_OPEN_STUDIO_LOCKED = '先选一片海，再打开工作区。';
-export const C3_P7_CREATE_ERROR = '没能打开工作区，请再试一次。';
-export const C3_P7_BUILD_DONE_LABEL = '✓ 三页都写好了，并在工作区真实运行过、保存过';
+export const C3_P7_OPEN_STUDIO_NEW = 'Start writing my three pages →';
+export const C3_P7_OPEN_STUDIO_RESUME = 'Continue writing →';
+export const C3_P7_OPEN_STUDIO_DONE = 'Take another look at my work';
+export const C3_P7_OPEN_STUDIO_BUSY = 'Preparing this sea...';
+export const C3_P7_OPEN_STUDIO_LOCKED = 'First select a piece of sea and then open the workspace.';
+export const C3_P7_CREATE_ERROR = 'Failed to open workspace, please try again.';
+export const C3_P7_BUILD_DONE_LABEL =
+  '✓ All three pages have been written, and have been actually run and saved in the workspace.';
 export const C3_P7_BUILD_PENDING_LABEL =
-  '还不成立：检查每页的动作块数、Page 1／Page 2 各走满 4 格、海上那一页的 Wait 或 Speed、彼岸那一句话，以及出口 2／3 和最后的 End。也可能是还没在工作区按过 Go 并保存。';
+  "Not yet established: check the number of action blocks on each page, Page 1/Page 2 each complete 4 squares, Wait or Speed ​​on the sea page, the sentence on the other side, as well as exit 2/3 and the final End. It may also be that you haven't pressed Go in the workspace and saved it.";
 
-export const C3_P7_DESIGN_TITLE = '你保存下来的三页（从作品里读回来的，不是页面猜的）';
-export const C3_P7_LEDGER_TITLE = `你主导的积木（至少 ${JTW_C3_P7_MIN_CHILD_BLOCKS} 块）`;
-export const C3_P7_STARTER_TITLE = '发下来的样子';
-export const C3_P7_STARTER_NOTE = '三页都只有一个 Start——上面每一块都是你自己放的。';
+export const C3_P7_DESIGN_TITLE =
+  'The three pages you saved (read from the work, not guessed by the page)';
+export const C3_P7_LEDGER_TITLE = `The building blocks you dominate (at least ${JTW_C3_P7_MIN_CHILD_BLOCKS} piece)`;
+export const C3_P7_STARTER_TITLE = 'The look of hair down';
+export const C3_P7_STARTER_NOTE =
+  'There is only one Start on each of the three pages - every block on it is placed by you.';
 
 // ─── ③同伴逐页预测 ──────────────────────────────────────────────────────────
 
@@ -206,16 +214,16 @@ export interface C3P7PeerOption {
 }
 
 export const C3_P7_PEER_OPTIONS: readonly C3P7PeerOption[] = [
-  { id: 'page-1', label: `翻到 Page 1 · ${c3p2PageLabel(1)}` },
-  { id: 'page-2', label: `翻到 Page 2 · ${c3p2PageLabel(JTW_C3_SEA_PAGE)}` },
-  { id: 'page-3', label: `翻到 Page 3 · ${c3p2PageLabel(JTW_C3_FAR_SHORE_PAGE)}` },
-  { id: 'ends', label: '故事在这一页结束' },
+  { id: 'page-1', label: `Turn to Page 1 · ${c3p2PageLabel(1)}` },
+  { id: 'page-2', label: `Turn to Page 2 · ${c3p2PageLabel(JTW_C3_SEA_PAGE)}` },
+  { id: 'page-3', label: `Turn to Page 3 · ${c3p2PageLabel(JTW_C3_FAR_SHORE_PAGE)}` },
+  { id: 'ends', label: 'The story ends on this page' },
 ];
 
 export const C3_P7_PEER_TITLE =
-  '③ 同伴只看三页的地标、他站的那一格和出口上的数字，逐页说："这一页之后会怎样？"';
+  '③ The companion only looks at the landmarks on three pages, the grid he is standing on and the numbers on the exit, and says page by page: "What will happen after this page?"';
 export const C3_P7_PEER_NOTE =
-  '先让同伴把三页都说完，再去跑。跑出来的和他说的不一样，第一处不一样就是"看不懂的地方"——回工作区只修那一处，然后重跑。';
+  'Let your companion finish reading all three pages before running. What came out was different from what he said. The first difference was the "unintelligible part" - go back to the work area and only fix that one part, and then run again.';
 
 export function c3p7PeerAnswered(picks: Readonly<Record<number, string>>): boolean {
   return C3_P7_TARGET_TRACE.every((_page, index) => Boolean(picks[index + 1]));
@@ -273,58 +281,65 @@ export function c3p7FirstMismatch(
 }
 
 export const C3_P7_MISMATCH_MATCHED =
-  '同伴逐页说的和真的跑出来的完全一样——他只看地标、起点和出口数字就读懂了你的路线。';
+  'What your companion says page by page is exactly the same as what he actually ran - he understands your route just by looking at the landmarks, starting point and exit numbers.';
 export function c3p7MismatchHint(page: number): string {
-  return `第一处看不懂的地方在 Page ${page} · ${c3p2PageLabel(page)}：同伴说的和真的跑出来的对不上。只修这一页——检查它的出口数字、这一页真的发生了什么，然后回来重跑。别的页面先别动。`;
+  return `The first thing I don’t understand is Page ${page} · ${c3p2PageLabel(page)}: What my companion said is not consistent with what actually happened. Just fix this page - check its exit numbers, what's really going on on this page, then come back and run again. Don't touch other pages yet.`;
 }
 export const C3_P7_MISMATCH_UNVISITED =
-  '有一页根本没有被打开过，所以同伴对它的预测无从对照。先把出口接上，让路线真的走到那一页。';
+  'One page has never been opened, so there is no way to compare its predictions with others. Connect the exit first, so that the route really goes to that page.';
 
 // ─── ④保存 · 关闭 · 重开 ────────────────────────────────────────────────────
 
-export const C3_P7_REOPEN_TITLE = '④ 关掉这份作品，再重新打开一次';
+export const C3_P7_REOPEN_TITLE = '④ Close this work and reopen it again';
 export const C3_P7_REOPEN_NOTE =
-  '这里会真的把作品从服务器上重新取一遍，然后把两次取到的 JSON 一个字一个字地比对：三页、天气、位置、脚本和结束点，有一处不一样就不算。';
-export const C3_P7_REOPEN_LABEL = '💾 关闭并重新打开';
-export const C3_P7_REOPEN_AGAIN_LABEL = '再重开一次';
-export const C3_P7_REOPEN_BUSY_LABEL = '正在重新打开…';
-export const C3_P7_REOPEN_LOCKED_HINT = '先让同伴把三页都预测完，再关掉重开。';
-export const C3_P7_REOPEN_MATCH = '✓ 重开以后一模一样：三页、天气、位置、脚本和结束点都对得上。';
+  'Here, the work will be fetched from the server again, and then the JSON fetched twice will be compared word by word: three pages, weather, location, script and end point. If there is a difference, it will not be counted.';
+export const C3_P7_REOPEN_LABEL = '💾 Close and reopen';
+export const C3_P7_REOPEN_AGAIN_LABEL = 'Reopen again';
+export const C3_P7_REOPEN_BUSY_LABEL = 'Reopening…';
+export const C3_P7_REOPEN_LOCKED_HINT =
+  'Let your partner predict all three pages first, then close it and reopen it.';
+export const C3_P7_REOPEN_MATCH =
+  '✓ It will be exactly the same after reopening: the three pages, weather, location, script and end point are all correct.';
 export const C3_P7_REOPEN_DIFFERS =
-  '重开以后和保存的那一份对不上。回工作区确认最后一次修改真的保存过，再重开一次。';
-export const C3_P7_REOPEN_ERROR = '没能重新打开这份作品，请再试一次。';
+  'After reopening, it will not match the saved one. Go back to the workspace to confirm that the last modification was really saved, and then reopen it.';
+export const C3_P7_REOPEN_ERROR = 'Failed to reopen this work, please try again.';
 /** Stored `reopen_match` value — the two loads really were the same document. */
 export const C3_P7_REOPEN_MATCH_MARKER = 'json-identical';
 
 // ─── ⑤重开以后再从 Page 1 跑一遍 ────────────────────────────────────────────
 
-export const C3_P7_RUN_TITLE = '⑤ 就用刚重新打开的这一份，从 Page 1 完整跑一遍';
+export const C3_P7_RUN_TITLE =
+  '⑤ Just use the copy you just reopened and run it completely from Page 1';
 export const C3_P7_RUN_NOTE =
-  '工作区的 Go 一次只跑一页。这里用同一个解释器把重开出来的作品从 Page 1 一页一页跑下去，量的是真实轨迹、每一页的脚印和每一次跨页接不接得上。';
-export const C3_P7_RUN_LABEL = '▶ 从 Page 1 跑我的求师路';
-export const C3_P7_RUN_AGAIN_LABEL = '再跑一次';
-export const C3_P7_RUN_BUSY_LABEL = '木筏正在走…';
-export const C3_P7_RUN_LOCKED_HINT = '先把作品关掉重开一次，再跑这一遍——不然它就不是"重开以后"的运行。';
-export const C3_P7_RUN_TRACE_TITLE = '这一遍真的走过的三页';
-export const C3_P7_BOUNDARY_TITLE = '每一次跨页：他在哪一格离开，又在哪一格出现';
+  'Go in the workspace only runs one page at a time. Here, the same interpreter is used to run the re-opened work from Page 1 page to page, measuring the true trajectory, the footprints of each page, and the connection between each page spread.';
+export const C3_P7_RUN_LABEL = '▶Start from Page 1 to start my journey of seeking a teacher';
+export const C3_P7_RUN_AGAIN_LABEL = 'run again';
+export const C3_P7_RUN_BUSY_LABEL = 'The raft is going…';
+export const C3_P7_RUN_LOCKED_HINT =
+  'First close the work and reopen it, then run it again - otherwise it will not run "after reopening".';
+export const C3_P7_RUN_TRACE_TITLE = 'I really walked through the three pages this time';
+export const C3_P7_BOUNDARY_TITLE =
+  'Every cross-page: where does he leave and where does he appear?';
 export const C3_P7_TRACE_MISMATCH_HINT =
-  '这一遍没有走成 1 → 2 → 3，或者最后一页没有稳稳结束，又或者有一处跨页断开了。回工作区检查两个出口数字和最后那块 End，再重开重跑。';
+  'This time it didn’t go from 1 → 2 → 3, or the last page didn’t end firmly, or there was a cross-page break. Go back to the workspace and check the two exit numbers and the last End, then restart and run again.';
 
 // ─── resolved / story_after / continue ──────────────────────────────────────
 
-export const C3_P7_RESOLVED_TITLE = '你的求师路可以关掉再打开，也可以再跑一遍';
+export const C3_P7_RESOLVED_TITLE =
+  'You can close and open your path to seek guidance, or you can run it again.';
 export const C3_P7_RESOLVED_WORLD_CHANGE =
-  '彼岸的浅滩上，木筏被收了起来。上山的石阶一级一级亮着，山林里的歌声就是从那上面传下来的，师门的石牌立在雾里——这一页现在有了它的结局，而且是你写的这一份，不是别人的示范。';
+  "On the shoal on the other side, the raft was put away. The stone steps going up the mountain are lit step by step, the songs in the forest are coming from there, and the stone tablet of the master's gate stands in the fog - this page now has its ending, and it is you who wrote this one, not someone else's example.";
 /**
  * 远行印 is C3-P8's server-side aggregation (C3共享实现合同：P1–P8 全部完成才
  * 允许点亮), and this scene's own assertion says "P7不完成Chapter". The Part
  * says so out loud instead of drawing a seal it cannot earn.
  */
 export const C3_P7_SEAL_NOTE =
-  '远行印还没有亮：它要等第三章八个 Part 都完成、证据齐了，由服务端一起点亮。你现在有的是一份能重开、能重跑的作品。';
+  'The travel seal has not been lit yet: it will be lit by the server after all eight parts of Chapter 3 are completed and the evidence is available. What you have now is a work that can be restarted and run again.';
 export const C3_P7_STORY_AFTER =
-  '猴王把木筏收好，沿着山林里的歌声往上走。雾散开一点，师门的入口显了出来——到了门口，还要把来路讲清楚。';
-export const C3_P7_CONTINUE_LABEL = '沿歌声上山';
+  "The monkey king put away the raft and walked up the mountain following the singing in the forest. The fog cleared a little, and the entrance to the teacher's gate was revealed - when you get to the door, you have to explain the way you came.";
+export const C3_P7_CONTINUE_LABEL = 'Follow the song up the mountain';
 
-export const C3_P7_LOCKED_HINT = '先在第三章 Part 6 把木筏跳位修好，再来做你自己的三页求师路。';
-export const C3_P7_LOADING_HINT = '木筏正在岸边等你的路线…';
+export const C3_P7_LOCKED_HINT =
+  'First fix the raft jumping position in Chapter 3, Part 6, and then make your own three-page guide.';
+export const C3_P7_LOADING_HINT = 'The raft is waiting for your route on the shore...';

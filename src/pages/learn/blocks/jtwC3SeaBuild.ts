@@ -64,7 +64,8 @@ export const JTW_C3_P4_SCRIPT_IDS = {
 } as const;
 
 /** The preset arrival clue Page 3 says — the same line C3-P2 already ships. */
-export const JTW_C3_ARRIVAL_CLUE = 'I hear a song in the forest. I will follow it.';
+export const JTW_C3_ARRIVAL_CLUE =
+  "I hear singing in the forest. I'll follow it.";
 
 /** Where Page 1's beached raft waits — exactly where the Page 1 walk ends. */
 export const JTW_C3_P4_PAGE1_RAFT_CELL = {
@@ -100,12 +101,6 @@ export const JTW_C3_ARRIVAL_CHAIN: readonly Block[] = [
   { op: 'end' },
 ];
 
-const JTW_C3_LEGACY_ARRIVAL_CHAIN: readonly Block[] = [
-  { op: 'when_flag' },
-  { op: 'say', text: '山林里有歌声，我顺着它走。' },
-  { op: 'end' },
-];
-
 /** Page 2's raft chain — the same leg, so the deck stays under his feet. */
 export const JTW_C3_RAFT_CHAIN: readonly Block[] = [
   { op: 'when_flag' },
@@ -132,7 +127,11 @@ function blocksEqual(actual: readonly Block[] | undefined, target: readonly Bloc
   });
 }
 
-function scriptOf(page: Page | undefined, characterId: string, scriptId: string): Script | undefined {
+function scriptOf(
+  page: Page | undefined,
+  characterId: string,
+  scriptId: string,
+): Script | undefined {
   return page?.characters
     .find((character) => character.id === characterId)
     ?.scripts.find((script) => script.id === scriptId);
@@ -189,17 +188,10 @@ export function jtwC3ArrivalPageIntact(page: Page | undefined): boolean {
     stageIntact(page, JTW_C3_PAGE3_START_CELL, JTW_C3_PAGE3_START_CELL) &&
     actorOf(page, JTW_C3_MONKEY_KING_ID)?.scripts.length === 1 &&
     actorOf(page, JTW_C3_RAFT_ID)?.scripts.length === 0 &&
-    (() => {
-      const blocks = scriptOf(
-        page,
-        JTW_C3_MONKEY_KING_ID,
-        JTW_C3_P4_SCRIPT_IDS.arrival,
-      )?.blocks;
-      return (
-        blocksEqual(blocks, JTW_C3_ARRIVAL_CHAIN) ||
-        blocksEqual(blocks, JTW_C3_LEGACY_ARRIVAL_CHAIN)
-      );
-    })()
+    blocksEqual(
+      scriptOf(page, JTW_C3_MONKEY_KING_ID, JTW_C3_P4_SCRIPT_IDS.arrival)?.blocks,
+      JTW_C3_ARRIVAL_CHAIN,
+    )
   );
 }
 

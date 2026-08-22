@@ -28,9 +28,15 @@ describe('journeyWestSeason1 catalogue', () => {
 
   it('keeps the C1-P8 chapter-retell contract grounded in the teaching script', () => {
     // The Part 8 story screen ships IN FULL — never compressed to a task hint.
-    expect(C1_P8_STORY_BEFORE).toContain('石猴和群猴沿着清泉慢慢往山里走');
-    expect(C1_P8_STORY_BEFORE).toContain('把刚才发生的事重新排成五张因果卡');
-    expect(C1_P8_STORY_BEFORE).toContain('是谁愿意看清水帘后面究竟有什么');
+    expect(C1_P8_STORY_BEFORE).toContain(
+      'The stone monkey and the group of monkeys slowly walked toward the mountain along the clear spring',
+    );
+    expect(C1_P8_STORY_BEFORE).toContain(
+      'they rearranged what happened just now into five cause and effect cards',
+    );
+    expect(C1_P8_STORY_BEFORE).toContain(
+      'who is willing to see what is behind the water curtain',
+    );
     // The five cause-effect cards match the scene-spec node order exactly.
     expect(C1_P8_CAUSE_CARDS.map((card) => card.id)).toEqual(C1_P8_CAUSE_CARD_ORDER);
     expect(C1_P8_CAUSE_CARD_ORDER).toEqual([
@@ -43,7 +49,7 @@ describe('journeyWestSeason1 catalogue', () => {
     // The correct retell links ≥4 nodes with 因为—所以—结果—后来; the
     // block-name recital is present as a WRONG option (只念积木名不通过).
     const correct = C1_P8_RETELL_OPTIONS.find((option) => option.correct);
-    for (const connector of ['因为', '所以', '结果', '后来']) {
+    for (const connector of ['Because', 'As a result', 'Later']) {
       expect(correct?.label).toContain(connector);
     }
     const recital = C1_P8_RETELL_OPTIONS.find((option) => option.id === 'block-names-only');
@@ -53,11 +59,19 @@ describe('journeyWestSeason1 catalogue', () => {
   it('keeps the child-facing story text intact (not compressed into task hints)', () => {
     // The teaching-script story screen ships IN FULL — key sentences from the
     // start, middle and end of both paragraphs must survive verbatim.
-    expect(C1_P1_STORY_BEFORE[0]).toContain('天还没有完全亮，大海先把一层淡蓝色的光推到岸边');
-    expect(C1_P1_STORY_BEFORE[0]).toContain('清泉从高处一路唱到谷底');
-    expect(C1_P1_STORY_BEFORE[0]).toContain('却一直迎着风、雨、日光和月色');
-    expect(C1_P1_STORY_BEFORE[1]).toContain('你们看，石缝里有光！');
-    expect(C1_P1_STORY_BEFORE[1]).toContain('这里还没有谁叫孙悟空，也没有取经队伍');
+    expect(C1_P1_STORY_BEFORE[0]).toContain(
+      'Before sunrise, pale blue light spreads across the sea',
+    );
+    expect(C1_P1_STORY_BEFORE[0]).toContain(
+      'a clear spring runs down the mountain',
+    );
+    expect(C1_P1_STORY_BEFORE[0]).toContain(
+      'it has stood through wind, rain, sunshine and moonlight',
+    );
+    expect(C1_P1_STORY_BEFORE[1]).toContain('Look! There is light inside the crack!');
+    expect(C1_P1_STORY_BEFORE[1]).toContain(
+      'No one is called Sun Wukong yet, and the pilgrims have not met.',
+    );
     expect(C1_P1_STORY_BEFORE.join('').length).toBeGreaterThan(300);
   });
 
@@ -85,8 +99,6 @@ describe('journeyWestSeason1 catalogue', () => {
       'stone-sound',
     ]);
     // The prediction's correct answer is picture-grounded: the monkey has NOT appeared.
-    expect(C1_P1_PREDICTION_OPTIONS.find((option) => option.correct)?.id).toBe(
-      'not-yet-appeared',
-    );
+    expect(C1_P1_PREDICTION_OPTIONS.find((option) => option.correct)?.id).toBe('not-yet-appeared');
   });
 });

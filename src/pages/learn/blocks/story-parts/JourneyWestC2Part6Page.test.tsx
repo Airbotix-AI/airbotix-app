@@ -73,7 +73,7 @@ const P5_DONE: StoryLineProgress = {
 function returnProject(middle: readonly Block[]): BlocksProject {
   return {
     version: 1,
-    name: '西游记 · 回去的第一处偏离',
+    name: 'Journey to the West · The first deviation back',
     lessonId: 'jtw-s1-c2-p6',
     pages: [
       {
@@ -113,7 +113,12 @@ function mockBuild(middle: readonly Block[] | null, runCompleted: boolean) {
     return;
   }
   listProjects.mockResolvedValue([
-    { id: 'proj_jtw_return', title: '西游记 · 回去的第一处偏离', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_jtw_return',
+      title: 'Journey to the West · The first deviation back',
+      kind: 'blocks',
+      status: 'active',
+    },
   ]);
   loadProject.mockResolvedValue({
     project: returnProject(middle),
@@ -148,20 +153,42 @@ function renderPage() {
 }
 
 async function runTheBug() {
-  fireEvent.click(screen.getByRole('button', { name: /运行这个 bug/ }));
+  fireEvent.click(screen.getByRole('button', { name: /▶ run this bug/i }));
   await waitFor(() => expect(screen.getByTestId('jtw-c2p6-actual')).toBeInTheDocument());
 }
 
 function answerBeforeStudio() {
-  fireEvent.click(screen.getByRole('button', { name: /4-7 高台 → 4-8 低石 → 2-8 起点/ }));
-  fireEvent.click(screen.getByRole('button', { name: /第二段冲出高台/ }));
-  fireEvent.click(screen.getByRole('button', { name: /第二段——应该先 Down 1/ }));
-  fireEvent.click(screen.getByRole('button', { name: /先向下——踩上 4-8 的低石/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /4-7 High platform → 4-8 Low stone → 2-8 Starting point \(how to go when you came, how to go back\)/i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /4-7 → 2-7 → 2-8: The second section breaks out of the high platform and stops on the water above the low rocks\./i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', { name: /Second section - Down 1 should be used/i }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Go down first - step on the low rocks 4-8 before you can reach the path back to your partner\./i,
+    }),
+  );
 }
 
 function answerAfterStudio() {
-  fireEvent.click(screen.getByRole('button', { name: /只把第二个 Left 2 和 Down 1 交换位置/ }));
-  fireEvent.click(screen.getByRole('button', { name: /终点一样，路却不一样了/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Just swap the positions of the second Left 2 and Down 1, nothing else is changed\./i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /The end point is the same, but the road is different: this time I have stepped on 4-8 low stones, and my partner will follow the same path without missing anything\./i,
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -180,7 +207,10 @@ afterEach(() => {
 describe('C2-P6 return-route contract', () => {
   it('the bug and the repair use the SAME blocks and numbers — only the order differs', () => {
     const key = (blocks: readonly Block[]) =>
-      [...blocks].map((b) => `${b.op}:${b.n}`).sort().join(',');
+      [...blocks]
+        .map((b) => `${b.op}:${b.n}`)
+        .sort()
+        .join(',');
     expect(key(C2_P6_BUG_MOVES)).toBe(key(C2_P6_TARGET_MOVES));
     expect(C2_P6_BUG_MOVES.map((b) => b.op)).not.toEqual(C2_P6_TARGET_MOVES.map((b) => b.op));
   });
@@ -194,13 +224,18 @@ describe('C2-P6 return-route contract', () => {
   });
 
   it('only the exact two-block swap is accepted as a saved program', () => {
-    expect(storyMissionProgramMatches(returnProject(C2_P6_TARGET_MOVES), 'jtw-s1-c2-p6')).toBe(true);
+    expect(storyMissionProgramMatches(returnProject(C2_P6_TARGET_MOVES), 'jtw-s1-c2-p6')).toBe(
+      true,
+    );
     // The shipped bug order.
     expect(storyMissionProgramMatches(returnProject(C2_P6_BUG_MOVES), 'jtw-s1-c2-p6')).toBe(false);
     // A bigger number instead of the swap.
     expect(
       storyMissionProgramMatches(
-        returnProject([{ op: 'move_left', n: 4 }, { op: 'move_down', n: 1 }]),
+        returnProject([
+          { op: 'move_left', n: 4 },
+          { op: 'move_down', n: 1 },
+        ]),
         'jtw-s1-c2-p6',
       ),
     ).toBe(false);
@@ -212,9 +247,9 @@ describe('C2-P6 return-route contract', () => {
       ),
     ).toBe(false);
     // Go Home instead of a route.
-    expect(
-      storyMissionProgramMatches(returnProject([{ op: 'go_home' }]), 'jtw-s1-c2-p6'),
-    ).toBe(false);
+    expect(storyMissionProgramMatches(returnProject([{ op: 'go_home' }]), 'jtw-s1-c2-p6')).toBe(
+      false,
+    );
   });
 
   it('a moved start is rejected — the outbound route may not be edited here', () => {
@@ -233,15 +268,12 @@ describe('C2-P6 return-route contract', () => {
   });
 
   it('reports the minimal two-block swap as the project diff', () => {
-    expect(c2p6ProjectDiff(C2_P6_TARGET_MOVES)).toEqual([
-      'move_down:1:3->2',
-      'move_left:2:2->3',
-    ]);
+    expect(c2p6ProjectDiff(C2_P6_TARGET_MOVES)).toEqual(['move_down:1:3->2', 'move_left:2:2->3']);
     expect(c2p6ProjectDiff(C2_P6_BUG_MOVES)).toEqual([]);
   });
 });
 
-describe('JourneyWestC2Part6Page · C2-P6 回去的第一处偏离', () => {
+describe('JourneyWestC2Part6Page · C2-P6 The first deviation back', () => {
   it('blocks kids who have not finished C2-P5 (server truth)', async () => {
     fetchProgress.mockResolvedValue({
       ...P5_DONE,
@@ -258,10 +290,12 @@ describe('JourneyWestC2Part6Page · C2-P6 回去的第一处偏离', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-c2p6-story')).toBeInTheDocument());
     expect(screen.getByTestId('jtw-c2p6-story')).toHaveTextContent(
-      '返回脚本为Left 2 → Left 2 → Down 1；积木和参数都有用，只有中间顺序错误',
+      'Stone Monkey promised to go back and tell his partner, but the return script was Left 2 → Left 2 → Down 1; the building blocks and parameters were all useful, only the order in the middle was wrong. The child first marks three actual stopping points, locates the first deviation according to the map in the cave, and only exchanges Down 1 and the second Left 2 before running.',
     );
     expect(screen.getByTestId('jtw-c2p6-story')).toHaveTextContent('Debug Checkpoint 2');
-    expect(screen.getByTestId('jtw-c2p6-story')).toHaveTextContent('跑得再快也修不好方向顺序');
+    expect(screen.getByTestId('jtw-c2p6-story')).toHaveTextContent(
+      'The stone monkey wants to fulfill the promise of "come back and share": his companions must follow his footsteps, so they must step on every wet stone on the way back. No matter how fast you run, you can\'t fix the direction sequence - what\'s wrong is where to go first in the second segment, not the speed.',
+    );
     const monkey = screen.getByTestId('jtw-c2p6-stone-monkey');
     expect(monkey.dataset.gx).toBe('6');
     expect(monkey.dataset.gy).toBe('7');
@@ -299,7 +333,7 @@ describe('JourneyWestC2Part6Page · C2-P6 回去的第一处偏离', () => {
     fireEvent.click(screen.getByTestId('jtw-c2p6-open-studio'));
     await waitFor(() => expect(screen.getByTestId('studio-stub')).toBeInTheDocument());
     expect(createProject).toHaveBeenCalledWith({
-      title: '西游记 · 回去的第一处偏离',
+      title: 'Journey to the West · The first deviation back',
       template: 'blocks_jtw_c2_p6',
     });
   });
@@ -329,8 +363,16 @@ describe('JourneyWestC2Part6Page · C2-P6 回去的第一处偏离', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-c2p6-stage')).toBeInTheDocument());
     await runTheBug();
-    fireEvent.click(screen.getByRole('button', { name: /第一段——两版从第一步就不一样/ }));
-    expect(screen.getByText(/最早不一样的是哪一段/)).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /The first paragraph - the two versions are different from the first step/i,
+      }),
+    );
+    expect(
+      screen.getByText(
+        /Look at each paragraph side by side.*which paragraph is the first to be different\?/i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('jtw-c2p6-continue')).toBeDisabled();
   });
 
@@ -350,7 +392,9 @@ describe('JourneyWestC2Part6Page · C2-P6 回去的第一处偏离', () => {
 
     expect(screen.getByTestId('jtw-c2p6-continue')).toBeDisabled();
     answerAfterStudio();
-    expect(screen.getByTestId('jtw-c2p6-resolved')).toHaveTextContent('石猴沿来路退回');
+    expect(screen.getByTestId('jtw-c2p6-resolved')).toHaveTextContent(
+      'The stone monkey returns along the way it came: first from the water curtain entrance back to the high platform 4-7, then stepping on the low stone 4-8, and finally back to 2-8 - the high stone where the friends are waiting. The three footprints match exactly where they came from.',
+    );
     fireEvent.click(screen.getByTestId('jtw-c2p6-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
@@ -399,10 +443,12 @@ describe('JourneyWestC2Part6Page · C2-P6 回去的第一处偏离', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-c2p6-resolved')).toBeInTheDocument());
     expect(
-      screen.getByRole('button', { name: /第二段——应该先 Down 1/ }),
+      screen.getByRole('button', { name: /Second section - Down 1 should be used/i }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(
-      screen.getByRole('button', { name: /先向下——踩上 4-8 的低石/ }),
+      screen.getByRole('button', {
+        name: /Go down first - step on the low rocks 4-8 before you can reach the path back to your partner\./i,
+      }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('jtw-c2p6-continue')).toBeEnabled();
   });

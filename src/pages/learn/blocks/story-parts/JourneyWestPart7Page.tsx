@@ -40,12 +40,12 @@ const RECENT_PROJECTS_TO_SCAN = 8;
 
 /** Child-facing labels for the allowed visible actions. */
 const ACTION_LABELS: Record<string, string> = {
-  hop: '🦘 跳',
-  turn_left: '↩️ 向左转',
-  turn_right: '↪️ 向右转',
-  grow: '🔼 变大',
-  shrink: '🔽 变小',
-  reset_size: '🔄 变回原来大小',
+  hop: '🦘 jump',
+  turn_left: '↩️Turn left',
+  turn_right: '↪️ Turn right',
+  grow: '🔼 Get bigger',
+  shrink: '🔽 Get smaller',
+  reset_size: '🔄Return to original size',
 };
 
 function actionLabel(action: { op: string; n?: number }): string {
@@ -143,7 +143,7 @@ export function JourneyWestPart7Page() {
     }
     try {
       const { id } = await createBlocksProject({
-        title: '西游记 · 我的石猴亮相',
+        title: 'Journey to the West · My Stone Monkey Appears',
         template: 'blocks_jtw_c1_p7',
       });
       navigate(`/learn/blocks/${id}`);
@@ -170,8 +170,7 @@ export function JourneyWestPart7Page() {
           design_wait: design?.waitN != null ? [`wait:${design.waitN}`] : [],
           greeting: design ? [design.greeting] : [],
           build_project: build.data?.projectId ? [build.data.projectId] : [],
-          saved_version:
-            build.data?.savedVersion != null ? [`v${build.data.savedVersion}`] : [],
+          saved_version: build.data?.savedVersion != null ? [`v${build.data.savedVersion}`] : [],
         },
         prediction: retell ?? undefined,
       }),
@@ -182,15 +181,24 @@ export function JourneyWestPart7Page() {
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">石台中央正在为你留着…</p>;
+    return (
+      <p className="p-8 text-center text-ink-soft">
+        The center of the stone platform is reserved for you...
+      </p>
+    );
   }
 
   if (!unlocked && !completed) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center" data-testid="jtw-p7-locked">
-        <p className="text-[16px] font-bold text-ink">先在 Part 6 修好乱序的亮相，再来设计你自己的版本。</p>
+      <div
+        className="mx-auto max-w-3xl space-y-4 px-4 py-10 text-center"
+        data-testid="jtw-p7-locked"
+      >
+        <p className="text-[16px] font-bold text-ink">
+          Fix the out-of-order appearances in Part 6 first, then design your own version.
+        </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -200,9 +208,9 @@ export function JourneyWestPart7Page() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c1-p7">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第一章 石猴出世 · Part 7 · Personal Ship
+          Journey to the West · Chapter 1 The Stone Monkey is Born · Part 7 · Personal Ship
         </p>
-        <h1 className="text-[28px] font-black text-ink">我的石猴亮相</h1>
+        <h1 className="text-[28px] font-black text-ink">My stone monkey appears</h1>
       </header>
 
       {/* ── story_before：完整儿童正文 ──────────────────────────────── */}
@@ -212,7 +220,9 @@ export function JourneyWestPart7Page() {
 
       {/* ── 动机 ────────────────────────────────────────────────────── */}
       <section data-testid="jtw-p7-motive">
-        <h2 className="mb-2 text-[15px] font-bold text-ink">这一次的亮相，石猴想要什么？</h2>
+        <h2 className="mb-2 text-[15px] font-bold text-ink">
+          What does Stone Monkey want from this appearance?
+        </h2>
         <div className="flex flex-col gap-2">
           {C1_P7_MOTIVE_OPTIONS.map((option) => (
             <Choice
@@ -232,12 +242,15 @@ export function JourneyWestPart7Page() {
         data-build-state={buildDone ? 'done' : build.data?.projectId ? 'in_progress' : 'none'}
         data-saved-version={build.data?.savedVersion ?? 'none'}
       >
-        <h2 className="text-[15px] font-bold text-ink">去工作区设计你自己的亮相</h2>
+        <h2 className="text-[15px] font-bold text-ink">
+          Go to the workspace to design your own appearance
+        </h2>
         <p className="mt-1 text-[13px] text-ink-soft">
-          Start、hide、声音、Show、一句预设问候和 End 已经放好。把两个能被看见的动作
-          （跳、转身、变大、变小）按你的顺序接到 Show 和问候之间，中间可以加一个 Wait 1–3；
-          声音和问候也可以换成你喜欢的。运行、保存，然后关闭作品重新打开、再跑一遍——
-          内容一样、结果一样，才算真的完成。
+          Start, hide, sound, Show, a preset greeting and End have been placed. Put two visible
+          actions (jump, turn around, get bigger, get smaller) in your order between Show and
+          greeting, you can add a Wait 1-3 in the middle; The sounds and greetings can also be
+          changed to what you like. Run, save, then close the work, reopen it, and run it again——
+          Only when the content and results are the same can it be truly completed.
         </p>
         <div className="mt-4 flex items-center gap-3">
           <button
@@ -246,26 +259,31 @@ export function JourneyWestPart7Page() {
             data-testid="jtw-p7-open-studio"
             onClick={() => void openStudio()}
           >
-            {buildDone ? '再看看我的亮相' : build.data?.projectId ? '继续设计 →' : '开始设计 →'}
+            {buildDone
+              ? 'Look at my appearance again'
+              : build.data?.projectId
+                ? 'Continue designing →'
+                : 'Start designing →'}
           </button>
           {buildDone && (
             <span className="text-[13px] font-bold text-brand-mint" data-testid="jtw-p7-build-done">
-              ✓ 你的亮相已经跑通并保存
+              ✓ Your appearance has been run through and saved
             </span>
           )}
           {!buildDone && build.data?.projectId && (
             <span className="text-[13px] font-semibold text-ink-soft">
-              还没到位：两个可见动作要接在 Show 之后、问候之前，运行并保存。
+              Not yet in place: the two visible actions should be after Show and before greeting,
+              run and save.
             </span>
           )}
         </div>
         {buildDone && design && (
           <p className="mt-2 text-[13px] font-semibold text-ink" data-testid="jtw-p7-design">
-            你的设计：
+            Your design:
             {BUILT_IN_SOUNDS.find((sound) => sound.id === design.soundN)?.icon ?? '🔔'}{' '}
-            {BUILT_IN_SOUNDS.find((sound) => sound.id === design.soundN)?.label ?? '声音'} →{' '}
+            {BUILT_IN_SOUNDS.find((sound) => sound.id === design.soundN)?.label ?? 'sound'} →{' '}
             {actionLabel(design.actions[0])}
-            {design.waitN != null ? ` → ⏱ 等 ${design.waitN}` : ''} →{' '}
+            {design.waitN != null ? ` → ⏱ Wait ${design.waitN}` : ''} →{' '}
             {actionLabel(design.actions[1])} → 💬「{design.greeting}」
           </p>
         )}
@@ -275,7 +293,9 @@ export function JourneyWestPart7Page() {
       {buildDone && (
         <>
           <section data-testid="jtw-p7-reason">
-            <h2 className="mb-2 text-[15px] font-bold text-ink">你为什么选这两个动作？</h2>
+            <h2 className="mb-2 text-[15px] font-bold text-ink">
+              Why did you choose these two actions?
+            </h2>
             <div className="flex flex-col gap-2">
               {C1_P7_REASON_OPTIONS.map((option) => (
                 <Choice
@@ -289,7 +309,7 @@ export function JourneyWestPart7Page() {
           </section>
 
           <section data-testid="jtw-p7-reopen">
-            <h2 className="mb-2 text-[15px] font-bold text-ink">保存、关闭、重开、再跑一遍了吗？</h2>
+            <h2 className="mb-2 text-[15px] font-bold text-ink">Save, close, reopen, run again?</h2>
             <div className="flex flex-col gap-2">
               {C1_P7_REOPEN_OPTIONS.map((option) => (
                 <Choice
@@ -344,7 +364,7 @@ export function JourneyWestPart7Page() {
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -353,12 +373,12 @@ export function JourneyWestPart7Page() {
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C1_P7_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C1_P7_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

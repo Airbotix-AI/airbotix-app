@@ -130,7 +130,7 @@ export function OrderCards({
         })}
         {order.length > 0 && (
           <button type="button" className="btn-pill-ghost text-[13px]" onClick={() => onChange([])}>
-            重新排
+            Reorder
           </button>
         )}
       </div>

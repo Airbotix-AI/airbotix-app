@@ -175,13 +175,15 @@ function FootprintTable({ footprints }: { footprints: readonly C3P2Footprint[] }
           </span>
           {footprint.exitCell ? (
             <span className="ml-2">
-              木筏从 {footprint.enterCell} 走到 {footprint.exitCell}
+              raft from {footprint.enterCell} Go to {footprint.exitCell}
             </span>
           ) : (
-            <span className="ml-2">木筏又回到这一页，路线在这里停下</span>
+            <span className="ml-2">The raft returns to this page and the route stops here</span>
           )}
           <span className="ml-2 font-semibold text-ink-soft">
-            {footprint.exitTo === null ? '（没有再去别的页）' : `出口 → Page ${footprint.exitTo}`}
+            {footprint.exitTo === null
+              ? '(Do not go to other pages)'
+              : `Exit → Page ${footprint.exitTo}`}
           </span>
         </li>
       ))}
@@ -321,7 +323,7 @@ export function JourneyWestC3Part2Page({
       >
         <p className="text-[16px] font-bold text-ink">{C3_P2_LOCKED_HINT}</p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -331,9 +333,9 @@ export function JourneyWestC3Part2Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c3-p2">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第三章 一叶木筏求师路 · Part 2
+          Journey to the West · Chapter 3 One Leaf Raft’s Journey to Seeking a Master · Part 2
         </p>
-        <h1 className="text-[28px] font-black text-ink">把出发和到达排成一条路</h1>
+        <h1 className="text-[28px] font-black text-ink">Line up departures and arrivals</h1>
       </header>
 
       {/* ── story_before：故事卡C 与 Part 2 的任务说明，两屏 ────────────── */}
@@ -357,7 +359,9 @@ export function JourneyWestC3Part2Page({
               onClick={() => {
                 setScreenIndex(1);
                 setScreensRead((current) =>
-                  current.includes(C3_P2_SCREEN_IDS[1]) ? current : [...current, C3_P2_SCREEN_IDS[1]],
+                  current.includes(C3_P2_SCREEN_IDS[1])
+                    ? current
+                    : [...current, C3_P2_SCREEN_IDS[1]],
                 );
               }}
             >
@@ -365,15 +369,15 @@ export function JourneyWestC3Part2Page({
             </button>
           )}
           <span className="text-[12px] font-bold text-ink-soft" data-testid="jtw-c3p2-story-count">
-            {screensRead.length} / {C3_P2_SCREEN_IDS.length} 段
+            {screensRead.length} / {C3_P2_SCREEN_IDS.length} part
           </span>
         </div>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C3_P2_CLASSIC_CARD}
         </aside>
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C3_P2_STORY_BRIDGE}
         </aside>
       </section>
@@ -513,14 +517,14 @@ export function JourneyWestC3Part2Page({
           <p className="text-[15px] leading-7 text-ink">{C3_P2_RESOLVED_WORLD_CHANGE}</p>
           <p className="mt-2 text-[15px] font-semibold text-ink">{C3_P2_STORY_AFTER}</p>
           <p className="mt-2 text-[13px] text-ink-soft">
-            Page 3 的到达对白还没有人听见：“{C3_P2_ARRIVAL_CLUE}”
+            Page 3's arrival dialogue that no one has heard yet: "{C3_P2_ARRIVAL_CLUE}”
           </p>
         </section>
       )}
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -529,12 +533,12 @@ export function JourneyWestC3Part2Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C3_P2_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C3_P2_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

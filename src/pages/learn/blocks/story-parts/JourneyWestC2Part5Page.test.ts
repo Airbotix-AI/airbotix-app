@@ -46,7 +46,7 @@ function project(
                 blocks: [
                   { op: 'when_bump' },
                   ...caveMiddle.map((op) => ({ op: op as 'show' })),
-                  { op: 'say', text: '桥、干地、石座、清水。' },
+                  { op: 'say', text: 'Bridge, dry land, stone base, clear water.' },
                   { op: 'end' },
                 ],
               },

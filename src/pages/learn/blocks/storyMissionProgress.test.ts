@@ -1770,7 +1770,7 @@ describe('Journey to the West C1-P4 arrival build contract', () => {
     { op: 'play_sound', n: 2 },
     { op: 'show' },
     { op: 'hop', n: 1 },
-    { op: 'say', text: '你好，我刚刚来到这里。' },
+    { op: 'say', text: 'Hello, I just came here.' },
   ];
 
   it('accepts exactly the six-block arrival chain', () => {
@@ -1935,7 +1935,7 @@ describe('Journey to the West C1-P5 greeting-order contract', () => {
     } as never;
   }
   const hop = { op: 'hop', n: 1 };
-  const say = { op: 'say', text: '你们好，我可以过来吗？' };
+  const say = { op: 'say', text: 'Hello, can I come over?' };
 
   it('accepts BOTH valid greeting orders (Hop→Say and Say→Hop)', () => {
     expect(storyMissionProgramMatches(p5Project([hop, say]), 'jtw-s1-c1-p5')).toBe(true);
@@ -2080,7 +2080,7 @@ describe('Journey to the West C1-P7 personal-arrival contract', () => {
     } as never;
   }
   const prefix = [{ op: 'when_flag' }, { op: 'hide' }, { op: 'play_sound', n: 2 }, { op: 'show' }];
-  const say = { op: 'say', text: '你好，我刚刚来到这里。' };
+  const say = { op: 'say', text: 'Hello, I just came here.' };
   const end = { op: 'end' };
   const hop = { op: 'hop', n: 2 };
   const grow = { op: 'grow', n: 2 };
@@ -2102,7 +2102,7 @@ describe('Journey to the West C1-P7 personal-arrival contract', () => {
           { op: 'show' },
           { op: 'turn_right', n: 3 },
           { op: 'shrink', n: 2 },
-          { op: 'say', text: '你们好，我可以过来吗？' },
+          { op: 'say', text: 'Hello, can I come over?' },
           end,
         ]),
         'jtw-s1-c1-p7',

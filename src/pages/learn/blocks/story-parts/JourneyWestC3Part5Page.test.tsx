@@ -142,7 +142,12 @@ function mockBuild(scene: string | null, seaChain: readonly Block[], runComplete
     return;
   }
   listProjects.mockResolvedValue([
-    { id: 'proj_jtw_weather', title: '西游记 · 星夜和晨雾都需要观察', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_jtw_weather',
+      title: 'Journey to the West · Both starry night and morning fog need to be observed',
+      kind: 'blocks',
+      status: 'active',
+    },
   ] as never);
   loadProject.mockResolvedValue({
     project: weatherProject(scene, seaChain),
@@ -150,7 +155,9 @@ function mockBuild(scene: string | null, seaChain: readonly Block[], runComplete
     history: { past: [], future: [] },
     storyProgress: {
       schemaVersion: 1,
-      completed: runCompleted ? { 'jtw-s1-c3-p5': { completedAt: '2026-07-27T06:00:00.000Z' } } : {},
+      completed: runCompleted
+        ? { 'jtw-s1-c3-p5': { completedAt: '2026-07-27T06:00:00.000Z' } }
+        : {},
     },
     otherFiles: [],
   } as never);
@@ -200,10 +207,14 @@ const SOUND_LABEL: Record<JtwC3Weather, RegExp> = {
 /** Everything the Part asks for outside the studio, for one version. */
 function answerEverything(id: JtwC3Weather) {
   fireEvent.click(screen.getByTestId('jtw-c3p5-story-next'));
-  fireEvent.click(screen.getByRole('button', { name: /看不清就先看清楚/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /If you can't see clearly, see clearly first: wait or slow down a little before you know which way to go; walking fast will just make you go wrong faster\./i,
+    }),
+  );
   predict('hear', SOUND_LABEL[id]);
-  predict('move', /先观察完，再向右走 4 格/);
-  predict('page', /Page 3 · 彼岸山林/);
+  predict('move', /After observing first, then go 4 blocks to the right\./i);
+  predict('page', /Page 3 · The mountains and forests on the other side/i);
 }
 
 beforeEach(() => {
@@ -215,7 +226,7 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 
-describe('JourneyWestC3Part5Page — 星夜和晨雾都需要观察', () => {
+describe('JourneyWestC3Part5Page — Both starry night and morning fog require observation', () => {
   it('shows the locked screen when C3-P4 is not complete', async () => {
     fetchProgress.mockResolvedValue({
       story_line_id: 'journey-to-the-west-s1',
@@ -230,11 +241,11 @@ describe('JourneyWestC3Part5Page — 星夜和晨雾都需要观察', () => {
     mockBuild(null, [], false);
     renderPage();
     await screen.findByTestId('jtw-part-c3-p5');
-    expect(screen.getByTestId('jtw-c3p5-story-count')).toHaveTextContent('1 / 2 段');
-    expect(screen.getByTestId('jtw-c3p5-story')).toHaveTextContent('两个版本都是对的');
+    expect(screen.getByTestId('jtw-c3p5-story-count')).toHaveTextContent(/1\s*\/\s*2\s*part/i);
+    expect(screen.getByTestId('jtw-c3p5-story')).toHaveTextContent('Both versions are correct');
     fireEvent.click(screen.getByTestId('jtw-c3p5-story-next'));
-    expect(screen.getByTestId('jtw-c3p5-story-count')).toHaveTextContent('2 / 2 段');
-    expect(screen.getByTestId('jtw-c3p5-story')).toHaveTextContent('走了很多年');
+    expect(screen.getByTestId('jtw-c3p5-story-count')).toHaveTextContent(/2\s*\/\s*2\s*parts?/i);
+    expect(screen.getByTestId('jtw-c3p5-story')).toHaveTextContent(/lasted for many years/i);
   });
 
   it('offers both seas with their real artwork, and no prediction until one is picked', async () => {
@@ -259,7 +270,9 @@ describe('JourneyWestC3Part5Page — 星夜和晨雾都需要观察', () => {
     fireEvent.click(starry);
     expect(screen.getByTestId('jtw-c3p5-versions')).toHaveAttribute('data-chosen', 'starry');
     expect(await screen.findByTestId('jtw-c3p5-prediction')).toBeInTheDocument();
-    expect(screen.getByTestId('jtw-c3p5-muted')).toHaveTextContent('把声音关掉也读得出来');
+    expect(screen.getByTestId('jtw-c3p5-muted')).toHaveTextContent(
+      'You can read it even if you turn off the sound',
+    );
   });
 
   it('shows the chosen version target chain with the shared route intact', async () => {
@@ -286,8 +299,12 @@ describe('JourneyWestC3Part5Page — 星夜和晨雾都需要观察', () => {
   it('refuses the "faster is better" explanation with a text-grounded hint', async () => {
     renderPage();
     await screen.findByTestId('jtw-part-c3-p5');
-    fireEvent.click(screen.getByRole('button', { name: /越快越好，早一点到岸就行/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('用加速把问题遮起来');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /The sooner the better, just get to the shore as early as possible\./i,
+      }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(/Use acceleration to cover up the problem/i);
   });
 
   it('refuses a prediction that belongs to the OTHER weather card', async () => {
@@ -300,7 +317,7 @@ describe('JourneyWestC3Part5Page — 星夜和晨雾都需要观察', () => {
     // The mist version's sound is Whoosh, so Sparkle is refused for it.
     predict('hear', /Sparkle/);
     expect(screen.getByTestId('jtw-c3p5-predict-hear')).toHaveTextContent(
-      '星夜用 ✨ Sparkle，晨雾用 💨 Whoosh',
+      'Take a look at the blocks written on the weather card you chose: ✨ Sparkle for starry night, 💨 Whoosh for morning fog.',
     );
   });
 
@@ -318,7 +335,7 @@ describe('JourneyWestC3Part5Page — 星夜和晨雾都需要观察', () => {
     fireEvent.click(screen.getByTestId('jtw-c3p5-open-studio'));
     await waitFor(() =>
       expect(createProject).toHaveBeenCalledWith({
-        title: '西游记 · 星夜和晨雾都需要观察',
+        title: 'Journey to the West · Both starry night and morning fog need to be observed',
         template,
       }),
     );
@@ -355,7 +372,7 @@ describe('JourneyWestC3Part5Page — 星夜和晨雾都需要观察', () => {
     expect(screen.getByTestId('jtw-c3p5-continue')).toBeDisabled();
   });
 
-  it('does not accept a repainted sea with no expression blocks ("只换背景不通过")', async () => {
+  it('does not accept a repainted sea with no expression blocks ("Just changing the background will not pass")', async () => {
     // The starry sea saved over the bare shipped route: the sea changed, the
     // program did not, so this is neither version.
     mockBuild(JTW_C3_PAGE2_STARRY_SCENE, JTW_C3_P5_STARTER_CHAIN, true);
@@ -414,22 +431,24 @@ describe('JourneyWestC3Part5Page — 星夜和晨雾都需要观察', () => {
       // 出口仍为 3 — the scene's completion evidence.
       expect(actual).toHaveAttribute('data-exit-page', '3');
 
-      const rows = Array.from(
-        screen.getByTestId('jtw-c3p5-run-footprints').querySelectorAll('li'),
-      );
+      const rows = Array.from(screen.getByTestId('jtw-c3p5-run-footprints').querySelectorAll('li'));
       expect(rows.map((row) => row.getAttribute('data-enter'))).toEqual(['3-9', '2-8', '2-9']);
       expect(rows.map((row) => row.getAttribute('data-exit-to'))).toEqual(['2', '3', '']);
       expect(screen.getByTestId('jtw-c3p5-stage')).toHaveAttribute('data-page', '3');
 
       const resolved = await screen.findByTestId('jtw-c3p5-resolved');
       expect(resolved).toHaveAttribute('data-version', id);
-      expect(resolved).toHaveTextContent('他先观察，然后继续');
+      expect(resolved).toHaveTextContent(
+        /audience (?:can|could) read.*observed, and then continued/i,
+      );
       expect(screen.getByTestId('jtw-c3p5-page2-resolved')).toHaveAttribute(
         'src',
         jtwC3WeatherVersion(id).resolvedBackground,
       );
       // story_after already points at the C3-P6 bug.
-      expect(resolved).toHaveTextContent('站错了边');
+      expect(resolved).toHaveTextContent(
+        /raft.*wrong side/i,
+      );
     },
   );
 
@@ -531,7 +550,7 @@ describe('JourneyWestC3Part5Page — 星夜和晨雾都需要观察', () => {
     });
     renderPage();
     await screen.findByTestId('jtw-part-c3-p5');
-    expect(screen.getByTestId('jtw-c3p5-story-count')).toHaveTextContent('2 / 2 段');
+    expect(screen.getByTestId('jtw-c3p5-story-count')).toHaveTextContent(/2\s*\/\s*2\s*parts?/i);
     // Malformed rows are dropped, not guessed — the three real ones survive.
     expect(screen.getByTestId('jtw-c3p5-predict-hear')).toHaveAttribute(
       'data-picked',

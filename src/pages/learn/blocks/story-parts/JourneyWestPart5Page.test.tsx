@@ -50,11 +50,11 @@ const P4_DONE: StoryLineProgress = {
 
 function greetingProject(order: 'hop-first' | 'say-first'): BlocksProject {
   const hop = { op: 'hop', n: 1 };
-  const say = { op: 'say', text: '你们好，我可以过来吗？' };
+  const say = { op: 'say', text: 'Hello, can I come over?' };
   const middle = order === 'hop-first' ? [hop, say] : [say, hop];
   return {
     version: 1,
-    name: '西游记 · 我的第一次问候',
+    name: 'Journey to the West · My first greeting',
     lessonId: 'jtw-s1-c1-p5',
     pages: [
       {
@@ -89,7 +89,12 @@ function greetingProject(order: 'hop-first' | 'say-first'): BlocksProject {
 
 function mockBuild(order: 'hop-first' | 'say-first', runCompleted = true) {
   listProjects.mockResolvedValue([
-    { id: 'proj_p5', title: '西游记 · 我的第一次问候', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_p5',
+      title: 'Journey to the West · My first greeting',
+      kind: 'blocks',
+      status: 'active',
+    },
   ]);
   loadProject.mockResolvedValue({
     project: greetingProject(order),
@@ -97,7 +102,9 @@ function mockBuild(order: 'hop-first' | 'say-first', runCompleted = true) {
     history: { past: [], future: [] },
     storyProgress: {
       schemaVersion: 1,
-      completed: runCompleted ? { 'jtw-s1-c1-p5': { completedAt: '2026-07-25T08:00:00.000Z' } } : {},
+      completed: runCompleted
+        ? { 'jtw-s1-c1-p5': { completedAt: '2026-07-25T08:00:00.000Z' } }
+        : {},
     },
     otherFiles: [],
   } as never);
@@ -130,7 +137,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestPart5Page · C1-P5 两种真诚的问候', () => {
+describe('JourneyWestPart5Page · C1-P5 Two sincere greetings', () => {
   it('creates a new greeting project with an English title', async () => {
     listProjects.mockResolvedValue([]);
     createProject.mockResolvedValue({ id: 'new-p5-project' });
@@ -162,14 +169,28 @@ describe('JourneyWestPart5Page · C1-P5 两种真诚的问候', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-p5-build-done')).toBeInTheDocument());
     expect(screen.getByTestId('jtw-p5-build').dataset.keptVersion).toBe('hop-first');
-    expect(screen.getByText(/「先跳再问好」/)).toBeInTheDocument();
+    expect(screen.getByText(/"Dance first and say hello later"/i)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /选择让伙伴先感到他的活力/ }));
-    fireEvent.click(screen.getByRole('button', { name: /我把两种顺序都运行过/ }));
-    fireEvent.click(screen.getByRole('button', { name: /先跳一下，所以伙伴先觉得他充满活力/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Choose whether to let your partner feel alive first or to feel respected first/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I have run both sequences and left with the current version\./i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Jump first, so your partner feels that he is full of energy first/i,
+      }),
+    );
 
     // The monkeys' response follows the kept version.
-    expect(screen.getByTestId('jtw-p5-resolved')).toHaveTextContent('先被石猴的活力吸引');
+    expect(screen.getByTestId('jtw-p5-resolved')).toHaveTextContent(
+      "The group of monkeys were first attracted by the stone monkey's vitality and gathered around him with smiles. Then they understood his purpose and approached him.",
+    );
     expect(screen.getByTestId('jtw-p5-continue')).toBeEnabled();
   });
 
@@ -179,15 +200,31 @@ describe('JourneyWestPart5Page · C1-P5 两种真诚的问候', () => {
     await waitFor(() => expect(screen.getByTestId('jtw-p5-build-done')).toBeInTheDocument());
     expect(screen.getByTestId('jtw-p5-build').dataset.keptVersion).toBe('say-first');
 
-    fireEvent.click(screen.getByRole('button', { name: /选择让伙伴先感到他的活力/ }));
-    fireEvent.click(screen.getByRole('button', { name: /我把两种顺序都运行过/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Choose whether to let your partner feel alive first or to feel respected first/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I have run both sequences and left with the current version\./i,
+      }),
+    );
     // The hop-first sentence is NOT offered; the say-first one is.
     expect(
-      screen.queryByRole('button', { name: /先跳一下，所以伙伴先觉得他充满活力/ }),
+      screen.queryByRole('button', {
+        name: /Jump first, so your partner feels that he is full of energy first/i,
+      }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /先轻声问好，所以伙伴先觉得他尊重大家/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Say hello softly first, so your partner first feels that he respects everyone\./i,
+      }),
+    );
 
-    expect(screen.getByTestId('jtw-p5-resolved')).toHaveTextContent('先感到被尊重');
+    expect(screen.getByTestId('jtw-p5-resolved')).toHaveTextContent(
+      'The monkeys first felt respected',
+    );
     expect(screen.getByTestId('jtw-p5-continue')).toBeEnabled();
   });
 
@@ -195,11 +232,23 @@ describe('JourneyWestPart5Page · C1-P5 两种真诚的问候', () => {
     mockBuild('hop-first');
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-p5-build-done')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /选择让伙伴先感到他的活力/ }));
-    fireEvent.click(screen.getByRole('button', { name: /我只运行了一版就直接选了/ }));
-    fireEvent.click(screen.getByRole('button', { name: /先跳一下，所以伙伴先觉得他充满活力/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Choose whether to let your partner feel alive first or to feel respected first/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: /I only ran one version and chose it directly\./i }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Jump first, so your partner feels that he is full of energy first/i,
+      }),
+    );
 
-    expect(screen.getByRole('status')).toHaveTextContent('比较过才算真的选择');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Go back to the workspace and run through the other sequence before choosing - only after comparison can the real choice be considered.',
+    );
     expect(screen.getByTestId('jtw-p5-continue')).toBeDisabled();
   });
 
@@ -217,9 +266,21 @@ describe('JourneyWestPart5Page · C1-P5 两种真诚的问候', () => {
     mockBuild('say-first');
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-p5-build-done')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /选择让伙伴先感到他的活力/ }));
-    fireEvent.click(screen.getByRole('button', { name: /我把两种顺序都运行过/ }));
-    fireEvent.click(screen.getByRole('button', { name: /先轻声问好，所以伙伴先觉得他尊重大家/ }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Choose whether to let your partner feel alive first or to feel respected first/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I have run both sequences and left with the current version\./i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Say hello softly first, so your partner first feels that he respects everyone\./i,
+      }),
+    );
     fireEvent.click(screen.getByTestId('jtw-p5-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
@@ -230,7 +291,7 @@ describe('JourneyWestPart5Page · C1-P5 两种真诚的问候', () => {
         sentence: ['say-respect'],
         compared_both: ['ran-both'],
         kept_version: ['say-first'],
-        greeting: ['你们好，我可以过来吗？'],
+        greeting: ['Hello, can I come over?'],
         build_project: ['proj_p5'],
       },
     });

@@ -20,7 +20,7 @@ import { storyMissionProgramMatches } from './storyMissionProgress';
 
 const WHOOSH = 4;
 const SPARKLE = 6;
-const ARRIVAL_LINE = '山林里有歌声，我顺着它走。';
+const ARRIVAL_LINE = "I hear singing in the forest. I'll follow it.";
 
 /** A legal personal route: 2 · 3 · 2 actions, both exits, a stable End. */
 const HOME_ACTIONS: Block[] = [
@@ -109,17 +109,26 @@ describe('jtwC3RouteDesign — the personal three-page route grammar', () => {
     expect(design?.pages.map((page) => page.exitTo)).toEqual([2, 3, null]);
     expect(design?.pages.map((page) => page.ends)).toEqual([false, false, true]);
     // The studio's own matcher agrees, so a run of this really records a marker.
-    expect(storyMissionProgramMatches(builtRoute(weather as JtwC3Weather), JTW_C3_P7_LESSON_ID)).toBe(
-      true,
-    );
+    expect(
+      storyMissionProgramMatches(builtRoute(weather as JtwC3Weather), JTW_C3_P7_LESSON_ID),
+    ).toBe(true);
   });
 
   it('accepts the smallest legal route — 2 actions on every page', () => {
     const design = jtwC3RouteDesign(
       builtRoute('morning', {
-        home: [{ op: 'play_sound', n: WHOOSH }, { op: 'move_right', n: 4 }],
-        sea: [{ op: 'wait', n: 2 }, { op: 'move_right', n: 4 }],
-        shore: [{ op: 'say', text: ARRIVAL_LINE }, { op: 'play_sound', n: SPARKLE }],
+        home: [
+          { op: 'play_sound', n: WHOOSH },
+          { op: 'move_right', n: 4 },
+        ],
+        sea: [
+          { op: 'wait', n: 2 },
+          { op: 'move_right', n: 4 },
+        ],
+        shore: [
+          { op: 'say', text: ARRIVAL_LINE },
+          { op: 'play_sound', n: SPARKLE },
+        ],
       }),
     );
     expect(design?.childBlocks).toBe(9);
@@ -128,19 +137,27 @@ describe('jtwC3RouteDesign — the personal three-page route grammar', () => {
 
   // 循环 — 出口指回家不是路线。
   it('refuses a Page 2 exit that loops back to the home shore', () => {
-    expect(jtwC3RouteDesign(builtRoute('starry', { seaExit: { op: 'goto_page', n: 1 } }))).toBeNull();
-    expect(jtwC3RouteDesign(builtRoute('starry', { homeExit: { op: 'goto_page', n: 1 } }))).toBeNull();
+    expect(
+      jtwC3RouteDesign(builtRoute('starry', { seaExit: { op: 'goto_page', n: 1 } })),
+    ).toBeNull();
+    expect(
+      jtwC3RouteDesign(builtRoute('starry', { homeExit: { op: 'goto_page', n: 1 } })),
+    ).toBeNull();
   });
 
   // 死页 — Page 3 必须 End，不能再把故事交出去。
   it('refuses a far shore that hands the story on instead of ending', () => {
-    expect(jtwC3RouteDesign(builtRoute('starry', { shoreExit: { op: 'goto_page', n: 1 } }))).toBeNull();
+    expect(
+      jtwC3RouteDesign(builtRoute('starry', { shoreExit: { op: 'goto_page', n: 1 } })),
+    ).toBeNull();
   });
 
   // 空壳 — 只有一块 Goto 的页面不算一页故事。
   it('refuses a page left as a bare Goto shell, and a page with five actions', () => {
     expect(jtwC3RouteDesign(builtRoute('starry', { sea: [] }))).toBeNull();
-    expect(jtwC3RouteDesign(builtRoute('starry', { home: [{ op: 'move_right', n: 4 }] }))).toBeNull();
+    expect(
+      jtwC3RouteDesign(builtRoute('starry', { home: [{ op: 'move_right', n: 4 }] })),
+    ).toBeNull();
     expect(
       jtwC3RouteDesign(
         builtRoute('starry', {
@@ -160,13 +177,21 @@ describe('jtwC3RouteDesign — the personal three-page route grammar', () => {
   it('refuses a walk that misses the beached raft or steps off the deck', () => {
     expect(
       jtwC3RouteDesign(
-        builtRoute('starry', { home: [{ op: 'play_sound', n: WHOOSH }, { op: 'move_right', n: 3 }] }),
+        builtRoute('starry', {
+          home: [
+            { op: 'play_sound', n: WHOOSH },
+            { op: 'move_right', n: 3 },
+          ],
+        }),
       ),
     ).toBeNull();
     expect(
       jtwC3RouteDesign(
         builtRoute('starry', {
-          sea: [{ op: 'wait', n: 2 }, { op: 'move_right', n: 2 }],
+          sea: [
+            { op: 'wait', n: 2 },
+            { op: 'move_right', n: 2 },
+          ],
         }),
       ),
     ).toBeNull();
@@ -189,14 +214,20 @@ describe('jtwC3RouteDesign — the personal three-page route grammar', () => {
     expect(
       jtwC3RouteDesign(
         builtRoute('starry', {
-          sea: [{ op: 'play_sound', n: SPARKLE }, { op: 'move_right', n: 4 }],
+          sea: [
+            { op: 'play_sound', n: SPARKLE },
+            { op: 'move_right', n: 4 },
+          ],
         }),
       ),
     ).toBeNull();
     expect(
       jtwC3RouteDesign(
         builtRoute('starry', {
-          shore: [{ op: 'move_right', n: 2 }, { op: 'play_sound', n: SPARKLE }],
+          shore: [
+            { op: 'move_right', n: 2 },
+            { op: 'play_sound', n: SPARKLE },
+          ],
         }),
       ),
     ).toBeNull();
@@ -206,9 +237,18 @@ describe('jtwC3RouteDesign — the personal three-page route grammar', () => {
     expect(
       jtwC3RouteDesign(
         builtRoute('starry', {
-          home: [{ op: 'wait', n: 1 }, { op: 'move_right', n: 4 }],
-          sea: [{ op: 'wait', n: 2 }, { op: 'move_right', n: 4 }],
-          shore: [{ op: 'say', text: ARRIVAL_LINE }, { op: 'move_right', n: 1 }],
+          home: [
+            { op: 'wait', n: 1 },
+            { op: 'move_right', n: 4 },
+          ],
+          sea: [
+            { op: 'wait', n: 2 },
+            { op: 'move_right', n: 4 },
+          ],
+          shore: [
+            { op: 'say', text: ARRIVAL_LINE },
+            { op: 'move_right', n: 1 },
+          ],
         }),
       ),
     ).toBeNull();
@@ -219,7 +259,10 @@ describe('jtwC3RouteDesign — the personal three-page route grammar', () => {
     expect(
       jtwC3RouteDesign(
         builtRoute('starry', {
-          shore: [{ op: 'move_right', n: 2 }, { op: 'say', text: '我要去拿宝物！' }],
+          shore: [
+            { op: 'move_right', n: 2 },
+            { op: 'say', text: "I'm going to get the treasure!" },
+          ],
         }),
       ),
     ).toBeNull();
@@ -227,7 +270,10 @@ describe('jtwC3RouteDesign — the personal three-page route grammar', () => {
       expect(
         jtwC3RouteDesign(
           builtRoute('starry', {
-            shore: [{ op: 'move_right', n: 2 }, { op: 'say', text: line }],
+            shore: [
+              { op: 'move_right', n: 2 },
+              { op: 'say', text: line },
+            ],
           }),
         ),
       ).not.toBeNull();
@@ -238,14 +284,20 @@ describe('jtwC3RouteDesign — the personal three-page route grammar', () => {
     expect(
       jtwC3RouteDesign(
         builtRoute('starry', {
-          shore: [{ op: 'move_left', n: 2 }, { op: 'say', text: ARRIVAL_LINE }],
+          shore: [
+            { op: 'move_left', n: 2 },
+            { op: 'say', text: ARRIVAL_LINE },
+          ],
         }),
       ),
     ).toBeNull();
     expect(
       jtwC3RouteDesign(
         builtRoute('starry', {
-          sea: [{ op: 'wait', n: 9 }, { op: 'move_right', n: 4 }],
+          sea: [
+            { op: 'wait', n: 9 },
+            { op: 'move_right', n: 4 },
+          ],
         }),
       ),
     ).toBeNull();
@@ -306,14 +358,17 @@ describe('jtwC3RouteDesign — the stored evidence encodings', () => {
   });
 });
 
-describe('jtwC3RouteFingerprint — what "重开后 JSON 一致" compares', () => {
+describe('jtwC3RouteFingerprint — what "JSON consistent after reopening" compares', () => {
   it('matches an identical reload and separates one changed block', () => {
     const saved = builtRoute('starry');
     const reloaded = JSON.parse(JSON.stringify(saved)) as BlocksProject;
     expect(jtwC3RouteFingerprint(reloaded)).toBe(jtwC3RouteFingerprint(saved));
 
     const edited = builtRoute('starry', {
-      shore: [{ op: 'move_right', n: 3 }, { op: 'say', text: ARRIVAL_LINE }],
+      shore: [
+        { op: 'move_right', n: 3 },
+        { op: 'say', text: ARRIVAL_LINE },
+      ],
     });
     expect(jtwC3RouteFingerprint(edited)).not.toBe(jtwC3RouteFingerprint(saved));
   });

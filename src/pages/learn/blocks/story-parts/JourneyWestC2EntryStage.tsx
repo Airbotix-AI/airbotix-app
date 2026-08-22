@@ -11,16 +11,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { GRID_H, GRID_W, type Page } from '../blocksModel';
 import { BlocksRunner, startState, type SpriteState } from '../interpreter';
 import { sfx } from '../sounds';
-import {
-  JTW_C2_P7_CAVE_ID,
-  JTW_C2_P7_CURTAIN_ID,
-  JTW_C2_P7_MONKEY_ID,
-} from '../jtwPersonalEntry';
+import { JTW_C2_P7_CAVE_ID, JTW_C2_P7_CURTAIN_ID, JTW_C2_P7_MONKEY_ID } from '../jtwPersonalEntry';
 import { c2EntryRunResult, type C2EntryRunResult } from './journeyWestC2EntryRun';
 
 /** The actor-free C2 base plate: both door actors are separate sprites. */
 const BASE_ASSET = '/story-blocks/journey-to-the-west/backgrounds/s1/c2/actor-free-v01.png';
-const BASE_ALT = '水帘前的湿石路：左岸的石阶和右岸的花丛石滩都通向同一个入口';
+const BASE_ALT =
+  'The wet stone road in front of the water curtain: the stone steps on the left bank and the flower-covered stone beach on the right bank both lead to the same entrance.';
 
 export interface C2EntryStageLabels {
   /** Button copy before the first run. */
@@ -108,11 +105,15 @@ export function JourneyWestC2EntryStage({
         data-testid={`${testIdPrefix}-stage`}
         data-world-state={caveVisible ? 'cave-revealed' : 'curtain-closed'}
       >
-        <img src={BASE_ASSET} alt={BASE_ALT} className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={BASE_ASSET}
+          alt={BASE_ALT}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         {curtain && curtainVisible && (
           <img
             src={curtain.asset}
-            alt="合着的水帘"
+            alt="closed water curtain"
             data-testid={`${testIdPrefix}-curtain`}
             data-visible="true"
             className="absolute right-[5%] top-[3%] h-[68%] w-[49%] object-contain"
@@ -121,7 +122,7 @@ export function JourneyWestC2EntryStage({
         {cave && caveVisible && (
           <img
             src={cave.asset}
-            alt="暖光洞口，里面有石桥、干地、石座和清水"
+            alt="Warm light cave entrance, with stone bridge, dry ground, stone base and clear water inside"
             data-testid={`${testIdPrefix}-cave`}
             data-visible="true"
             className="absolute right-[12%] top-[12%] h-[61%] w-[38%] object-contain"
@@ -145,7 +146,7 @@ export function JourneyWestC2EntryStage({
 
       {saidLine && (
         <p className="text-[14px] font-semibold text-ink" data-testid={`${testIdPrefix}-said-line`}>
-          洞口说：「{saidLine}」
+          The cave said: “{saidLine}”
         </p>
       )}
 

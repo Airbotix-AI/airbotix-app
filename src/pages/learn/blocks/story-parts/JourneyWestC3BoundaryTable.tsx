@@ -15,8 +15,8 @@ import type { JtwC3Boundary } from '../jtwC3JumpFix';
 import { c3p2PageLabel } from './journeyWestC3Part2Program';
 
 /** The two readings a boundary can have, in the child's own words. */
-const BOUNDARY_OK = '接得上';
-const BOUNDARY_BREAK = '断开了';
+const BOUNDARY_OK = 'Acceptable';
+const BOUNDARY_BREAK = 'Disconnected';
 
 export function JourneyWestC3BoundaryTable({
   boundaries,
@@ -47,7 +47,7 @@ export function JourneyWestC3BoundaryTable({
             {c3p2PageLabel(boundary.to)}
           </span>
           <span className="ml-2 font-semibold text-ink-soft">
-            {boundary.exitCell} 离开 → {boundary.enterCell} 出现 ·{' '}
+            {boundary.exitCell} leave → {boundary.enterCell} Appear ·{' '}
             {boundary.continuous ? BOUNDARY_OK : BOUNDARY_BREAK}
           </span>
         </li>

@@ -1,191 +1,307 @@
-import type { StoryMission, StoryMissionChoice } from './types'
+import type { StoryMission, StoryMissionChoice } from './types';
 
-const HERO = { name: '西游伙伴', role: '用不同事件让相遇按故事顺序发生', asset: '' }
-const EMPTY_CHOICES: StoryMissionChoice[] = []
+const HERO = {
+  name: 'Journey to the West Partner',
+  role: 'Use different events to make encounters happen in story order',
+  asset: '',
+};
+const EMPTY_CHOICES: StoryMissionChoice[] = [];
 
 function mission(args: {
-  lessonId: string
-  mode?: StoryMission['mode']
-  eyebrow: string
-  title: string
-  body: string
-  mission: string
-  next: string
-  choices?: StoryMissionChoice[]
+  lessonId: string;
+  mode?: StoryMission['mode'];
+  eyebrow: string;
+  title: string;
+  body: string;
+  mission: string;
+  next: string;
+  choices?: StoryMissionChoice[];
 }): StoryMission {
   return {
-    mode: args.mode ?? 'complete', lessonId: args.lessonId, celebrate: false, hero: HERO,
-    eyebrow: args.eyebrow, title: args.title,
+    mode: args.mode ?? 'complete',
+    lessonId: args.lessonId,
+    celebrate: false,
+    hero: HERO,
+    eyebrow: args.eyebrow,
+    title: args.title,
     storyPages: [{ emoji: '🗺️🧩', title: args.title, body: args.body, scene: 4 }],
-    partnerLine: '真实积木、真实运行和保存读回都会被检查。', mission: args.mission,
-    question: '舞台上的事件和故事顺序对齐了吗？', choices: args.choices ?? EMPTY_CHOICES,
-    retry: '回到舞台，检查事件入口、动作顺序和运行结果。',
-    successTitle: '程序已经说得通', success: '可见结果来自孩子搭建并运行的真实程序。',
-    fixTitle: '在工作区完成程序', fixPrompt: args.mission,
-    workspaceIntro: '先读故事，再在真实工作区修改、运行并保存。', fixChoices: EMPTY_CHOICES,
-    fixRetry: '不要删掉故事需要的动作，也不要改写上一 Part 已验证的链。',
+    partnerLine: 'Real blocks, real runs and saved reads are all checked.',
+    mission: args.mission,
+    question: 'Do the events on stage and the story sequence align?',
+    choices: args.choices ?? EMPTY_CHOICES,
+    retry: 'Return to the stage and check the event entry, action sequence and running results.',
+    successTitle: 'The program already makes sense',
+    success: 'Visible results come from real programs built and run by children.',
+    fixTitle: 'Complete procedures in the workspace',
+    fixPrompt: args.mission,
+    workspaceIntro: 'Read the story first, then modify, run and save it in the real workspace.',
+    fixChoices: EMPTY_CHOICES,
+    fixRetry:
+      'Do not delete actions needed for the story, nor rewrite the chain that was verified in the previous part.',
     coach: {
-      ready: '先看清故事需要哪一个事件。', watch: '观察谁先行动，谁仍在等待。',
-      sayFirst: '对白出现了，检查它属于谁。', sayThen: '对白顺序正在运行。',
-      hopFirst: '动作已经发生。', hopThen: '动作要跟在正确事件后。',
-      retry: '程序或运行证据还没有完全对齐。', fix: '只修改本次任务要求的积木。',
-      test: '运行并观察稳定结果。', saving: '正在保存这次真实运行。', complete: '程序和故事证据已经对齐。',
+      ready: 'First figure out which event is needed for the story.',
+      watch: 'Watch who makes the first move and who is still waiting.',
+      sayFirst: 'Dialogue appears, check to whom it belongs.',
+      sayThen: 'The dialogue sequence is running.',
+      hopFirst: 'The action has taken place.',
+      hopThen: 'Actions should be followed by correct events.',
+      retry: 'The program or operational evidence is not yet fully aligned.',
+      fix: 'Only modify the building blocks required for this task.',
+      test: 'Run and observe stable results.',
+      saving: 'Saving this real run.',
+      complete: 'Procedural and story evidence are aligned.',
     },
-    logicSteps: [{ icon: '🚩', label: 'Go', order: '先' }, { icon: '👆', label: 'Tap', order: '再' }],
-    logicWhy: '不同事件等待不同条件，动作不会因为放在同一舞台就自动同时发生。',
-    completionTitle: '本次程序已保存', completion: '精确程序和真实运行标记已写入同一项目。',
-    completionSteps: [{ icon: '▶️', label: '运行', order: '先' }, { icon: '💾', label: '保存', order: '后' }],
-    completionWhy: '只拖积木不会通过；服务器会读回程序和运行证据。', next: args.next,
-  }
+    logicSteps: [
+      { icon: '🚩', label: 'Go', order: 'First' },
+      { icon: '👆', label: 'Tap', order: 'Again' },
+    ],
+    logicWhy:
+      'Different events wait for different conditions, and actions will not automatically occur at the same time just because they are placed on the same stage.',
+    completionTitle: 'This program has been saved',
+    completion: 'Exact program and real run markers have been written in the same project.',
+    completionSteps: [
+      { icon: '▶️', label: 'run', order: 'First' },
+      { icon: '💾', label: 'save', order: 'back' },
+    ],
+    completionWhy:
+      'Just dragging the blocks will not pass; the server will read back the program and proof of execution.',
+    next: args.next,
+  };
 }
 
 export const JTW_S2_MISSIONS: Record<string, StoryMission> = {
   'jtw-s2-c1-p4': mission({
-    lessonId: 'jtw-s2-c1-p4', eyebrow: '西游记 · 第二季 · C1-P4 · Build 1', title: '把今天三步跑起来',
-    body: '把行囊、两段路和中间等待接成一条能运行的出发链。',
-    mission: '搭 Start → Say(行囊带好) → Right 3 → Wait 2 → Right 3 → End，再按 Go。',
-    next: '下一 Part 让五行山路牌等待点击。',
+    lessonId: 'jtw-s2-c1-p4',
+    eyebrow: 'Journey to the West · Season 2 · C1-P4 · Build 1',
+    title: 'Take three steps today',
+    body: 'Connect the bag, the two sections and the waiting in between into a working starting chain.',
+    mission:
+      'Take Start → Say (pack your bags) → Right 3 → Wait 2 → Right 3 → End, and then press Go.',
+    next: 'The next Part makes the Five Elements Mountain street sign wait for clicks.',
   }),
   'jtw-s2-c1-p5': mission({
-    lessonId: 'jtw-s2-c1-p5', eyebrow: '西游记 · 第二季 · C1-P5 · Build 2', title: '让路牌等待点击',
-    body: '玄奘的路线保持不变；路牌只在真实点击后出现并说出地点。',
-    mission: '保留玄奘路线，为路牌搭 On Tap → Show → Say(五行山) → End，并真实运行。',
-    next: '下一 Part 修复提前到达的顺序。',
+    lessonId: 'jtw-s2-c1-p5',
+    eyebrow: 'Journey to the West · Season 2 · C1-P5 · Build 2',
+    title: 'Give way sign waiting to be clicked',
+    body: "Xuanzang's route remains the same; street signs only appear and say the location after a real click.",
+    mission:
+      'Keep the Xuanzang route, build the street sign On Tap → Show → Say(Five Elements Mountain) → End, and run it for real.',
+    next: 'Next Part Fix early arrival sequence.',
   }),
   'jtw-s2-c1-p6': mission({
-    lessonId: 'jtw-s2-c1-p6', mode: 'observe-fix', eyebrow: '西游记 · 第二季 · C1-P6 · Debug', title: '把等待放回两段路中间',
-    body: '错误版先走完两段路才等待。先运行看见错误，再把 Wait 2 移回中间。',
-    mission: '先运行错误版；修成 Start → Say → Right 3 → Wait 2 → Right 3 → Say(到了) → End 并重跑。',
-    next: '下一 Part 制作自己的出发页。',
+    lessonId: 'jtw-s2-c1-p6',
+    mode: 'observe-fix',
+    eyebrow: 'Journey to the West · Season 2 · C1-P6 · Debug',
+    title: 'Put waiting back in the middle of two sections of road',
+    body: 'The wrong version walked two sections before waiting. Run it first to see the error, then move Wait 2 back to the middle.',
+    mission:
+      'Run the wrong version first; fix it to Start → Say → Right 3 → Wait 2 → Right 3 → Say(arrived) → End and run again.',
+    next: 'Next Part Make your own departure page.',
   }),
   'jtw-s2-c1-p7': mission({
-    lessonId: 'jtw-s2-c1-p7', mode: 'personal-ship', eyebrow: '西游记 · 第二季 · C1-P7 · Personal Ship', title: '保存我的第一次出发',
-    body: '选择水壶、书卷或围巾，再选择慢速或正常速度；三步路线不能改变。',
-    mission: '完成个人对白和速度，运行、保存、关闭、重开并再次运行。',
-    next: '下一 Part 读取这份真实作品讲回第一章。',
+    lessonId: 'jtw-s2-c1-p7',
+    mode: 'personal-ship',
+    eyebrow: 'Journey to the West · Season 2 · C1-P7 · Personal Ship',
+    title: 'Save my first trip',
+    body: 'Choose a kettle, book or scarf, and then choose slow or normal speed; the three-step route cannot be changed.',
+    mission: 'Complete your own dialogue and tempo, run, save, close, reopen and run again.',
+    next: 'Next Part Read this real work and go back to the first chapter.',
   }),
   'jtw-s2-c2-p4': mission({
-    lessonId: 'jtw-s2-c2-p4', eyebrow: '西游记 · 第二季 · C2-P4 · Build 1', title: '玄奘先走近询问',
-    body: '绿旗只让玄奘走近山边；悟空的点击脚本仍保持安静。',
-    mission: '搭 Start → Right 3 → Wait 2 → Say(是谁在说话) → End 并按 Go。',
-    next: '下一 Part 补全悟空的点击回应。',
+    lessonId: 'jtw-s2-c2-p4',
+    eyebrow: 'Journey to the West · Season 2 · C2-P4 · Build 1',
+    title: 'Xuanzang first approached and asked',
+    body: "The green flag only lets Xuanzang approach the edge of the mountain; Wukong's click script remains silent.",
+    mission: 'Hit Start → Right 3 → Wait 2 → Say (who is speaking) → End and press Go.',
+    next: 'The next Part completes the click response of Wukong.',
   }),
   'jtw-s2-c2-p5': mission({
-    lessonId: 'jtw-s2-c2-p5', eyebrow: '西游记 · 第二季 · C2-P5 · Build 2', title: '询问以后再回应',
-    body: '先 Go 让玄奘询问，再点悟空，让他显现、回答并跳一下。',
-    mission: '补成 On Tap → Show → Say(我等的是向西的旅人) → Hop 1 → End；先 Go，再真实 Tap。',
-    next: '下一 Part 会故意让悟空回答得太早。',
+    lessonId: 'jtw-s2-c2-p5',
+    eyebrow: 'Journey to the West · Season 2 · C2-P5 · Build 2',
+    title: 'Ask and respond later',
+    body: 'Go first to let Xuanzang ask, then click Wukong to let him appear, answer and jump.',
+    mission:
+      'Complement On Tap → Show → Say (I am waiting for the traveler heading west) → Hop 1 → End; Go first, then tap.',
+    next: 'The next part will deliberately let Wukong answer too early.',
   }),
   'jtw-s2-c2-p6': mission({
-    lessonId: 'jtw-s2-c2-p6', mode: 'observe-fix', eyebrow: '西游记 · 第二季 · C2-P6 · Debug', title: '谁回答得太早？',
-    body: '错误版让悟空也使用 Start。先按 Go 看见他抢先回答，再只把事件换回 On Tap。',
-    mission: '先运行错误版并指出悟空太早；只换 Trigger，保存后先 Go 看他等待，再 Tap 看他回应。',
-    next: '下一 Part 保持 Tap 结构，设计悟空离山后的第一步。',
+    lessonId: 'jtw-s2-c2-p6',
+    mode: 'observe-fix',
+    eyebrow: 'Journey to the West · Season 2 · C2-P6 · Debug',
+    title: 'Who answered too early?',
+    body: 'The wrong version has Wukong also use Start. Press Go first to see him answer first, then just change the event back to On Tap.',
+    mission:
+      'Run the wrong version first and point out that Wukong is too early; only change the Trigger. After saving, first go to see it wait, and then tap to see its response.',
+    next: "The next part maintains the Tap structure and designs Wukong's first step after leaving the mountain.",
     choices: [
-      { id: 'wukong-too-early', label: '悟空在玄奘询问前就回答了', correct: true },
-      { id: 'xuanzang-too-early', label: '玄奘不该走到山边', correct: false },
+      { id: 'wukong-too-early', label: 'Wukong answered before Xuanzang asked', correct: true },
+      {
+        id: 'xuanzang-too-early',
+        label: 'Xuanzang shouldn’t go to the edge of the mountain',
+        correct: false,
+      },
     ],
   }),
   'jtw-s2-c2-p7': mission({
-    lessonId: 'jtw-s2-c2-p7', mode: 'personal-ship', eyebrow: '西游记 · 第二季 · C2-P7 · Personal Ship', title: '设计悟空离山后的第一步',
-    body: '保留玄奘的询问路线，从三句对白与跳一下／转一下中选择悟空的真实回应。',
-    mission: '搭 On Tap → Show → Say(你的选择) → Hop 1 或 Turn 1 → End；先 Go，再 Tap，保存后重开重跑。',
-    next: '下一 Part 读取这份作品复述双事件脚印。',
+    lessonId: 'jtw-s2-c2-p7',
+    mode: 'personal-ship',
+    eyebrow: 'Journey to the West · Season 2 · C2-P7 · Personal Ship',
+    title: "Design Wukong's first step after leaving the mountain",
+    body: "Keep Xuanzang's line of inquiry and choose Wukong's true response from three lines of dialogue and a skip/turn.",
+    mission:
+      'Take On Tap → Show → Say (your choice) → Hop 1 or Turn 1 → End; first Go, then Tap, save and restart.',
+    next: 'The next part reads this work retelling the footprints of the two events.',
   }),
   'jtw-s2-c3-p4': mission({
-    lessonId: 'jtw-s2-c3-p4', eyebrow: '西游记 · 第二季 · C3-P4 · Build 1', title: '让碰撞留下水纹',
-    body: '悟空走到第 6 格，水纹石的碰撞脚本变大并响起 Chime。',
-    mission: '搭悟空 Start → Right 4 → Say(这里有水纹) → Wait 2 → End；石头搭 On Bump → Grow 1 → Chime → End，再按 Go。',
-    next: '下一 Part 让白色倒影回应这次碰撞。',
+    lessonId: 'jtw-s2-c3-p4',
+    eyebrow: 'Journey to the West · Season 2 · C3-P4 · Build 1',
+    title: 'Let the collision leave water ripples',
+    body: 'Wukong Go to the 6th frame, the collision script of the rhodolite becomes larger and chime sounds.',
+    mission:
+      'Use Wukong Start → Right 4 → Say (there are water patterns here) → Wait 2 → End; use stone to make On Bump → Grow 1 → Chime → End, and then press Go.',
+    next: 'The next part is to have the white reflection respond to this collision.',
   }),
   'jtw-s2-c3-p5': mission({
-    lessonId: 'jtw-s2-c3-p5', eyebrow: '西游记 · 第二季 · C3-P5 · Build 2', title: '让白龙马回应水纹',
-    body: '保留悟空和石头，让隐藏的白龙马在碰撞后显现、说话并跳一下。',
-    mission: '为白龙马搭 On Bump → Show → Say(我愿意同行) → Hop 1 → End，再按 Go。',
-    next: '下一 Part 修复差一格的碰撞错误。',
+    lessonId: 'jtw-s2-c3-p5',
+    eyebrow: 'Journey to the West · Season 2 · C3-P5 · Build 2',
+    title: 'Let White Dragon Horse respond to water patterns',
+    body: 'Keep the Wukong and the stone and let the hidden White Dragon Horse appear, speak and jump once after the collision.',
+    mission:
+      'For White Dragon Horse On Bump → Show → Say(I am willing to go with you) → Hop 1 → End, then press Go.',
+    next: 'The next part fixes the one-frame collision error.',
   }),
   'jtw-s2-c3-p6': mission({
-    lessonId: 'jtw-s2-c3-p6', mode: 'observe-fix', eyebrow: '西游记 · 第二季 · C3-P6 · Debug', title: '修好差一格',
-    body: '错误版只走三格。先运行确认悟空停在第 5 格，再把 Right 3 改成 Right 4。',
-    mission: '先 Go 看见差一格；只改移动距离为 4，再 Go，确认水纹和白龙马都回应。',
-    next: '下一 Part 设计自己的水纹距离和欢迎动作。',
+    lessonId: 'jtw-s2-c3-p6',
+    mode: 'observe-fix',
+    eyebrow: 'Journey to the West · Season 2 · C3-P6 · Debug',
+    title: 'Just one space short of repair',
+    body: 'The wrong version only moves three spaces. First run to confirm that Wukong stops at the 5th cell, and then change Right 3 to Right 4.',
+    mission:
+      'Go first and see that there is one space difference; just change the moving distance to 4, then Go again and confirm that both the water pattern and White Dragon Horse are responded to.',
+    next: 'The next part is to design your own water pattern distance and welcome action.',
   }),
   'jtw-s2-c3-p7': mission({
-    lessonId: 'jtw-s2-c3-p7', mode: 'personal-ship', eyebrow: '西游记 · 第二季 · C3-P7 · Personal Ship', title: '保存我的鹰愁涧发现',
-    body: '让第 5、6 或 7 格的石头与移动距离精确对齐，并选择一种白龙马欢迎版本。',
-    mission: '完成距离与欢迎版本，Go 运行、保存、关闭、重开并再次运行。',
-    next: '下一 Part 读取这份真实作品复述第三章。',
+    lessonId: 'jtw-s2-c3-p7',
+    mode: 'personal-ship',
+    eyebrow: 'Journey to the West · Season 2 · C3-P7 · Personal Ship',
+    title: 'Save my Eagle Sorrow Stream findings',
+    body: 'Align the 5th, 6th or 7th stone exactly with the movement distance and choose a White Dragon Horse welcome version.',
+    mission:
+      'Completing the distance and welcome version, Go runs, saves, closes, reopens and runs again.',
+    next: 'Next Part Read Chapter 3 of this retelling of a true work.',
   }),
   'jtw-s2-c4-p4': mission({
-    lessonId: 'jtw-s2-c4-p4', eyebrow: '西游记 · 第二季 · C4-P4 · Build 1', title: '把蓝色传话跑起来',
-    body: '悟空点按发送蓝色；八戒只有收到同色消息后才走到路线卡旁。',
-    mission: '搭悟空 On Tap → Say → Send蓝 → End；八戒 Get蓝 → Right 3 → Say → End，再点悟空运行。',
-    next: '下一 Part 给白龙马加黄色收到回执。',
+    lessonId: 'jtw-s2-c4-p4',
+    eyebrow: 'Journey to the West · Season 2 · C4-P4 · Build 1',
+    title: 'Run the blue messenger',
+    body: 'Wukong Click to send blue; Bajie only walks to the route card after receiving a message of the same color.',
+    mission:
+      'Take Wukong On Tap → Say → Send Blue → End; Bajie Get Blue → Right 3 → Say → End, and then click Wukong to run.',
+    next: 'Next Part Add yellow to White Dragon Horse to receive the receipt.',
   }),
   'jtw-s2-c4-p5': mission({
-    lessonId: 'jtw-s2-c4-p5', eyebrow: '西游记 · 第二季 · C4-P5 · Build 2', title: '让白龙马回复收到',
-    body: '保留蓝色路线链，让八戒发黄色、白龙马接黄色后显示并回应。',
-    mission: '八戒尾部加 Send黄；白龙马搭 Get黄 → Show → Say(收到了) → End，再点悟空运行全链。',
-    next: '下一 Part 会出现一个橙色接收断点。',
+    lessonId: 'jtw-s2-c4-p5',
+    eyebrow: 'Journey to the West · Season 2 · C4-P5 · Build 2',
+    title: 'Let White Dragon Horse reply received',
+    body: 'Keep the blue route chain, let Bajie turn yellow, White Dragon Horse turn yellow and then display and respond.',
+    mission:
+      'Add Send yellow to the end of Bajie; add White Dragon Horse to Get yellow → Show → Say (received) → End, and then click Wukong to run the whole chain.',
+    next: 'An orange receive breakpoint will appear in the next Part.',
   }),
   'jtw-s2-c4-p6': mission({
-    lessonId: 'jtw-s2-c4-p6', mode: 'observe-fix', eyebrow: '西游记 · 第二季 · C4-P6 · Debug', title: '找到橙色断点',
-    body: '悟空发蓝色，八戒却等橙色。先点悟空看消息停住，再只把八戒Get改回蓝色。',
-    mission: '先运行并指出八戒没有收到；只修 Get橙 → Get蓝，保存后再次点悟空。',
-    next: '下一 Part 设计自己的路线色和方向。',
+    lessonId: 'jtw-s2-c4-p6',
+    mode: 'observe-fix',
+    eyebrow: 'Journey to the West · Season 2 · C4-P6 · Debug',
+    title: 'Find orange breakpoint',
+    body: 'Wukong is blue, but Bajie is waiting for orange. First click Wukong to see the message and stop, then just change Bajie Get back to blue.',
+    mission:
+      'Run it first and point out that Bajie has not been received; only repair Get Orange → Get Blue, save and click Wukong again.',
+    next: 'Next Part Design your own route color and direction.',
   }),
   'jtw-s2-c4-p7': mission({
-    lessonId: 'jtw-s2-c4-p7', mode: 'personal-ship', eyebrow: '西游记 · 第二季 · C4-P7 · Personal Ship', title: '保存我的路线消息',
-    body: '从绿、蓝、紫选择路线色，同步配好Send/Get，再选择左路或右路；黄色回执保持不变。',
-    mission: '完成个人颜色和方向，点悟空运行、保存、关闭、重开并再次运行。',
-    next: '下一 Part 读取真实作品讲回八戒加入。',
+    lessonId: 'jtw-s2-c4-p7',
+    mode: 'personal-ship',
+    eyebrow: 'Journey to the West · Season 2 · C4-P7 · Personal Ship',
+    title: 'Save my route messages',
+    body: 'Select the route color from green, blue, or purple, configure Send/Get simultaneously, and then select the left or right route; the yellow receipt remains unchanged.',
+    mission:
+      'Complete your personal colors and orientation, click Wukong to run, save, close, reopen and run again.',
+    next: 'The next part reads the real work and talks about Bajie joining.',
   }),
   'jtw-s2-c5-p4': mission({
-    lessonId: 'jtw-s2-c5-p4', eyebrow: '西游记 · 第二季 · C5-P4 · Build 1', title: '把两段消息接起来',
-    body: '悟空发蓝给八戒；八戒收到后发黄给悟净；悟净最后显示浅水标记。',
-    mission: '搭三角色蓝→黄接力并点悟空运行，确认回应按悟空、八戒、悟净顺序发生。',
-    next: '下一 Part 加紫色回执回到悟空。',
+    lessonId: 'jtw-s2-c5-p4',
+    eyebrow: 'Journey to the West · Season 2 · C5-P4 · Build 1',
+    title: 'Connect the two messages',
+    body: 'Wukong gives it to Bajie in blue; after Bajie receives it, it gives it to Wujing in yellow; Wujing finally shows the shallow water mark.',
+    mission:
+      'Take the blue → yellow relay of three characters and click Wukong to run. The confirmation response occurs in the order of Wukong, Bajie, and Wujing.',
+    next: 'Next Part Add purple receipt back to Wukong.',
   }),
   'jtw-s2-c5-p5': mission({
-    lessonId: 'jtw-s2-c5-p5', eyebrow: '西游记 · 第二季 · C5-P5 · Build 2', title: '让紫色回执回来',
-    body: '前进蓝→黄链保持不变；悟净发紫，悟空Get紫后跳一下并确认路线接通。',
-    mission: '给悟净加 Send紫，给悟空加 Get紫 → Hop 1 → Say(路线接上了) → End，再点悟空运行全链。',
-    next: '下一 Part 会拿掉八戒的黄色Send。',
+    lessonId: 'jtw-s2-c5-p5',
+    eyebrow: 'Journey to the West · Season 2 · C5-P5 · Build 2',
+    title: 'Get purple receipts back',
+    body: 'Keep the blue → yellow route unchanged. Wu Jing gets purple; Wukong gets purple, jumps once and confirms that the route is connected.',
+    mission:
+      'Add Send purple to Wujing, add Get purple to Wukong → Hop 1 → Say (the route is connected) → End, and then click Wukong to run the entire chain.',
+    next: "The next part will be to remove Bajie's yellow Send.",
   }),
   'jtw-s2-c5-p6': mission({
-    lessonId: 'jtw-s2-c5-p6', mode: 'observe-fix', eyebrow: '西游记 · 第二季 · C5-P6 · Debug', title: '找到中间接力断点',
-    body: '八戒收到了蓝色却没有继续发黄色。先运行错误版，再只补回中间Send。',
-    mission: '先点悟空观察消息停在八戒；补回八戒 Send黄，重跑蓝→黄→紫全链。',
-    next: '下一 Part 设计自己的三色接力。',
+    lessonId: 'jtw-s2-c5-p6',
+    mode: 'observe-fix',
+    eyebrow: 'Journey to the West · Season 2 · C5-P6 · Debug',
+    title: 'Find the intermediate transition breakpoint',
+    body: 'Bajie received the blue color but did not continue to receive the yellow color. Run the wrong version first, and then only make up for the intermediate Send.',
+    mission:
+      'First click Wukong to observe the message and stop at Bajie; make up for Bajie and send yellow, and then run the blue → yellow → purple chain again.',
+    next: 'Next Part Design your own three-color relay.',
   }),
   'jtw-s2-c5-p7': mission({
-    lessonId: 'jtw-s2-c5-p7', mode: 'personal-ship', eyebrow: '西游记 · 第二季 · C5-P7 · Personal Ship', title: '保存我的三色接力',
-    body: '三段使用互不相同的颜色，每段Send/Get仍要成对。',
-    mission: '完成三色选择，点悟空运行、保存、关闭、重开并再次运行。',
-    next: '下一 Part 读取作品讲回悟净加入。',
+    lessonId: 'jtw-s2-c5-p7',
+    mode: 'personal-ship',
+    eyebrow: 'Journey to the West · Season 2 · C5-P7 · Personal Ship',
+    title: 'Save my tricolor relay',
+    body: "The three sections use different colors, and each section's Send/Get still needs to be paired.",
+    mission:
+      'After completing the three-color selection, click Wukong to run, save, close, reopen and run again.',
+    next: 'The next part reads the work and tells Wu Jing to join.',
   }),
   'jtw-s2-c6-p4': mission({
-    lessonId: 'jtw-s2-c6-p4', eyebrow: '西游记 · 第二季 · C6-P4 · Build 1', title: '接好集合页和过桥页',
-    body: '玄奘从第一页发蓝进入第二页；八戒接蓝、过桥、发黄进入第三页。',
-    mission: '完成第一页与第二页精确脚本，按Go运行并保存三页项目。',
-    next: '下一 Part 完成第三页的队伍结尾。',
+    lessonId: 'jtw-s2-c6-p4',
+    eyebrow: 'Journey to the West · Season 2 · C6-P4 · Build 1',
+    title: 'Connect the collection page and bridge page',
+    body: 'Xuanzang turns blue from the first page to the second page; Bajie connects to blue, crosses the bridge, and turns yellow to enter the third page.',
+    mission:
+      'Complete the first and second pages of the exact script, press Go to run and save the three-page project.',
+    next: 'Next Part Complete the team ending on page three.',
   }),
   'jtw-s2-c6-p5': mission({
-    lessonId: 'jtw-s2-c6-p5', eyebrow: '西游记 · 第二季 · C6-P5 · Build 2', title: '让完整队伍到旗旁',
-    body: '悟净接黄显示路牌，白龙马走到旗旁，悟空等真实点击后说出发。',
-    mission: '完成第三页三条脚本，逐页运行并保存到稳定End。',
-    next: '下一 Part 修复回头页和错色消息。',
+    lessonId: 'jtw-s2-c6-p5',
+    eyebrow: 'Journey to the West · Season 2 · C6-P5 · Build 2',
+    title: 'Bring the complete team to the flag',
+    body: 'Wu Jing took the yellow to show the road sign, White Dragon Horse walked to the flag, Wukong waited for the real click and then said departure.',
+    mission:
+      'Complete the three scripts on the third page, run them page by page and save them to the stable End.',
+    next: 'The next part fixes the return page and wrong color message.',
   }),
   'jtw-s2-c6-p6': mission({
-    lessonId: 'jtw-s2-c6-p6', mode: 'observe-fix', eyebrow: '西游记 · 第二季 · C6-P6 · Debug', title: '一次修一处三页错误',
-    body: '第二页错误回到第一页，悟净还等着紫色。两次运行分别留下循环和断点证据。',
-    mission: '先修 Page1→Page3 并重跑，再修 Get紫→Get黄并重跑；其余脚本保持不变。',
-    next: '下一 Part 制作自己的队伍三页剧。',
+    lessonId: 'jtw-s2-c6-p6',
+    mode: 'observe-fix',
+    eyebrow: 'Journey to the West · Season 2 · C6-P6 · Debug',
+    title: 'Fix three page errors one at a time',
+    body: 'The second page error returns to the first page, Wu Jing is still waiting for the color purple. The two runs left evidence of loops and breakpoints respectively.',
+    mission:
+      'First repair Page1→Page3 and rerun, then repair GetPurple→GetYellow and rerun; the rest of the script remains unchanged.',
+    next: 'Next Part Make your own team three-page play.',
   }),
   'jtw-s2-c6-p7': mission({
-    lessonId: 'jtw-s2-c6-p7', mode: 'personal-ship', eyebrow: '西游记 · 第二季 · C6-P7 · Personal Ship', title: '保存我的完整队伍剧',
-    body: '选择第三页动作和预设对白，让无声模式仍有清楚可见结果。',
-    mission: '逐页运行，请同伴无答案图到达End；修改提示后保存、重开并重跑。',
-    next: '下一 Part 读取最终作品完成季终Retell。',
+    lessonId: 'jtw-s2-c6-p7',
+    mode: 'personal-ship',
+    eyebrow: 'Journey to the West · Season 2 · C6-P7 · Personal Ship',
+    title: 'Save my complete team drama',
+    body: 'Select the third page action and preset dialogue so that the silent mode still has clearly visible results.',
+    mission:
+      'Run page by page, ask your partner to reach the end of the unanswered picture; modify the prompts, save, restart and run again.',
+    next: 'Next Part: Read the final work to complete the season finale Retell.',
   }),
-}
+};

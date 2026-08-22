@@ -75,7 +75,11 @@ function renderPage() {
 /** 三张页面卡按 1 → 2 → 3 排好。 */
 function orderPageCards() {
   const cards = screen.getByTestId('jtw-c3p2-page-cards');
-  for (const label of ['花果山海岸', '海上中段', '彼岸山林']) {
+  for (const label of [
+    'Flower-Fruit Mountain coast',
+    'middle section of sea',
+    'The mountains and forests on the other side',
+  ]) {
     const button = Array.from(cards.querySelectorAll('button')).find(
       (candidate) => candidate.textContent === label,
     );
@@ -94,12 +98,12 @@ function exitButton(label: string): HTMLElement {
 
 /** 两张出口箭头：Page 1 → 2，Page 2 → 3。 */
 function orderExitCards() {
-  fireEvent.click(exitButton('Page 1 的出口 → 2'));
-  fireEvent.click(exitButton('Page 2 的出口 → 3'));
+  fireEvent.click(exitButton('Page 1 Exit → 2'));
+  fireEvent.click(exitButton('Page 2 Exit → 3'));
 }
 
 function predictCorrectly() {
-  fireEvent.click(screen.getByRole('button', { name: /那块出口写着 1/ }));
+  fireEvent.click(screen.getByRole('button', { name: /exit says 1/i }));
 }
 
 /** Arrange the expected route, predict, and run the unmodified starter once. */
@@ -124,7 +128,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestC3Part2Page · C3-P2 把出发和到达排成一条路', () => {
+describe('JourneyWestC3Part2Page · C3-P2 Align departure and arrival into one path', () => {
   it('ships the three-page starter exactly as the scene prints it', () => {
     const [page1, page2, page3] = C3_P2_STARTER_PROJECT.pages;
     const chainOf = (page: (typeof C3_P2_STARTER_PROJECT)['pages'][number], scriptId: string) =>
@@ -193,9 +197,11 @@ describe('JourneyWestC3Part2Page · C3-P2 把出发和到达排成一条路', ()
     expect(screen.getByTestId('jtw-c3p2-run')).toBeEnabled();
 
     // The 1 exit belongs to the bug, not to the plan: picking it closes Go again.
-    fireEvent.click(screen.getAllByRole('button', { name: '重新排' })[1]);
-    fireEvent.click(exitButton('Page 2 的出口 → 1'));
-    expect(screen.getByRole('status')).toHaveTextContent('把木筏送回 1 的出口正是我们要找的问题');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Reorder' })[1]);
+    fireEvent.click(exitButton('Page 2 Exit → 1'));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'The expected route is 1 → 2 → 3: the third page is the end point, and it no longer sends the raft to other pages; sending the raft back to the exit of 1 is the problem we are looking for, not the plan.',
+    );
     expect(screen.getByTestId('jtw-c3p2-run')).toBeDisabled();
   });
 
@@ -205,8 +211,14 @@ describe('JourneyWestC3Part2Page · C3-P2 把出发和到达排成一条路', ()
     orderPageCards();
     orderExitCards();
 
-    fireEvent.click(screen.getByRole('button', { name: /故事总会自己往下一页走/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('Page 2 那一块写的是 1');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Yes - the story will always move on to the next page by itself/i,
+      }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'The number on the exit block is the page number of the next page. Page 2 That block says 1. Which page is 1 on?',
+    );
     expect(screen.getByTestId('jtw-c3p2-run')).toBeDisabled();
 
     predictCorrectly();
@@ -290,16 +302,20 @@ describe('JourneyWestC3Part2Page · C3-P2 把出发和到达排成一条路', ()
     await waitFor(() => expect(screen.getByTestId('jtw-part-c3-p2')).toBeInTheDocument());
     await planAndRun();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Page 1 花果山海岸' }));
-    expect(screen.getByRole('status')).toHaveTextContent('最早不一样的是哪一页的出口');
+    fireEvent.click(screen.getByRole('button', { name: 'Page 1 · Flower-Fruit Mountain coast' }));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      "Look at each page: write 2 on the exit of Page 1. The raft has indeed reached the middle of the sea. This step is correct; the mountains and forests on the other side have not reached it at all this time. Which page's exit is the first to be different?",
+    );
     expect(screen.getByTestId('jtw-c3p2-continue')).toBeDisabled();
     expect(screen.queryByTestId('jtw-c3p2-resolved')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Page 3 彼岸山林' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Page 3 The mountains and forests on the other side' }),
+    );
     expect(screen.getByTestId('jtw-c3p2-continue')).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Page 2 海上中段' }));
-    expect(screen.getByTestId('jtw-c3p2-resolved')).toHaveTextContent('它的出口写着 1');
+    fireEvent.click(screen.getByRole('button', { name: 'Page 2 Middle section of the sea' }));
+    expect(screen.getByTestId('jtw-c3p2-resolved')).toHaveTextContent('its exit was written 1');
     expect(screen.getByTestId('jtw-c3p2-continue')).toBeEnabled();
   });
 
@@ -308,7 +324,7 @@ describe('JourneyWestC3Part2Page · C3-P2 把出发和到达排成一条路', ()
     await waitFor(() => expect(screen.getByTestId('jtw-part-c3-p2')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('jtw-c3p2-story-next'));
     await planAndRun();
-    fireEvent.click(screen.getByRole('button', { name: 'Page 2 海上中段' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Page 2 Middle section of the sea' }));
     fireEvent.click(screen.getByTestId('jtw-c3p2-continue'));
 
     await waitFor(() => expect(completePart).toHaveBeenCalledTimes(1));
@@ -358,10 +374,9 @@ describe('JourneyWestC3Part2Page · C3-P2 把出发和到达排成一条路', ()
     const rows = Array.from(screen.getByTestId('jtw-c3p2-footprints').querySelectorAll('li'));
     expect(rows).toHaveLength(3);
     expect(rows[1]).toHaveAttribute('data-exit-to', '1');
-    expect(screen.getByRole('button', { name: 'Page 2 海上中段' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(
+      screen.getByRole('button', { name: 'Page 2 Middle section of the sea' }),
+    ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByTestId('jtw-c3p2-continue')).toBeEnabled();
   });
 
@@ -393,7 +408,8 @@ describe('JourneyWestC3Part2Page · C3-P2 把出发和到达排成一条路', ()
     // never opened by this run — the starter's exit sends the raft home instead.
     expect(seen).toContain(JTW_C3_PAGE2_BACKGROUND);
     expect(JTW_C3_PAGE3_BACKGROUND).not.toEqual(JTW_C3_PAGE2_BACKGROUND);
-    expect(new Set([JTW_C3_PAGE1_BACKGROUND, JTW_C3_PAGE2_BACKGROUND, JTW_C3_PAGE3_BACKGROUND]).size)
-      .toBe(3);
+    expect(
+      new Set([JTW_C3_PAGE1_BACKGROUND, JTW_C3_PAGE2_BACKGROUND, JTW_C3_PAGE3_BACKGROUND]).size,
+    ).toBe(3);
   });
 });

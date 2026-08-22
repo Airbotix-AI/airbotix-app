@@ -64,14 +64,14 @@ const MY_DESIGN: Block[] = [
   { op: 'hop', n: 2 },
   { op: 'wait', n: 2 },
   { op: 'grow', n: 2 },
-  { op: 'say', text: '你们好，我可以过来吗？' },
+  { op: 'say', text: 'Hello, can I come over?' },
   { op: 'end' },
 ];
 
 function personalProject(blocks: Block[]): BlocksProject {
   return {
     version: 1,
-    name: '西游记 · 我的石猴亮相',
+    name: 'Journey to the West · My Stone Monkey Appears',
     lessonId: 'jtw-s1-c1-p7',
     pages: [
       {
@@ -94,7 +94,12 @@ function personalProject(blocks: Block[]): BlocksProject {
 
 function mockBuild(blocks: Block[], runCompleted = true, savedVersion = 6) {
   listProjects.mockResolvedValue([
-    { id: 'proj_p7', title: '西游记 · 我的石猴亮相', kind: 'blocks', status: 'active' },
+    {
+      id: 'proj_p7',
+      title: 'Journey to the West · My Stone Monkey Appears',
+      kind: 'blocks',
+      status: 'active',
+    },
   ]);
   loadProject.mockResolvedValue({
     project: personalProject(blocks),
@@ -102,7 +107,9 @@ function mockBuild(blocks: Block[], runCompleted = true, savedVersion = 6) {
     history: { past: [], future: [] },
     storyProgress: {
       schemaVersion: 1,
-      completed: runCompleted ? { 'jtw-s1-c1-p7': { completedAt: '2026-07-25T08:00:00.000Z' } } : {},
+      completed: runCompleted
+        ? { 'jtw-s1-c1-p7': { completedAt: '2026-07-25T08:00:00.000Z' } }
+        : {},
     },
     otherFiles: [],
   } as never);
@@ -124,10 +131,26 @@ function renderPage() {
 
 /** Answer motive + reason + reopen + retell correctly. */
 function answerAll() {
-  fireEvent.click(screen.getByRole('button', { name: /想清楚表达自己的好奇、友善或活力/ }));
-  fireEvent.click(screen.getByRole('button', { name: /能让伙伴看出我想表达的性格/ }));
-  fireEvent.click(screen.getByRole('button', { name: /重新打开后积木一样/ }));
-  fireEvent.click(screen.getByRole('button', { name: /仙石提示 → 石猴出现 → 两个动作/ }));
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Want to express your curiosity, friendliness or energy clearly so that your partner can truly understand/i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Because these two actions can help my partners see the character I want to express\./i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /I saved and closed the work, and when I reopened it, the building blocks were the same, and the appearance was still the same when I re-ran it\./i,
+    }),
+  );
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: /Fairy Stone Tips → Stone Monkey Appears → Two Actions → Greeting → End/i,
+    }),
+  );
 }
 
 beforeEach(() => {
@@ -143,7 +166,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe('JourneyWestPart7Page · C1-P7 我的石猴亮相', () => {
+describe('JourneyWestPart7Page · C1-P7 My Stone Monkey Appears', () => {
   it('blocks kids who have not finished P6', async () => {
     fetchProgress.mockResolvedValue({
       ...P6_DONE,
@@ -160,10 +183,10 @@ describe('JourneyWestPart7Page · C1-P7 我的石猴亮相', () => {
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-part-c1-p7')).toBeInTheDocument());
     expect(screen.getByTestId('jtw-p7-story')).toHaveTextContent(
-      '群猴围成一个宽宽的半圆，把石台中央留给新伙伴',
+      'The group of monkeys formed a wide semicircle, leaving the center of the stone platform for their new companions.',
     );
     expect(screen.getByTestId('jtw-p7-story')).toHaveTextContent(
-      '石猴高兴的不是得到彩带，而是自己的第一次故事没有丢失',
+      'Shi Hou was not happy about getting the ribbon, but that his first story was not lost',
     );
     await waitFor(() => expect(screen.getByTestId('jtw-p7-build').dataset.buildState).toBe('none'));
     // The evidence questions stay hidden until the real build is verified.
@@ -177,13 +200,15 @@ describe('JourneyWestPart7Page · C1-P7 我的石猴亮相', () => {
     await waitFor(() => expect(screen.getByTestId('jtw-p7-build-done')).toBeInTheDocument());
     const design = screen.getByTestId('jtw-p7-design');
     expect(design).toHaveTextContent('Boing');
-    expect(design).toHaveTextContent('跳 2');
-    expect(design).toHaveTextContent('等 2');
-    expect(design).toHaveTextContent('变大 2');
-    expect(design).toHaveTextContent('你们好，我可以过来吗？');
+    expect(design).toHaveTextContent(/jump 2/i);
+    expect(design).toHaveTextContent(/Wait 2/i);
+    expect(design).toHaveTextContent(/Get bigger 2/i);
+    expect(design).toHaveTextContent('Hello, can I come over?');
     expect(screen.getByTestId('jtw-p7-build').dataset.savedVersion).toBe('6');
     answerAll();
-    expect(screen.getByTestId('jtw-p7-resolved')).toHaveTextContent('群猴热烈回应');
+    expect(screen.getByTestId('jtw-p7-resolved')).toHaveTextContent(
+      'The stone monkey made his own appearance, and the group of monkeys responded enthusiastically and invited him to explore Flower-Fruit Mountain together.',
+    );
     expect(screen.getByTestId('jtw-p7-continue')).toBeEnabled();
   });
 
@@ -204,7 +229,7 @@ describe('JourneyWestPart7Page · C1-P7 我的石猴亮相', () => {
       { op: 'play_sound', n: 2 },
       { op: 'show' },
       { op: 'hop', n: 1 },
-      { op: 'say', text: '你好，我刚刚来到这里。' },
+      { op: 'say', text: 'Hello, I just came here.' },
       { op: 'end' },
     ]);
     renderPage();
@@ -218,11 +243,29 @@ describe('JourneyWestPart7Page · C1-P7 我的石猴亮相', () => {
     mockBuild(MY_DESIGN);
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-p7-build-done')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /想清楚表达自己的好奇、友善或活力/ }));
-    fireEvent.click(screen.getByRole('button', { name: /能让伙伴看出我想表达的性格/ }));
-    fireEvent.click(screen.getByRole('button', { name: /我没有关闭重开/ }));
-    fireEvent.click(screen.getByRole('button', { name: /仙石提示 → 石猴出现 → 两个动作/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('关闭作品再重新打开');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Want to express your curiosity, friendliness or energy clearly so that your partner can truly understand/i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Because these two actions can help my partners see the character I want to express\./i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /I didn't close it and reopen it\. I came here directly after finishing the ride\./i,
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Fairy Stone Tips → Stone Monkey Appears → Two Actions → Greeting → End/i,
+      }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Go back to the workspace and save, close the work, reopen it, and run it again - the first time the work is not lost, it is truly completed.',
+    );
     expect(screen.getByTestId('jtw-p7-continue')).toBeDisabled();
   });
 
@@ -230,8 +273,14 @@ describe('JourneyWestPart7Page · C1-P7 我的石猴亮相', () => {
     mockBuild(MY_DESIGN);
     renderPage();
     await waitFor(() => expect(screen.getByTestId('jtw-p7-build-done')).toBeInTheDocument());
-    fireEvent.click(screen.getByRole('button', { name: /先听见问候，再看见石猴出现/ }));
-    expect(screen.getByRole('status')).toHaveTextContent('请同伴再只看一遍舞台');
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /First I heard the greeting, then saw the stone monkey appear/i,
+      }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Ask your partner to look at the stage again: What comes first? How many actions did the stone monkey make after it appeared? Greetings at what time?',
+    );
     expect(screen.getByTestId('jtw-p7-continue')).toBeDisabled();
   });
 
@@ -253,7 +302,7 @@ describe('JourneyWestPart7Page · C1-P7 我的石猴亮相', () => {
         design_sound: ['sound:5'],
         design_actions: ['hop:2', 'grow:2'],
         design_wait: ['wait:2'],
-        greeting: ['你们好，我可以过来吗？'],
+        greeting: ['Hello, can I come over?'],
         build_project: ['proj_p7'],
         saved_version: ['v6'],
       },

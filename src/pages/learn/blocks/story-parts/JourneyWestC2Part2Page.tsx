@@ -62,7 +62,7 @@ function AgreementStage({ resolved }: { resolved: boolean }) {
     >
       <img
         src={JTW_C2_BACKGROUND_ASSET}
-        alt="瀑布前：石猴面对合着的白色水帘，三只群猴退到干燥的高石上等待，洞口仍藏在水帘后面"
+        alt="In front of the waterfall: The stone monkeys face the closed white water curtain. The three group of monkeys retreated to the dry high rocks to wait. The entrance of the cave is still hidden behind the water curtain."
         className="absolute inset-0 h-full w-full object-cover"
       />
       {/* 石猴面对水帘 — closer to the curtain than in P1, still outside it. */}
@@ -164,7 +164,11 @@ export function JourneyWestC2Part2Page() {
   });
 
   if (progress.isLoading) {
-    return <p className="p-8 text-center text-ink-soft">瀑布前，大家正围着石猴…</p>;
+    return (
+      <p className="p-8 text-center text-ink-soft">
+        In front of the waterfall, everyone is surrounding the stone monkey...
+      </p>
+    );
   }
 
   if (!unlocked && !completed) {
@@ -174,10 +178,11 @@ export function JourneyWestC2Part2Page() {
         data-testid="jtw-c2p2-locked"
       >
         <p className="text-[16px] font-bold text-ink">
-          先在 Part 1 跟着水声找到瀑布，再来听瀑布前的约定。
+          First, follow the sound of water to find the waterfall in Part 1, and then listen to the
+          promise made in front of the waterfall.
         </p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -187,9 +192,9 @@ export function JourneyWestC2Part2Page() {
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c2-p2">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第二章 水帘洞的约定 · Part 2
+          Journey to the West · Chapter 2 The Agreement of Water Curtain Cave · Part 2
         </p>
-        <h1 className="text-[28px] font-black text-ink">瀑布前的约定</h1>
+        <h1 className="text-[28px] font-black text-ink">The promise before the waterfall</h1>
       </header>
 
       {/* ── story_before：故事卡B 全文 + 原创对白 + 原著卡 + 因果桥 ───── */}
@@ -203,11 +208,11 @@ export function JourneyWestC2Part2Page() {
           ))}
         </div>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C2_P2_CLASSIC_CARD}
         </aside>
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C2_P2_STORY_BRIDGE}
         </aside>
       </section>
@@ -217,7 +222,7 @@ export function JourneyWestC2Part2Page() {
 
       {/* ── 两条同时成立的动机（被夸奖/最快 被拒绝） ─────────────────── */}
       <EvidenceGroup
-        title="从两句对白里，找出石猴同时成立的两条动机"
+        title="From the two lines of dialogue, find out the two motivations of Stone Monkey at the same time"
         options={C2_P2_MOTIVE_OPTIONS}
         selected={motives}
         onToggle={(id) =>
@@ -236,7 +241,7 @@ export function JourneyWestC2Part2Page() {
 
       {/* ── 四张约定卡排序（可访问、可重放、可持久化） ────────────────── */}
       <OrderCards
-        title="把四张约定卡摆成瀑布前说好的顺序"
+        title="Arrange the four promise cards in the order agreed upon before the waterfall."
         options={C2_P2_AGREEMENT_CARDS}
         order={cardOrder}
         onChange={setCardOrder}
@@ -297,7 +302,7 @@ export function JourneyWestC2Part2Page() {
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -306,12 +311,12 @@ export function JourneyWestC2Part2Page() {
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C2_P2_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C2_P2_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>

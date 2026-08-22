@@ -241,7 +241,7 @@ function RunFootprints({ run }: { run: PageFlowRunResult }) {
           </span>
           <span className="ml-2 font-semibold text-ink-soft">
             {visit.enterCell ?? '?'} → {visit.exitCell ?? '?'} ·{' '}
-            {visit.exitTo === null ? '在这一页结束' : `出口 → Page ${visit.exitTo}`}
+            {visit.exitTo === null ? 'end on this page' : `Exit → Page ${visit.exitTo}`}
           </span>
         </li>
       ))}
@@ -399,7 +399,7 @@ export function JourneyWestC3Part4Page({
       >
         <p className="text-[16px] font-bold text-ink">{C3_P4_LOCKED_HINT}</p>
         <Link className="btn-pill-primary inline-block" to="/learn/story/journey-west">
-          回到故事地图
+          Back to story map
         </Link>
       </div>
     );
@@ -409,9 +409,12 @@ export function JourneyWestC3Part4Page({
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8" data-testid="jtw-part-c3-p4">
       <header>
         <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-brand-sky">
-          西游记 · 第三章 一叶木筏求师路 · Part 4 · Build 1
+          Journey to the West · Chapter 3 One Leaf Raft’s Journey to Seeking a Master · Part 4 ·
+          Build 1
         </p>
-        <h1 className="text-[28px] font-black text-ink">让海中央既有故事又有出口</h1>
+        <h1 className="text-[28px] font-black text-ink">
+          Let the center of the sea have both a story and an outlet
+        </h1>
       </header>
 
       {/* ── story_before：教学脚本 Part 4 全文，两屏 ─────────────────────── */}
@@ -435,7 +438,9 @@ export function JourneyWestC3Part4Page({
               onClick={() => {
                 setScreenIndex(1);
                 setScreensRead((current) =>
-                  current.includes(C3_P4_SCREEN_IDS[1]) ? current : [...current, C3_P4_SCREEN_IDS[1]],
+                  current.includes(C3_P4_SCREEN_IDS[1])
+                    ? current
+                    : [...current, C3_P4_SCREEN_IDS[1]],
                 );
               }}
             >
@@ -443,15 +448,15 @@ export function JourneyWestC3Part4Page({
             </button>
           )}
           <span className="text-[12px] font-bold text-ink-soft" data-testid="jtw-c3p4-story-count">
-            {screensRead.length} / {C3_P4_SCREEN_IDS.length} 段
+            {screensRead.length} / {C3_P4_SCREEN_IDS.length} part
           </span>
         </div>
         <aside className="rounded-2xl border border-brand-sunshine/50 bg-wash-sunshine p-4 text-[14px] text-ink">
-          <span className="font-bold">原著小卡片：</span>
+          <span className="font-bold">Classic story note:</span>
           {C3_P4_CLASSIC_CARD}
         </aside>
         <aside className="rounded-2xl border border-hairline bg-canvas-pure p-4 text-[14px] leading-7 text-ink">
-          <span className="font-bold">故事—程序桥：</span>
+          <span className="font-bold">Story—Program Bridge:</span>
           {C3_P4_STORY_BRIDGE}
         </aside>
       </section>
@@ -461,12 +466,12 @@ export function JourneyWestC3Part4Page({
         <p className="text-[13px] font-bold text-ink-soft">{C3_P4_DEMO_TITLE}</p>
         <ChainStrip
           blocks={JTW_C3_DEPART_CHAIN}
-          title="Page 1 花果山海岸 · 离家（只读）"
+          title="Page 1 · Flower-Fruit Mountain coast · Leaving home (read only)"
           testId="jtw-c3p4-demo-page1"
         />
         <ChainStrip
           blocks={JTW_C3_ARRIVAL_CHAIN}
-          title="Page 3 彼岸山林 · 到达（只读）"
+          title="Page 3 Mountain Forest on the Other Side · Arrival (read only)"
           testId="jtw-c3p4-demo-page3"
         />
         <ChainStrip
@@ -548,7 +553,10 @@ export function JourneyWestC3Part4Page({
                   : C3_P4_OPEN_STUDIO_NEW}
           </button>
           {buildDone ? (
-            <span className="text-[13px] font-bold text-brand-mint" data-testid="jtw-c3p4-build-done">
+            <span
+              className="text-[13px] font-bold text-brand-mint"
+              data-testid="jtw-c3p4-build-done"
+            >
               {C3_P4_BUILD_DONE_LABEL}
             </span>
           ) : (
@@ -561,7 +569,7 @@ export function JourneyWestC3Part4Page({
         </div>
         {createError && (
           <p className="mt-2 text-[13px] font-semibold text-brand-coral" role="alert">
-            没能打开工作区，请再试一次。
+            Failed to open workspace, please try again.
           </p>
         )}
       </section>
@@ -630,8 +638,8 @@ export function JourneyWestC3Part4Page({
         )}
         {run && runReached && (
           <p className="text-[13px] font-semibold text-ink" data-testid="jtw-c3p4-exit-cell">
-            木筏真的从 {c3p4MeasuredExitCell(run)} 离开了海中央
-            {predictionMatched ? '——和你的预测一样。' : '。'}
+            The raft really started from {c3p4MeasuredExitCell(run)} left the middle of the sea
+            {predictionMatched ? '——Same as your prediction.' : '。'}
           </p>
         )}
       </section>
@@ -646,13 +654,13 @@ export function JourneyWestC3Part4Page({
           <div className="grid gap-3 sm:grid-cols-2">
             <img
               src={JTW_C3_PAGE2_RESOLVED_BACKGROUND}
-              alt="海上中段：晨雾散开，一条海路从画面这头连到那头"
+              alt="Middle section on the sea: The morning fog disperses, and a sea road connects from one end of the picture to the other."
               data-testid="jtw-c3p4-page2-resolved"
               className="w-full rounded-2xl border border-hairline"
             />
             <img
               src={JTW_C3_PAGE3_RESOLVED_BACKGROUND}
-              alt="彼岸山林：木筏靠上的浅滩，上山的石阶亮起来，山上师门的门里透出暖光"
+              alt="Mountain forest on the other side: The shoal on which the raft rests, the stone steps up the mountain light up, and warm light shines from the door of the master's gate on the mountain."
               data-testid="jtw-c3p4-page3-resolved"
               className="w-full rounded-2xl border border-hairline"
             />
@@ -670,7 +678,7 @@ export function JourneyWestC3Part4Page({
 
       <footer className="flex items-center justify-between gap-4">
         <Link className="text-[13px] font-bold text-brand-sky" to="/learn/story/journey-west">
-          ← 回到故事地图
+          ← Back to story map
         </Link>
         <button
           type="button"
@@ -679,12 +687,12 @@ export function JourneyWestC3Part4Page({
           disabled={(!resolved && !completed) || complete.isPending}
           onClick={() => void complete.mutate()}
         >
-          {complete.isPending ? '保存中…' : C3_P4_CONTINUE_LABEL}
+          {complete.isPending ? 'Saving…' : C3_P4_CONTINUE_LABEL}
         </button>
       </footer>
       {complete.isError && (
         <p className="text-right text-[13px] font-semibold text-brand-coral" role="alert">
-          没有保存上，请再点一次试试。
+          Not saved, please click again to try.
         </p>
       )}
     </div>
