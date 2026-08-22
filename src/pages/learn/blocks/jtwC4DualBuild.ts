@@ -1,39 +1,40 @@
-import type { Block, BlocksProject } from './blocksModel'
+import type { Block, BlocksProject } from './blocksModel';
+import { decodeLegacyJtwText } from './jtwLegacyCompatibility';
 
-export const JTW_C4_P4_LESSON_ID = 'jtw-s1-c4-p4'
-export const JTW_C4_P4_PAGE_ID = 'jtw-c4-p4-page'
-export const JTW_C4_P5_LESSON_ID = 'jtw-s1-c4-p5'
-export const JTW_C4_P5_PAGE_ID = 'jtw-c4-p5-page'
-export const JTW_C4_P6_LESSON_ID = 'jtw-s1-c4-p6'
-export const JTW_C4_P6_PAGE_ID = 'jtw-c4-p6-page'
-export const JTW_C4_P7_LESSON_ID = 'jtw-s1-c4-p7'
-export const JTW_C4_P7_PAGE_ID = 'jtw-c4-p7-page'
-export const JTW_C4_WUKONG_ID = 'sun-wukong'
-export const JTW_C4_NAME_SCRIPT_ID = 'sun-wukong-name'
-export const JTW_C4_SKILL_SCRIPT_ID = 'sun-wukong-skill'
+export const JTW_C4_P4_LESSON_ID = 'jtw-s1-c4-p4';
+export const JTW_C4_P4_PAGE_ID = 'jtw-c4-p4-page';
+export const JTW_C4_P5_LESSON_ID = 'jtw-s1-c4-p5';
+export const JTW_C4_P5_PAGE_ID = 'jtw-c4-p5-page';
+export const JTW_C4_P6_LESSON_ID = 'jtw-s1-c4-p6';
+export const JTW_C4_P6_PAGE_ID = 'jtw-c4-p6-page';
+export const JTW_C4_P7_LESSON_ID = 'jtw-s1-c4-p7';
+export const JTW_C4_P7_PAGE_ID = 'jtw-c4-p7-page';
+export const JTW_C4_WUKONG_ID = 'sun-wukong';
+export const JTW_C4_NAME_SCRIPT_ID = 'sun-wukong-name';
+export const JTW_C4_SKILL_SCRIPT_ID = 'sun-wukong-skill';
 export const JTW_C4_WUKONG_ASSET =
-  '/story-blocks/journey-to-the-west/characters/wukong-traveller/neutral-v01.png'
+  '/story-blocks/journey-to-the-west/characters/wukong-traveller/neutral-v01.png';
 
 export const JTW_C4_NAME_TARGET: readonly Block[] = [
   { op: 'when_flag' },
   { op: 'show' },
   { op: 'say', text: 'I am Sun Wukong' },
   { op: 'end' },
-]
+];
 
 const JTW_C4_ENGLISH_NAME_TARGET: readonly Block[] = [
   { op: 'when_flag' },
   { op: 'show' },
   { op: 'say', text: 'I am Sun Wukong' },
   { op: 'end' },
-]
+];
 
 export const JTW_C4_SKILL_TARGET: readonly Block[] = [
   { op: 'when_tap' },
   { op: 'hop', n: 2 },
   { op: 'say', text: 'you invited me' },
   { op: 'end' },
-]
+];
 
 export const JTW_C4_P5_SKILL_TARGETS = {
   hop: [
@@ -57,8 +58,32 @@ export const JTW_C4_P5_SKILL_TARGETS = {
     { op: 'say', text: 'Look here again' },
     { op: 'end' },
   ],
-} as const satisfies Readonly<Record<string, readonly Block[]>>
-export type JtwC4P5Version = keyof typeof JTW_C4_P5_SKILL_TARGETS
+} as const satisfies Readonly<Record<string, readonly Block[]>>;
+export type JtwC4P5Version = keyof typeof JTW_C4_P5_SKILL_TARGETS;
+
+const JTW_C4_LEGACY_P5_SKILL_TARGETS = {
+  hop: [
+    { op: 'when_tap' },
+    { op: 'hop', n: 2 },
+    { op: 'say', text: decodeLegacyJtwText('6211-7b49-5230-9080-8bf7-4e86') },
+    { op: 'end' },
+  ],
+  turn: [
+    { op: 'when_tap' },
+    { op: 'turn_left', n: 2 },
+    { op: 'wait', n: 1 },
+    { op: 'say', text: decodeLegacyJtwText('5bb6-5728-90a3-8fb9') },
+    { op: 'end' },
+  ],
+  reappear: [
+    { op: 'when_tap' },
+    { op: 'hide' },
+    { op: 'wait', n: 1 },
+    { op: 'show' },
+    { op: 'say', text: decodeLegacyJtwText('518d-770b-8fd9-91cc') },
+    { op: 'end' },
+  ],
+} as const satisfies Readonly<Record<JtwC4P5Version, readonly Block[]>>;
 
 const JTW_C4_P6_ENGLISH_SKILL_TARGETS = {
   hop: [
@@ -82,7 +107,7 @@ const JTW_C4_P6_ENGLISH_SKILL_TARGETS = {
     { op: 'say', text: 'Now look here' },
     { op: 'end' },
   ],
-} as const satisfies Readonly<Record<JtwC4P5Version, readonly Block[]>>
+} as const satisfies Readonly<Record<JtwC4P5Version, readonly Block[]>>;
 
 export const JTW_C4_P7_SKILL_TARGETS = {
   hop: [
@@ -94,89 +119,108 @@ export const JTW_C4_P7_SKILL_TARGETS = {
   ],
   turn: JTW_C4_P5_SKILL_TARGETS.turn,
   reappear: JTW_C4_P5_SKILL_TARGETS.reappear,
-} satisfies Record<JtwC4P5Version, readonly Block[]>
+} satisfies Record<JtwC4P5Version, readonly Block[]>;
+
+const JTW_C4_LEGACY_P7_SKILL_TARGETS = {
+  ...JTW_C4_LEGACY_P5_SKILL_TARGETS,
+  hop: [
+    { op: 'when_tap' },
+    { op: 'hop', n: 2 },
+    { op: 'wait', n: 1 },
+    { op: 'say', text: decodeLegacyJtwText('6211-7b49-5230-9080-8bf7-4e86') },
+    { op: 'end' },
+  ],
+} as const satisfies Readonly<Record<JtwC4P5Version, readonly Block[]>>;
 
 function blockMatches(actual: Block | undefined, expected: Block): boolean {
   return (
     actual?.op === expected.op &&
     (expected.n === undefined || actual.n === expected.n) &&
     (expected.text === undefined || actual.text === expected.text)
-  )
+  );
 }
 
 function exactScript(actual: readonly Block[] | undefined, expected: readonly Block[]): boolean {
   return (
     actual?.length === expected.length &&
     expected.every((block, index) => blockMatches(actual[index], block))
-  )
+  );
 }
 
 function nameScriptMatches(actual: readonly Block[] | undefined): boolean {
-  return exactScript(actual, JTW_C4_NAME_TARGET) || exactScript(actual, JTW_C4_ENGLISH_NAME_TARGET)
+  return exactScript(actual, JTW_C4_NAME_TARGET) || exactScript(actual, JTW_C4_ENGLISH_NAME_TARGET);
 }
 
 export function jtwC4DualBuildMatches(project: BlocksProject): boolean {
-  if (project.lessonId !== JTW_C4_P4_LESSON_ID || project.pages.length !== 1) return false
-  const page = project.pages[0]
-  const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID)
+  if (project.lessonId !== JTW_C4_P4_LESSON_ID || project.pages.length !== 1) return false;
+  const page = project.pages[0];
+  const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID);
   if (
     page?.id !== JTW_C4_P4_PAGE_ID ||
     !actor ||
     actor.asset !== JTW_C4_WUKONG_ASSET ||
     actor.scripts.length !== 2
   ) {
-    return false
+    return false;
   }
-  const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
-  const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
-  return nameScriptMatches(name) && exactScript(skill, JTW_C4_SKILL_TARGET)
+  const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks;
+  const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks;
+  return nameScriptMatches(name) && exactScript(skill, JTW_C4_SKILL_TARGET);
 }
 
 export function jtwC4P5Choice(project: BlocksProject): string | null {
-  if (project.lessonId !== JTW_C4_P5_LESSON_ID || project.pages.length !== 1) return null
-  const page = project.pages[0]
-  const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID)
+  if (project.lessonId !== JTW_C4_P5_LESSON_ID || project.pages.length !== 1) return null;
+  const page = project.pages[0];
+  const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID);
   if (
     page?.id !== JTW_C4_P5_PAGE_ID ||
     !actor ||
     actor.asset !== JTW_C4_WUKONG_ASSET ||
     actor.scripts.length !== 2
-  ) return null
-  const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
-  const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
-  if (!nameScriptMatches(name)) return null
-  return Object.entries(JTW_C4_P5_SKILL_TARGETS)
-    .find(([, target]) => exactScript(skill, target))?.[0] ?? null
+  )
+    return null;
+  const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks;
+  const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks;
+  if (!nameScriptMatches(name)) return null;
+  return (
+    Object.entries(JTW_C4_P5_SKILL_TARGETS).find(
+      ([version, target]) =>
+        exactScript(skill, target) ||
+        exactScript(skill, JTW_C4_LEGACY_P5_SKILL_TARGETS[version as JtwC4P5Version]),
+    )?.[0] ?? null
+  );
 }
 
 export function jtwC4P5ChoiceMatches(project: BlocksProject): boolean {
-  return jtwC4P5Choice(project) !== null
+  return jtwC4P5Choice(project) !== null;
 }
 
 export function jtwC4P6Version(project: BlocksProject): JtwC4P5Version | null {
-  if (project.lessonId !== JTW_C4_P6_LESSON_ID || project.pages.length !== 1) return null
-  const page = project.pages[0]
-  const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID)
+  if (project.lessonId !== JTW_C4_P6_LESSON_ID || project.pages.length !== 1) return null;
+  const page = project.pages[0];
+  const actor = page?.characters.find((character) => character.id === JTW_C4_WUKONG_ID);
   if (
     page?.id !== JTW_C4_P6_PAGE_ID ||
     !actor ||
     actor.asset !== JTW_C4_WUKONG_ASSET ||
     actor.scripts.length !== 2
   )
-    return null
-  const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks
-  const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks
-  if (!nameScriptMatches(name)) return null
+    return null;
+  const name = actor.scripts.find((script) => script.id === JTW_C4_NAME_SCRIPT_ID)?.blocks;
+  const skill = actor.scripts.find((script) => script.id === JTW_C4_SKILL_SCRIPT_ID)?.blocks;
+  if (!nameScriptMatches(name)) return null;
   return (
     (Object.entries(JTW_C4_P5_SKILL_TARGETS) as [JtwC4P5Version, readonly Block[]][]).find(
       ([version, target]) =>
-        exactScript(skill, target) || exactScript(skill, JTW_C4_P6_ENGLISH_SKILL_TARGETS[version]),
+        exactScript(skill, target) ||
+        exactScript(skill, JTW_C4_P6_ENGLISH_SKILL_TARGETS[version]) ||
+        exactScript(skill, JTW_C4_LEGACY_P5_SKILL_TARGETS[version]),
     )?.[0] ?? null
-  )
+  );
 }
 
 export function jtwC4P6BuildMatches(project: BlocksProject): boolean {
-  return jtwC4P6Version(project) !== null
+  return jtwC4P6Version(project) !== null;
 }
 
 export function jtwC4P7Version(project: BlocksProject): JtwC4P5Version | null {
@@ -201,7 +245,8 @@ export function jtwC4P7Version(project: BlocksProject): JtwC4P5Version | null {
   if (!nameScriptMatches(name)) return null;
   return (
     (Object.entries(JTW_C4_P7_SKILL_TARGETS) as [JtwC4P5Version, readonly Block[]][]).find(
-      ([, target]) => exactScript(skill, target),
+      ([version, target]) =>
+        exactScript(skill, target) || exactScript(skill, JTW_C4_LEGACY_P7_SKILL_TARGETS[version]),
     )?.[0] ?? null
   );
 }
@@ -211,10 +256,15 @@ export function jtwC4P7BuildMatches(project: BlocksProject): boolean {
 }
 
 export function jtwC4PlacedBlocks(project: BlocksProject): string[] {
-  const actor = project.pages[0]?.characters.find((character) => character.id === JTW_C4_WUKONG_ID)
-  return actor?.scripts.flatMap((script) =>
-    script.blocks
-      .filter((block) => block.op !== 'when_flag' && block.op !== 'when_tap')
-      .map((block) => `${script.id}:${block.op}${block.n ? `-${block.n}` : ''}${block.text ? `:${block.text}` : ''}`),
-  ) ?? []
+  const actor = project.pages[0]?.characters.find((character) => character.id === JTW_C4_WUKONG_ID);
+  return (
+    actor?.scripts.flatMap((script) =>
+      script.blocks
+        .filter((block) => block.op !== 'when_flag' && block.op !== 'when_tap')
+        .map(
+          (block) =>
+            `${script.id}:${block.op}${block.n ? `-${block.n}` : ''}${block.text ? `:${block.text}` : ''}`,
+        ),
+    ) ?? []
+  );
 }
