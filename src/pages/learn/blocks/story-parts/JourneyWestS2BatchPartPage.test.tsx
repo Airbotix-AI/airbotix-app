@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  JTW_S2_ASSETS,
   JTW_S2_C1_P4_TARGET,
   JTW_S2_C2_P4_TARGET,
   JTW_S2_C2_P5_WUKONG_TARGET,
@@ -64,6 +65,7 @@ function p4Loaded(runCompleted: boolean) {
         background: 'jtw-s2-c1-changan-to-mountain',
         characters: [{
           id: 'xuanzang', name: 'Xuanzang', emoji: '🧑‍🦲',
+          asset: JTW_S2_ASSETS.xuanzang,
           start: { gx: 2, gy: 9, size: 2, rot: 0 },
           scripts: [{ id: 'xuanzang-departure', blocks: JTW_S2_C1_P4_TARGET }],
         }],
@@ -91,11 +93,13 @@ function c2p5Loaded(runCompleted: boolean) {
         characters: [
           {
             id: 'xuanzang', name: 'Xuanzang', emoji: '🧑‍🦲',
+            asset: JTW_S2_ASSETS.xuanzang,
             start: { gx: 2, gy: 9, size: 2, rot: 0 },
             scripts: [{ id: 'xuanzang-approaches-mountain', blocks: JTW_S2_C2_P4_TARGET }],
           },
           {
             id: 'wukong-waiting', name: 'Wukong Waiting', emoji: '🐒',
+            asset: JTW_S2_ASSETS.wukong,
             start: { gx: 12, gy: 8, size: 2, rot: 0, visible: false },
             scripts: [{ id: 'wukong-answers', blocks: JTW_S2_C2_P5_WUKONG_TARGET }],
           },

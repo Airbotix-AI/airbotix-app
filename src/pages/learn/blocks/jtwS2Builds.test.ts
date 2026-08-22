@@ -79,9 +79,9 @@ function c3Project(lessonId: string, distance = 4, stoneGx = 6, horse: Block[] =
     pages: [{
       id: `${lessonId}-page`, background: 'jtw-s2-c3-eagle-sorrow-stream',
       characters: [
-        { id: 'wukong-scout', name: 'Wukong', emoji: '🐒', start: { gx: 2, gy: 8, size: 2, rot: 0 }, scripts: [{ id: 'wukong-stream-route', blocks: JTW_S2_C3_P4_WUKONG_TARGET.map((block, index) => index === 1 ? { ...block, n: distance } : { ...block }) }] },
-        { id: 'water-stone', name: 'Stone', emoji: '🪨', start: { gx: stoneGx, gy: 8, size: 2, rot: 0 }, scripts: [{ id: 'stone-ripple', blocks: JTW_S2_C3_P4_STONE_TARGET }] },
-        { id: 'white-dragon-horse', name: 'Horse', emoji: '🐴', start: { gx: 8, gy: 8, size: 2, rot: 0, reach: 3, visible: false }, scripts: [{ id: 'horse-welcome', blocks: horse.map((block) => ({ ...block })) }] },
+        { id: 'wukong-scout', name: 'Wukong', emoji: '🐒', asset: '/story-blocks/journey-to-the-west/characters/wukong-traveller/neutral-v01.png', start: { gx: 2, gy: 8, size: 2, rot: 0 }, scripts: [{ id: 'wukong-stream-route', blocks: JTW_S2_C3_P4_WUKONG_TARGET.map((block, index) => index === 1 ? { ...block, n: distance } : { ...block }) }] },
+        { id: 'water-stone', name: 'Stone', emoji: '🪨', asset: '/story-blocks/journey-to-the-west/props/water-ripple-stone/neutral-v01.png', start: { gx: stoneGx, gy: 8, size: 2, rot: 0 }, scripts: [{ id: 'stone-ripple', blocks: JTW_S2_C3_P4_STONE_TARGET }] },
+        { id: 'white-dragon-horse', name: 'Horse', emoji: '🐴', asset: '/story-blocks/journey-to-the-west/characters/white-dragon-horse/neutral-v01.png', start: { gx: 8, gy: 8, size: 2, rot: 0, reach: 3, visible: false }, scripts: [{ id: 'horse-welcome', blocks: horse.map((block) => ({ ...block })) }] },
       ],
     }],
   }
@@ -102,11 +102,14 @@ function project(lessonId: string, blocks: Block[], args?: { second?: Block[]; n
       id: pageId,
       background: chapter2 ? 'jtw-s2-c2-five-elements-mountain' : 'jtw-s2-c1-changan-to-mountain',
       characters: [
-        { id: 'xuanzang', name: 'Xuanzang', emoji: '🧑‍🦲', start: { gx: 2, gy: 9, size: 2, rot: 0 }, scripts: [{ id: scriptId, blocks: blocks.map((block) => ({ ...block })) }] },
+        { id: 'xuanzang', name: 'Xuanzang', emoji: '🧑‍🦲', asset: '/story-blocks/journey-to-the-west/characters/xuanzang/neutral-v01.png', start: { gx: 2, gy: 9, size: 2, rot: 0 }, scripts: [{ id: scriptId, blocks: blocks.map((block) => ({ ...block })) }] },
         ...(args?.second ? [{
           id: chapter2 ? 'wukong-waiting' : 'five-elements-sign',
           name: chapter2 ? 'Wukong Waiting' : 'Five Elements Mountain Sign',
           emoji: chapter2 ? '🐒' : '🪧',
+          asset: chapter2
+            ? '/story-blocks/journey-to-the-west/characters/wukong-traveller/neutral-v01.png'
+            : '/story-blocks/journey-to-the-west/props/route-marker/neutral-v01.png',
           start: {
             gx: chapter2 ? 12 : 10, gy: 8, size: 2, rot: 0,
             ...(!chapter2 || lessonId === 'jtw-s2-c2-p5' || lessonId === 'jtw-s2-c2-p6' ? { visible: false } : {}),
@@ -120,7 +123,10 @@ function project(lessonId: string, blocks: Block[], args?: { second?: Block[]; n
 
 describe('Journey West S2 Studio mission contracts', () => {
   it('accepts the exact departure and rejects a route with Wait in the wrong place', () => {
-    expect(jtwS2BuildMatches(project('jtw-s2-c1-p4', JTW_S2_C1_P4_TARGET), 'jtw-s2-c1-p4')).toBe(true)
+    const valid = project('jtw-s2-c1-p4', JTW_S2_C1_P4_TARGET)
+    expect(jtwS2BuildMatches(valid, 'jtw-s2-c1-p4')).toBe(true)
+    valid.pages[0].characters[0].asset = '/wrong-asset.png'
+    expect(jtwS2BuildMatches(valid, 'jtw-s2-c1-p4')).toBe(false)
     const wrong = [...JTW_S2_C1_P4_TARGET]
     ;[wrong[3], wrong[4]] = [wrong[4], wrong[3]]
     expect(jtwS2BuildMatches(project('jtw-s2-c1-p4', wrong), 'jtw-s2-c1-p4')).toBe(false)
