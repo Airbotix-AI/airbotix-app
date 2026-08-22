@@ -85,7 +85,9 @@ export function KidGrowthPage() {
       <div>
         <div className="eyebrow">Kid</div>
         <h1 className="section-heading">Not found</h1>
-        <Link to="/portal/family" className="btn-pill-secondary mt-6">← Back</Link>
+        <Link to="/portal/family" className="btn-pill-secondary mt-6">
+          ← Back
+        </Link>
       </div>
     );
   }
@@ -122,17 +124,26 @@ export function KidGrowthPage() {
 
   return (
     <div>
-      <Link to="/portal/family" className="btn-pill-ghost mb-4 -ml-3">← Family</Link>
+      <Link to="/portal/family" className="btn-pill-ghost mb-4 -ml-3">
+        ← Family
+      </Link>
 
       <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row">
         <div className="flex items-center gap-4">
           <KidAvatar avatarId={kid.data.avatar_id} nickname={name} size="lg" />
           <div>
-          <div className="eyebrow eyebrow-bubblegum">Growth</div>
-          <h1 className="section-heading">{name}&apos;s growth</h1>
+            <div className="eyebrow eyebrow-bubblegum">Growth</div>
+            <h1 className="section-heading">{name}&apos;s growth</h1>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to={`/portal/family/${kidId}/passport`}
+            className="btn-pill-secondary"
+            aria-label={`View ${name}'s Creator Passport`}
+          >
+            Creator Passport
+          </Link>
           <span className={`sticker-${isActive ? 'mint' : 'sunshine'}`}>
             {isActive ? 'Active' : 'Paused'}
           </span>
@@ -160,19 +171,25 @@ export function KidGrowthPage() {
           </Link>
         </div>
       </div>
-      {openError && <p className="field-error mb-4" role="alert">{openError}</p>}
+      {openError && (
+        <p className="field-error mb-4" role="alert">
+          {openError}
+        </p>
+      )}
 
       {detail.isLoading ? (
         <p className="lead-text">Loading {name}&apos;s growth…</p>
       ) : summary.isEmpty ? (
         <div className="card-base">
-          <div className="text-[40px] leading-none" aria-hidden="true">🌱</div>
+          <div className="text-[40px] leading-none" aria-hidden="true">
+            🌱
+          </div>
           <h2 className="section-heading mt-3" style={{ fontSize: '24px' }}>
             {name}&apos;s journey starts here
           </h2>
           <p className="lead-text mt-2" style={{ fontSize: '15px' }}>
-            Once {name} signs in and makes their first picture, song, or story, you&apos;ll see their
-            creations and progress grow right here.
+            Once {name} signs in and makes their first picture, song, or story, you&apos;ll see
+            their creations and progress grow right here.
           </p>
 
           {familyId && family.data?.code && (
@@ -190,7 +207,9 @@ export function KidGrowthPage() {
                 >
                   {family.data.code}
                 </span>
-                <button onClick={copyCode} className="btn-pill-secondary">Copy</button>
+                <button onClick={copyCode} className="btn-pill-secondary">
+                  Copy
+                </button>
                 {copied && (
                   <span aria-live="polite" className="text-[12px] font-semibold text-brand-mint">
                     Copied ✓
@@ -206,9 +225,15 @@ export function KidGrowthPage() {
           <div className="mt-6 border-t border-ink/10 pt-5">
             <div className="eyebrow eyebrow-sky mb-2">What you&apos;ll see as {name} grows</div>
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-[14px] font-medium text-slate2">
-              <span><span aria-hidden="true">🎨 </span>creations made</span>
-              <span><span aria-hidden="true">🔥 </span>day streaks</span>
-              <span><span aria-hidden="true">✨ </span>favourite studios</span>
+              <span>
+                <span aria-hidden="true">🎨 </span>creations made
+              </span>
+              <span>
+                <span aria-hidden="true">🔥 </span>day streaks
+              </span>
+              <span>
+                <span aria-hidden="true">✨ </span>favourite studios
+              </span>
             </div>
           </div>
         </div>
@@ -277,7 +302,10 @@ export function KidGrowthPage() {
         <Link to={`/portal/usage/${kidId}`} className="text-[14px] font-semibold text-brand-coral">
           <span aria-hidden="true">⭐ </span>Want the detailed usage &amp; spend? View AI usage →
         </Link>
-        <Link to={`/portal/family/${kidId}/settings`} className="text-[14px] font-semibold text-ink-soft">
+        <Link
+          to={`/portal/family/${kidId}/settings`}
+          className="text-[14px] font-semibold text-ink-soft"
+        >
           <span aria-hidden="true">⚙ </span>Profile, PIN &amp; safety settings →
         </Link>
       </div>

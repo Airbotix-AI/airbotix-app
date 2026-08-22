@@ -1,5 +1,41 @@
 # Changelog
 
+## 2026-08-22 (changed: collectible Creator Passport stamp artwork)
+
+### Changed
+
+- Replaced the generic line icons in the five child capability stamps with distinct, scalable
+  illustrated badges for ideation, prompt direction, debugging, game testing and presenting.
+  Earned stamps now carry a bold verification tick while locked stamps retain a quieter preview.
+
+## 2026-08-22 (changed: Creator Passport visual hierarchy)
+
+### Changed
+
+- Reworked the child `/learn/passport` experience around a clearer passport journey: a compact
+  progress-led cover, a responsive two-column stamp wall on phones, a denser Showcase tracker and
+  an evidence journal grouped by real project. Repeated project evidence now reads as one coherent
+  project story while preserving every capability check, child reflection, teacher note, status,
+  revocation state and deep-link target.
+
+## 2026-08-22 (fixed: calmer, correctly branded Learn shell)
+
+### Fixed
+
+- Expanded ordinary `/learn` pages and their header to a centred 1440px canvas, replaced the
+  placeholder lettermark with the real Airbotix logo, and reorganised the crowded navigation
+  into six primary destinations plus a compact `More` menu. Tablet and phone widths now use a
+  clear navigation grid, while immersive studio routes retain their intentional full-bleed
+  layout.
+
+## 2026-08-22 (changed: cleaner Family kid-profile cards)
+
+### Changed
+
+- Reworked populated kid-profile cards into calmer parent-facing records: a tinted identity header,
+  compact status, contained growth snapshot, one clear kid-page action and three lightweight tools
+  replace the previous heavy coloured shadow and four competing pill buttons.
+
 ## 2026-08-20 (fixed: challenge dates render in the competition timezone)
 
 ### Fixed
@@ -69,6 +105,30 @@
   still on screen.
 - Portal only. Kids Learn carries no referral or reward surface at all (D-AFF-11), and a grep over
   `src/pages/learn/` for these symbols returns nothing.
+
+## 2026-08-20 (added: child and parent Creator Passport)
+
+### Added
+
+- Added `/learn/passport` for a child to review five capability stamps, open the evidence Project,
+  see supportive teacher feedback and submit a Workshop-bound reflection for review.
+- Added `/portal/family/:kidId/passport` as a family-scoped read-only view reached from the child's
+  growth page. Showcase readiness explicitly remains an invitation eligibility signal, not
+  registration or media consent.
+- Active stamps require a non-revoked award; revoked history stays visible and is labelled rather
+  than silently disappearing. Component tests cover verified evidence, revocation and the consent
+  boundary.
+
+### Changed
+
+- Redesigned the shared child and parent Passport as a collectible creator artefact: a dark
+  passport-style cover, five distinct illustrated capability seals, earned and next-quest states,
+  evidence-linked stamps, and a four-part Showcase trail. The brighter surface still keeps the
+  learning proof one tap away, never treats attendance as achievement, and explicitly says that
+  Showcase eligibility is not automatic registration.
+- Added an original image-model-produced open-passport hero illustration with five tactile skill
+  emblems, delivered as an optimised 1200×800 WebP rather than making children download the
+  2.1 MB production source.
 
 ## 2026-08-18 (fixed: the challenge start buttons vanished the moment the window opened)
 

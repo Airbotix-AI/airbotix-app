@@ -39,6 +39,7 @@ import { GuidesPage } from '@/pages/portal/guides/GuidesPage';
 import { FamilyDetailPage } from '@/pages/portal/FamilyDetailPage';
 import { FamilyListPage } from '@/pages/portal/FamilyListPage';
 import { KidGrowthPage } from '@/pages/portal/KidGrowthPage';
+import { KidCreatorPassportPage } from '@/pages/portal/KidCreatorPassportPage';
 import { KidImagesPage } from '@/pages/portal/KidImagesPage';
 import { FamilyNewPage } from '@/pages/portal/FamilyNewPage';
 import { LoginPage as PortalLoginPage } from '@/pages/portal/LoginPage';
@@ -86,6 +87,7 @@ import { AcademyMockExamPage } from '@/pages/learn/academy/AcademyMockExamPage';
 import { MyExamPrepPage } from '@/pages/learn/academy/MyExamPrepPage';
 import { HscPlanPage } from '@/pages/learn/HscPlanPage';
 import { ChallengeSubmitPage } from '@/pages/learn/challenge/ChallengeSubmitPage';
+import { CreatorPassportPage } from '@/pages/learn/CreatorPassportPage';
 // Teacher class-session surface (learn-game-studio-prd §17.12 J12). Teacher is a
 // `user` principal (role=teacher); the full console lives in a sibling repo —
 // this is the in-app class dashboard + live view + assessment FE.
@@ -196,6 +198,7 @@ export const router = createBrowserRouter([
       { path: 'family', element: <FamilyListPage /> },
       { path: 'family/new', element: <FamilyNewPage /> },
       { path: 'family/:kidId', element: <KidGrowthPage /> },
+      { path: 'family/:kidId/passport', element: <KidCreatorPassportPage /> },
       // Art Studio picture gallery — parent oversight (image-studio-prd.md D-IS-5).
       { path: 'family/:kidId/images', element: <KidImagesPage /> },
       { path: 'family/:kidId/settings', element: <FamilyDetailPage /> },
@@ -257,6 +260,7 @@ export const router = createBrowserRouter([
       { path: 'projects', element: <ProjectsListPage /> },
       { path: 'projects/new', element: <ProjectNewPage /> },
       { path: 'projects/:id', element: <ProjectDetailPage /> },
+      { path: 'passport', element: <CreatorPassportPage /> },
       // Internal route id stays `/learn/missions` (D-LP-2); the catalog & detail
       // pages render the pack's Lessons (课节) → each Lesson's Mission tasks.
       // While the catalog is hidden (features.ts SHOW_LESSONS_CATALOG) the

@@ -40,8 +40,8 @@ function mount(path: string) {
   );
 }
 
-/** The centered reading column every ordinary Learn page sits in. */
-const readingColumn = (c: HTMLElement) => c.querySelector('.max-w-5xl');
+/** The centered Learn canvas every ordinary page sits in. */
+const readingColumn = (c: HTMLElement) => c.querySelector('[data-testid="learn-content-frame"]');
 
 afterEach(() => {
   mePrincipal = undefined;
@@ -62,6 +62,7 @@ describe('LearnLayout', () => {
     const { container, getByTestId } = mount('/learn/projects');
     expect(getByTestId('learn-nav')).toBeInTheDocument();
     expect(readingColumn(container)).toBeTruthy();
+    expect(readingColumn(container)).toHaveClass('mx-auto', 'w-full', 'max-w-[1440px]');
   });
 
   // The bug this locks: /learn/music was listed as immersive but not as fluid, so

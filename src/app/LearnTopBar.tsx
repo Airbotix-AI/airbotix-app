@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import clsx from 'clsx';
-import { Menu, X } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { ChevronDown, Menu, X } from 'lucide-react';
+import { matchPath, NavLink, useLocation } from 'react-router-dom';
 
 import { useLogout, useMe } from '@/auth/useAuth';
 import { KidAvatar } from '@/components/KidAvatar';
@@ -21,12 +21,13 @@ const FLUID_ROUTES = ['/learn/workspace', '/learn/code', '/learn/playground'];
 // here and would otherwise fail the deploy's --max-warnings 0 lint.)
 // eslint-disable-next-line react-refresh/only-export-components
 export const NAV_ITEMS = [
-  { to: '/learn/workspace', label: '✨ AI Studio' },
   { to: '/learn', label: 'Home', end: true },
-  { to: '/learn/projects', label: 'Projects' },
   { to: '/learn/create', label: 'Create' },
+  { to: '/learn/projects', label: 'Projects' },
+  { to: '/learn/classroom', label: 'Classes' },
+  { to: '/learn/passport', label: 'Passport' },
+  { to: '/learn/workspace', label: 'AI Studio' },
   { to: '/learn/missions', label: 'Lessons' },
-  { to: '/learn/classroom', label: 'My Classes' },
   { to: '/learn/hsc', label: 'HSC Plan' },
 ];
 
@@ -37,12 +38,30 @@ export const VISIBLE_NAV_ITEMS = NAV_ITEMS.filter(
   (item) => SHOW_LESSONS_CATALOG || item.to !== '/learn/missions',
 );
 
+const PRIMARY_NAV_PATHS = new Set([
+  '/learn',
+  '/learn/workspace',
+  '/learn/create',
+  '/learn/projects',
+  '/learn/classroom',
+  '/learn/passport',
+]);
+
+export const PRIMARY_NAV_ITEMS = VISIBLE_NAV_ITEMS.filter((item) =>
+  PRIMARY_NAV_PATHS.has(item.to),
+);
+
+export const MORE_NAV_ITEMS = VISIBLE_NAV_ITEMS.filter(
+  (item) => !PRIMARY_NAV_PATHS.has(item.to),
+);
+
 // Walk-in (unclaimed) workshop kids see ONLY their class + their kid code
 // (auth-system-prd §5.2). Deep working routes (studios/projects launched from
 // the class) stay reachable — this trims the top-level catalog surfaces.
 // eslint-disable-next-line react-refresh/only-export-components
 export const WALK_IN_NAV_ITEMS = [
   { to: '/learn/classroom', label: 'My Classes', end: undefined as boolean | undefined },
+  { to: '/learn/passport', label: 'Passport', end: undefined as boolean | undefined },
   { to: '/learn/profile', label: '🎟️ My code', end: undefined as boolean | undefined },
 ];
 
@@ -56,9 +75,19 @@ export function LearnTopBar() {
   const { pathname } = useLocation();
   const fluid = FLUID_ROUTES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
-  // The inline nav collapses below `md` (portrait tablet / phone) into this menu.
+  // The inline nav collapses below `xl` so tablets never inherit a squeezed row.
   const [menuOpen, setMenuOpen] = useState(false);
-  useEffect(() => setMenuOpen(false), [pathname]); // close on navigate
+  const [moreOpen, setMoreOpen] = useState(false);
+  useEffect(() => {
+    setMenuOpen(false);
+    setMoreOpen(false);
+  }, [pathname]);
+
+  const primaryItems = isWalkIn ? navItems : PRIMARY_NAV_ITEMS;
+  const moreItems = isWalkIn ? [] : MORE_NAV_ITEMS;
+  const moreRouteActive = moreItems.some((item) =>
+    matchPath({ path: item.to, end: item.end ?? false }, pathname),
+  );
 
   // On the game/blocks studios the nav SYNCS with the studio theme: we set
   // `data-theme` on the header so the `pg-*` tokens flip (light ⇄ dark) to match
@@ -75,39 +104,94 @@ export function LearnTopBar() {
     <header
       data-theme={themed ? themeValue : undefined}
       className={clsx(
-        'sticky top-0 z-20 border-b backdrop-blur px-6 py-4 md:px-10',
-        themed ? 'border-pg-border bg-pg-surface/95 text-pg-text' : 'border-hairline bg-canvas-pure/95',
+        'sticky top-0 z-20 border-b px-5 py-3 backdrop-blur sm:px-7 xl:px-10',
+        themed
+          ? 'border-pg-border bg-pg-surface/95 text-pg-text'
+          : 'border-hairline bg-canvas-pure/95',
       )}
     >
-      <div className={clsx('flex items-center justify-between', !fluid && 'mx-auto max-w-5xl')}>
-        <div className="flex items-center gap-8">
-          <NavLink to="/learn" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-grad-bubblegum shadow-brand-bubblegum">
-              <span className="text-[18px] font-extrabold text-white">A</span>
-            </div>
-            <div>
-              <div
-                className={clsx(
-                  'text-[10px] font-bold uppercase tracking-[0.10em] leading-none',
-                  themed ? 'text-pg-text-muted' : 'text-slate2',
-                )}
-              >
-                Airbotix
-              </div>
-              <div
-                className={clsx('text-[15px] font-bold leading-tight', themed ? 'text-pg-text' : 'text-ink')}
-              >
-                Learn
-              </div>
-            </div>
+      <div
+        className={clsx(
+          'mx-auto flex w-full items-center justify-between gap-4',
+          fluid ? 'max-w-none' : 'max-w-[1440px]',
+        )}
+      >
+        <div className="flex min-w-0 items-center gap-5 2xl:gap-8">
+          <NavLink
+            to="/learn"
+            aria-label="Airbotix Learn home"
+            className="flex shrink-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-bubblegum"
+          >
+            <img
+              src="/logo-black-horizontal.png"
+              alt="Airbotix"
+              className={clsx('h-8 w-auto sm:h-9', themed && 'brightness-0 invert')}
+            />
+            <span
+              className={clsx(
+                'hidden border-l pl-3 text-[11px] font-bold uppercase tracking-[0.12em] sm:block',
+                themed ? 'border-pg-border text-pg-text-muted' : 'border-hairline text-slate2',
+              )}
+            >
+              Kids Studio
+            </span>
           </NavLink>
-          {/* inline nav (≥ md) */}
-          <nav className="hidden gap-2 md:flex">
-            {navItems.map((item) => (
+          <nav aria-label="Learn primary" className="hidden items-center gap-1 xl:flex">
+            {primaryItems.map((item) => (
               <TopLink key={item.to} to={item.to} end={item.end} themed={themed}>
                 {item.label}
               </TopLink>
             ))}
+            {moreItems.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  aria-expanded={moreOpen}
+                  aria-controls="learn-more-navigation"
+                  onClick={() => setMoreOpen((open) => !open)}
+                  className={clsx(
+                    'flex items-center gap-1 rounded-full px-3 py-2 text-[14px] font-semibold transition-colors',
+                    themed
+                      ? moreOpen || moreRouteActive
+                        ? 'bg-brand-bubblegum/20 text-pg-text'
+                        : 'text-pg-text-dim hover:bg-pg-text/10 hover:text-pg-text'
+                      : moreOpen || moreRouteActive
+                        ? 'bg-wash-bubblegum text-ink'
+                        : 'text-ink-soft hover:bg-surface hover:text-ink',
+                  )}
+                >
+                  More
+                  <ChevronDown
+                    aria-hidden="true"
+                    className={clsx('h-4 w-4 transition-transform', moreOpen && 'rotate-180')}
+                  />
+                </button>
+                {moreOpen && (
+                  <nav
+                    id="learn-more-navigation"
+                    aria-label="More Learn navigation"
+                    className={clsx(
+                      'absolute left-0 top-[calc(100%+0.65rem)] z-40 min-w-44 space-y-1 rounded-2xl border p-2 shadow-card-soft',
+                      themed
+                        ? 'border-pg-border bg-pg-surface text-pg-text'
+                        : 'border-hairline bg-canvas-pure text-ink',
+                    )}
+                  >
+                    {moreItems.map((item) => (
+                      <TopLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.end}
+                        themed={themed}
+                        block
+                      >
+                        {item.label}
+                      </TopLink>
+                    ))}
+                  </nav>
+                )}
+              </div>
+            )}
           </nav>
         </div>
         <div className="flex items-center gap-3">
@@ -116,7 +200,9 @@ export function LearnTopBar() {
               <KidAvatar avatarId={avatarId} nickname={nickname} size="sm" />
               <div className={clsx('text-[14px]', themed ? 'text-pg-text-dim' : 'text-ink-soft')}>
                 I'm{' '}
-                <span className={clsx('font-bold', themed ? 'text-pg-text' : 'text-ink')}>{nickname}</span>
+                <span className={clsx('font-bold', themed ? 'text-pg-text' : 'text-ink')}>
+                  {nickname}
+                </span>
               </div>
             </div>
           )}
@@ -130,14 +216,14 @@ export function LearnTopBar() {
           >
             Sign out
           </button>
-          {/* hamburger (< md) — opens the collapsed nav */}
+          {/* hamburger (< xl) — avoids squeezing kid navigation on tablets. */}
           <button
             type="button"
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((o) => !o)}
             className={clsx(
-              'grid h-10 w-10 place-items-center rounded-xl border md:hidden',
+              'grid h-10 w-10 place-items-center rounded-xl border xl:hidden',
               themed
                 ? 'border-pg-border text-pg-text hover:bg-pg-text/10'
                 : 'border-hairline text-ink hover:bg-surface',
@@ -148,12 +234,13 @@ export function LearnTopBar() {
         </div>
       </div>
 
-      {/* collapsed nav menu (< md) */}
+      {/* collapsed nav menu (< xl) */}
       {menuOpen && (
         <nav
+          aria-label="Learn mobile"
           className={clsx(
-            'mt-3 flex flex-col gap-1.5 border-t pt-3 md:hidden',
-            !fluid && 'mx-auto max-w-5xl',
+            'mx-auto mt-3 grid w-full grid-cols-2 gap-1.5 border-t pt-3 sm:grid-cols-3 xl:hidden',
+            !fluid && 'max-w-[1440px]',
             themed ? 'border-pg-border' : 'border-hairline',
           )}
         >
