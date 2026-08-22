@@ -10,6 +10,9 @@
 
 ## 2026-08-22 (added: privacy-minimal Parent and Kids app-open analytics)
 
+- Kept the Journey West C1-P6 mission validator aligned with the backend starter's canonical
+  `Hello, I just came here.` dialogue so the pre-deploy journey can complete after a real repair.
+
 ### Added
 
 - Added privacy-minimal first-party app-open tracking for the authenticated Parent Portal and Kids Learn shells. The server derives identity and surface from the session; the client sends no route or profile data.

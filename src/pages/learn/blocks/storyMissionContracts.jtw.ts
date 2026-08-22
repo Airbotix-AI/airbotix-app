@@ -432,7 +432,7 @@ export const JTW_MISSION_CONTRACTS: Record<string, StoryMissionProgramContract> 
       { op: 'play_sound', n: 2 },
       { op: 'show' },
       { op: 'hop', n: 1 },
-      { op: 'say', text: '你好，我刚刚来到这里。' },
+      { op: 'say', text: 'Hello, I just came here.' },
       { op: 'end' },
     ],
   },

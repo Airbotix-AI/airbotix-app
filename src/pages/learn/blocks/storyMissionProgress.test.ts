@@ -1988,7 +1988,7 @@ describe('Journey to the West C1-P6 order-debug contract', () => {
   const prefix = [{ op: 'when_flag' }, { op: 'hide' }, { op: 'play_sound', n: 2 }];
   const show = { op: 'show' };
   const hop = { op: 'hop', n: 1 };
-  const say = { op: 'say', text: '你好，我刚刚来到这里。' };
+  const say = { op: 'say', text: 'Hello, I just came here.' };
   const end = { op: 'end' };
 
   it('accepts ONLY the repaired order Show → Hop → Say', () => {
