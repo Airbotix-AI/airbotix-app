@@ -60,10 +60,12 @@ describe('CreatorPassportView', () => {
 
     expect(screen.getByRole('heading', { name: /Mia's Creator Passport/i })).toBeInTheDocument();
     expect(
-      screen.getByRole('img', { name: /open illustrated passport displaying five/i }),
-    ).toHaveAttribute('src', '/media/creator-passport/creator-passport-hero-v1.webp');
-    expect(screen.getAllByText('Idea Builder')).toHaveLength(2);
-    expect(screen.getAllByTestId('creator-passport-stamp')).toHaveLength(5);
+      screen.getByRole('img', { name: /open illustrated passport displaying fifteen/i }),
+    ).toHaveAttribute('src', '/media/creator-passport/creator-passport-hero-v2.webp');
+    expect(screen.getByText('Idea Spark')).toBeInTheDocument();
+    expect(screen.getAllByText('Idea Builder')).toHaveLength(1);
+    expect(screen.getAllByTestId('creator-passport-stamp')).toHaveLength(15);
+    expect(screen.getAllByText('1/15')).toHaveLength(2);
     expect(screen.queryByText('STAMP 01')).not.toBeInTheDocument();
     expect(
       screen
@@ -71,16 +73,26 @@ describe('CreatorPassportView', () => {
         .map((art) => art.getAttribute('data-stamp-art')),
     ).toEqual([
       'idea_builder',
+      'idea_builder',
+      'idea_builder',
+      'prompt_director',
+      'prompt_director',
       'prompt_director',
       'bug_hunter',
+      'bug_hunter',
+      'bug_hunter',
+      'game_tester',
+      'game_tester',
       'game_tester',
       'project_presenter',
+      'project_presenter',
+      'project_presenter',
     ]);
-    expect(screen.getByRole('link', { name: /Idea Builder earned/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Idea Spark collected/i })).toHaveAttribute(
       'href',
       '#passport-evidence-evidence-1',
     );
-    expect(screen.getAllByText('Next quest')).toHaveLength(4);
+    expect(screen.getAllByText('Try next')).toHaveLength(5);
     expect(screen.getByText(/I changed the goal/)).toBeInTheDocument();
     expect(screen.getByText(/Mia explained the change clearly/)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open “Ocean Helper”/ })).toHaveAttribute(
@@ -101,12 +113,12 @@ describe('CreatorPassportView', () => {
       </MemoryRouter>,
     );
     const capabilitySection = screen
-      .getByRole('heading', { name: 'Your capability stamps' })
+      .getByRole('heading', { name: '15 adventures to collect' })
       .closest('section')!;
     const ideaCard = within(capabilitySection)
-      .getByRole('heading', { name: 'Idea Builder' })
+      .getByRole('heading', { name: 'Idea Spark' })
       .closest('article');
-    expect(ideaCard).toHaveTextContent('Next quest');
+    expect(ideaCard).toHaveTextContent('Try next');
     expect(screen.getByText('Stamp revoked')).toBeInTheDocument();
   });
 
@@ -140,6 +152,40 @@ describe('CreatorPassportView', () => {
     expect(screen.getByText('2 skills')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Open “Ocean Helper”' })).toHaveLength(1);
     expect(screen.getByText('2 checks · 1 project')).toBeInTheDocument();
+  });
+
+  it('unlocks the next child-friendly chapter only after another verified award', () => {
+    const data = passport();
+    data.evidence.push({
+      ...data.evidence[0],
+      id: 'evidence-2',
+      project: { id: 'project-2', title: 'Moon Garden', kind: 'game' },
+      child_reflection: {
+        format: 'text',
+        text: 'I made a second world with a new goal.',
+        entered_by: 'kid',
+      },
+      award: { id: 'award-2', awarded_at: '2026-08-21T02:00:00.000Z', revoked_at: null },
+    });
+
+    render(
+      <MemoryRouter>
+        <CreatorPassportView passport={data} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('link', { name: /Idea Spark collected/i })).toHaveAttribute(
+      'href',
+      '#passport-evidence-evidence-1',
+    );
+    expect(screen.getByRole('link', { name: /World Maker collected/i })).toHaveAttribute(
+      'href',
+      '#passport-evidence-evidence-2',
+    );
+    expect(screen.getAllByText('2/15')).toHaveLength(2);
+    expect(screen.getByRole('heading', { name: 'Big Inventor' }).closest('article')).toHaveTextContent(
+      'Try next',
+    );
   });
 
   it('states that Showcase eligibility still needs parent confirmation and media permission', () => {

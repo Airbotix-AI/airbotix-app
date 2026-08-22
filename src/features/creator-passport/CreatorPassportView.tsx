@@ -9,6 +9,11 @@ import { Link } from 'react-router-dom';
 
 import type { CreatorCapabilityCode, CreatorPassport, PassportEvidence } from './creatorPassport';
 import { CAPABILITY_COPY } from './creatorPassport';
+import {
+  CAPABILITY_STAMP_TRAILS,
+  CAPABILITY_TRAIL_LABELS,
+  PASSPORT_STAMP_COUNT,
+} from './creatorPassportStampBook';
 import { CreatorPassportCover } from './CreatorPassportCover';
 import { CreatorPassportShowcase } from './CreatorPassportShowcase';
 import { CreatorPassportStamp } from './CreatorPassportStamp';
@@ -29,12 +34,21 @@ export function CreatorPassportView({
   projectHref?: (projectId: string) => string;
 }) {
   const capabilityCodes = Object.keys(CAPABILITY_COPY) as CreatorCapabilityCode[];
-  const verifiedEvidence = new Map<CreatorCapabilityCode, PassportEvidence>();
+  const verifiedEvidence = new Map<CreatorCapabilityCode, PassportEvidence[]>();
   passport.evidence.forEach((item) => {
     if (item.status === 'verified' && item.award && !item.award.revoked_at) {
-      verifiedEvidence.set(item.definition.code, item);
+      const items = verifiedEvidence.get(item.definition.code) ?? [];
+      items.push(item);
+      verifiedEvidence.set(item.definition.code, items);
     }
   });
+  verifiedEvidence.forEach((items) => {
+    items.sort((first, second) => first.award!.awarded_at.localeCompare(second.award!.awarded_at));
+  });
+  const collectedStampCount = Array.from(verifiedEvidence.values()).reduce(
+    (total, items) => total + Math.min(items.length, 3),
+    0,
+  );
   const evidenceByProject = Array.from(
     passport.evidence
       .reduce((groups, item) => {
@@ -50,26 +64,74 @@ export function CreatorPassportView({
     <div className="space-y-8 sm:space-y-10" data-testid="creator-passport-view">
       <CreatorPassportCover
         nickname={passport.kid.nickname}
-        verifiedCount={verifiedEvidence.size}
+        verifiedCapabilityCount={verifiedEvidence.size}
+        collectedStampCount={collectedStampCount}
       />
 
       <section
         aria-labelledby="capability-heading"
         className="rounded-[28px] border border-hairline bg-canvas-pure p-4 shadow-card-soft sm:p-6 lg:rounded-[32px]"
       >
-        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <h2 id="capability-heading" className="section-heading">
-            Your capability stamps
-          </h2>
-          <p className="text-[12px] font-semibold text-ink-soft sm:text-right">
-            Earned with project evidence — never attendance alone.
-          </p>
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <p className="font-handwritten text-xl font-bold text-brand-bubblegum">My stamp book</p>
+            <h2 id="capability-heading" className="section-heading">
+              15 adventures to collect
+            </h2>
+            <p className="mt-1 text-[11px] font-semibold text-ink-soft sm:text-[12px]">
+              Make it. Explain it. Get it checked. Then the stamp is yours.
+            </p>
+          </div>
+          <div className="shrink-0 rounded-2xl bg-ink px-3 py-2 text-center text-canvas">
+            <div className="text-lg font-black leading-none text-brand-sunshine">
+              {collectedStampCount}/{PASSPORT_STAMP_COUNT}
+            </div>
+            <div className="mt-1 text-[8px] font-extrabold uppercase tracking-[0.1em]">
+              collected
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5">
-          {capabilityCodes.map((code) => (
-            <CreatorPassportStamp key={code} code={code} evidence={verifiedEvidence.get(code)} />
-          ))}
+        <div className="grid gap-3 lg:grid-cols-5" data-testid="passport-stamp-book">
+          {capabilityCodes.map((code) => {
+            const visual = CAPABILITY_VISUALS[code];
+            return (
+              <div
+                key={code}
+                role="group"
+                aria-label={CAPABILITY_TRAIL_LABELS[code]}
+                className="rounded-[22px] bg-surface p-2.5"
+              >
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <p className={`text-[10px] font-extrabold uppercase tracking-[0.08em] ${visual.accentClass}`}>
+                    {CAPABILITY_TRAIL_LABELS[code]}
+                  </p>
+                  <span className="text-[9px] font-bold text-slate2">
+                    {Math.min(verifiedEvidence.get(code)?.length ?? 0, 3)}/3
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
+                  {CAPABILITY_STAMP_TRAILS[code].map((chapter, index) => {
+                    const evidence = verifiedEvidence.get(code)?.[index];
+                    const nextQuest =
+                      !evidence && (verifiedEvidence.get(code)?.length ?? 0) === index;
+                    return (
+                      <CreatorPassportStamp
+                        key={`${code}-${chapter.level}`}
+                        code={code}
+                        chapter={chapter}
+                        evidence={evidence}
+                        nextQuest={nextQuest}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
+        <p className="mt-4 text-center text-[10px] font-bold text-slate2 sm:text-[11px]">
+          Showcase Day rewards different skills. Your stamp book also remembers every time you grow.
+        </p>
       </section>
 
       <CreatorPassportShowcase passport={passport} />

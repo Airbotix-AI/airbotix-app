@@ -1,4 +1,5 @@
 import type { CreatorCapabilityCode } from './creatorPassport';
+import type { PassportStampLevel } from './creatorPassportStampBook';
 
 const ART_PALETTE: Record<
   CreatorCapabilityCode,
@@ -136,12 +137,14 @@ function CapabilityGlyph({
 export function CreatorPassportStampArt({
   code,
   earned,
+  level = 1,
 }: {
   code: CreatorCapabilityCode;
   earned: boolean;
+  level?: PassportStampLevel;
 }) {
   const palette = ART_PALETTE[code];
-  const gradientId = `passport-stamp-gradient-${code}`;
+  const gradientId = `passport-stamp-gradient-${code}-${level}`;
 
   return (
     <svg
@@ -168,9 +171,28 @@ export function CreatorPassportStampArt({
         </linearGradient>
       </defs>
       <circle cx="80" cy="80" r="68" fill={`url(#${gradientId})`} />
+      {level > 1 && (
+        <circle
+          cx="80"
+          cy="80"
+          r="64"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="3"
+          strokeDasharray={level === 2 ? '3 7' : '8 5'}
+        />
+      )}
       <circle cx="80" cy="80" r="59" fill={palette.light} stroke="#fff" strokeWidth="4" />
       <circle cx="80" cy="80" r="50" fill={palette.main} />
       <CapabilityGlyph code={code} dark={palette.dark} pop={palette.pop} />
+      {level > 1 && (
+        <g fill="#fff" stroke={palette.dark} strokeWidth="2">
+          <path d="m32 119 3 6 7 1-5 5 1 7-6-3-7 3 2-7-5-5 7-1 3-6Z" />
+          {level === 3 && (
+            <path d="m128 119 3 6 7 1-5 5 1 7-6-3-7 3 2-7-5-5 7-1 3-6Z" />
+          )}
+        </g>
+      )}
       {earned && (
         <g transform="translate(112 112)">
           <circle cx="15" cy="15" r="17" fill={palette.dark} stroke="#fff" strokeWidth="4" />

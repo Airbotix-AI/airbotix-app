@@ -2,10 +2,12 @@ import { Check, ShieldCheck, Sparkles } from 'lucide-react';
 
 export function CreatorPassportCover({
   nickname,
-  verifiedCount,
+  verifiedCapabilityCount,
+  collectedStampCount,
 }: {
   nickname: string;
-  verifiedCount: number;
+  verifiedCapabilityCount: number;
+  collectedStampCount: number;
 }) {
   return (
     <section className="relative overflow-hidden rounded-[32px] border-2 border-ink bg-ink px-5 py-6 text-canvas shadow-[6px_6px_0_0_#FFD43B] sm:px-8 sm:py-8 lg:rounded-[40px] lg:px-10 lg:py-10 lg:shadow-[8px_8px_0_0_#FFD43B]">
@@ -35,14 +37,17 @@ export function CreatorPassportCover({
                 Passport progress
               </span>
               <span className="text-sm font-extrabold text-brand-sunshine">
-                {verifiedCount} of 5 earned
+                {collectedStampCount} of 15 collected
               </span>
             </div>
-            <div className="mt-3 grid grid-cols-5 gap-2" aria-hidden="true">
-              {Array.from({ length: 5 }, (_, index) => (
+            <div
+              className="mt-3 grid grid-cols-[repeat(15,minmax(0,1fr))] gap-1"
+              aria-hidden="true"
+            >
+              {Array.from({ length: 15 }, (_, index) => (
                 <span
                   key={index}
-                  className={`h-2 rounded-full ${index < verifiedCount ? 'bg-brand-sunshine' : 'bg-white/15'}`}
+                  className={`h-2 rounded-full ${index < collectedStampCount ? 'bg-brand-sunshine' : 'bg-white/15'}`}
                 />
               ))}
             </div>
@@ -59,10 +64,10 @@ export function CreatorPassportCover({
 
         <div className="relative mx-auto w-full max-w-[560px] lg:max-w-[620px]">
           <img
-            src="/media/creator-passport/creator-passport-hero-v1.webp"
-            alt="Open illustrated passport displaying five colourful creator skill stamps"
-            width={1200}
-            height={800}
+            src="/media/creator-passport/creator-passport-hero-v2.webp"
+            alt="Open illustrated passport displaying fifteen colourful creator stamps across three levels"
+            width={1536}
+            height={1024}
             className="h-auto w-full rounded-[22px] object-contain lg:rounded-[28px]"
             decoding="async"
           />
@@ -70,13 +75,16 @@ export function CreatorPassportCover({
             <div>
               <Check className="mx-auto mb-1" size={22} strokeWidth={3} aria-hidden="true" />
               <div className="text-xl font-extrabold leading-none sm:text-2xl lg:text-3xl">
-                {verifiedCount}/5
+                {collectedStampCount}/15
               </div>
               <div className="mt-1 text-[8px] font-extrabold uppercase tracking-[0.12em] sm:text-[9px]">
-                stamps earned
+                stamps collected
               </div>
             </div>
           </div>
+          <p className="mt-2 text-center text-[10px] font-bold text-canvas/55">
+            {verifiedCapabilityCount}/5 skill trails started
+          </p>
         </div>
       </div>
     </section>

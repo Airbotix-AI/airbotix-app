@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-08-22 (changed: fifteen evidence-backed Creator Passport adventures)
+
+### Changed
+
+- Expanded the child stamp book from five one-off cards into five three-chapter adventure trails.
+  Each of the 15 collectible stamps still requires its own active verified project award, while
+  Showcase eligibility continues to count different capabilities rather than collectible volume.
+- Added a generated open-passport hero showing all 15 progression badges and reorganised the
+  responsive collection so each trail reads as a clear 1 → 2 → 3 journey for a child.
+
 ## 2026-08-22 (changed: simpler Creator Passport stamp collection)
 
 ### Changed
