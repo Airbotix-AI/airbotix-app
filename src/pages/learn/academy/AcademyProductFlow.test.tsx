@@ -66,6 +66,16 @@ afterEach(() => {
 });
 
 describe('Academy sellable product flow', () => {
+  it('uses Tuan Tuan to guide the empty exam-prep state', async () => {
+    api.mockResolvedValue([]);
+    renderAt('/learn/exams', <MyExamPrepPage />, '/learn/exams');
+
+    expect(await screen.findByTestId('academy-empty-character')).toHaveAttribute(
+      'data-character',
+      'tuantuan-thinking',
+    );
+  });
+
   it('shows a kid only the products returned by their entitlement endpoint', async () => {
     api.mockResolvedValue([ENTITLEMENT]);
     renderAt('/learn/exams', <MyExamPrepPage />, '/learn/exams');

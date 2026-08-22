@@ -65,6 +65,15 @@ afterEach(() => {
 });
 
 describe('DashboardPage', () => {
+  it('welcomes the parent with a calm Design System character', () => {
+    renderDashboard();
+
+    expect(screen.getByTestId('parent-dashboard-welcome-character')).toHaveAttribute(
+      'data-character',
+      'tuantuan',
+    );
+  });
+
   it('puts My kids before family stats and every discovery section', () => {
     renderDashboard();
 
@@ -105,6 +114,7 @@ describe('DashboardPage', () => {
 
     expect(creativeSpaces).toHaveTextContent('Story Blocks');
     expect(creativeSpaces).toHaveTextContent('Creative Code Studio');
+    expect(creativeSpaces).toHaveTextContent('Website Studio');
     expect(creativeSpaces).toHaveTextContent('Art Studio');
     expect(creativeSpaces).toHaveTextContent('Music Stage');
     expect(gettingStarted.compareDocumentPosition(quickActions)).toBe(

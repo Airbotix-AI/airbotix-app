@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
+import { KidCharacterSticker } from '@/components/KidCharacterSticker';
 import { listMyAcademyProducts } from './academyApi';
 
 export function MyExamPrepPage() {
@@ -34,6 +35,11 @@ export function MyExamPrepPage() {
       )}
       {!products.isLoading && !products.isError && products.data?.length === 0 && (
         <div className="card-base max-w-2xl text-center" data-testid="academy-empty-products">
+          <KidCharacterSticker
+            character="tuantuan-thinking"
+            className="mx-auto mb-2 w-36"
+            testId="academy-empty-character"
+          />
           <span className="sticker-sunshine">Ask a parent</span>
           <h2 className="section-heading mt-4">No exam prep unlocked yet</h2>
           <p className="lead-text mt-3">

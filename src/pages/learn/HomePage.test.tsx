@@ -61,8 +61,13 @@ afterEach(() => {
 });
 
 describe('Learn home', () => {
-  it('puts all four live studios directly on the first screen', () => {
+  it('puts every live studio directly on the first screen', () => {
     renderHome();
+
+    expect(screen.getByTestId('learn-home-character')).toHaveAttribute(
+      'data-character',
+      'lumi-welcome',
+    );
 
     const expected = [
       ['story-blocks', 'Story Blocks', '/learn/create/blocks'],
@@ -87,6 +92,10 @@ describe('Learn home', () => {
       'href',
       '/learn/playground/new',
     );
+    expect(screen.getByTestId('home-creative-code-character')).toHaveAttribute(
+      'data-character',
+      'airo',
+    );
     // Its card says it builds websites too (D-WEB-11 — one entry, two kinds).
     expect(screen.getByTestId('home-creative-code')).toHaveTextContent(/website/i);
 
@@ -95,14 +104,39 @@ describe('Learn home', () => {
       'href',
       '/learn/playground/new?kind=website',
     );
+    expect(screen.getByTestId('home-website-studio-character')).toHaveAttribute(
+      'data-character',
+      'bix',
+    );
 
     // The Guided-courses card follows the Lessons-catalog switch (features.ts):
     // hidden while the catalog is off, back with the same href when it's on.
     if (SHOW_LESSONS_CATALOG) {
       expect(screen.getByTestId('home-courses')).toHaveAttribute('href', '/learn/missions');
+      expect(screen.getByTestId('home-courses-character')).toHaveAttribute(
+        'data-character',
+        'tuantuan-thinking',
+      );
     } else {
       expect(screen.queryByTestId('home-courses')).not.toBeInTheDocument();
     }
+
+    expect(screen.getByTestId('home-academy-character')).toHaveAttribute(
+      'data-character',
+      'tuantuan',
+    );
+    expect(screen.getByTestId('home-workspace-character')).toHaveAttribute(
+      'data-character',
+      'bix',
+    );
+    expect(screen.getByTestId('home-projects-character')).toHaveAttribute(
+      'data-character',
+      'airo-building',
+    );
+    expect(screen.getByTestId('home-class-wall-character')).toHaveAttribute(
+      'data-character',
+      'lumi-welcome',
+    );
   });
 
   it('uses the canonical Story Blocks name in the studio catalogue', () => {
@@ -125,6 +159,10 @@ describe('Learn home — the challenge tile', () => {
     const tile = await screen.findByTestId('home-my-challenge');
     expect(tile).toHaveAttribute('href', `/learn/challenge/${SLUG}/submit`);
     expect(tile).toHaveTextContent('Creative Code Challenge — Junior');
+    expect(screen.getByTestId('home-challenge-character')).toHaveAttribute(
+      'data-character',
+      'bix-celebrating',
+    );
   });
 
   it('is absent for a child with no entry', async () => {

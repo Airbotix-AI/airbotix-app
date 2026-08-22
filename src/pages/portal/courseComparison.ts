@@ -31,6 +31,12 @@ export interface MarketingCourseCard {
   difficulty: number | null;
   compare_ship: string | null;
   compare_best_for: string | null;
+  planned_offerings?: Array<{
+    city: string;
+    state: string;
+    periodLabel: string;
+    deliveryLabel: string;
+  }>;
 }
 
 export interface Kid {

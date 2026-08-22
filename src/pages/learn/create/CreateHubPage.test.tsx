@@ -26,6 +26,14 @@ function renderHub() {
 
 describe('CreateHubPage coming-soon gating', () => {
   afterEach(cleanup);
+  it('uses the Design System building pose to guide the Create hero', () => {
+    renderHub();
+    expect(screen.getByTestId('create-hub-character')).toHaveAttribute(
+      'data-character',
+      'airo-building',
+    );
+  });
+
   it('marks exactly Voice Booth and Video Studio as coming soon in the registry', () => {
     // Art Studio left this list 2026-07-20 (owner un-pause after the
     // canvas-first rebuild, image-studio-prd D-IS-26).
@@ -47,6 +55,9 @@ describe('CreateHubPage coming-soon gating', () => {
         'href',
         tool.to,
       );
+      expect(screen.getByTestId(`create-${tool.id}-character`)).toHaveAttribute(
+        'data-character',
+      );
     }
 
     const section = screen.getByTestId('coming-soon-studios');
@@ -54,10 +65,22 @@ describe('CreateHubPage coming-soon gating', () => {
       // no link anywhere on the page for a paused tool…
       expect(screen.queryByRole('link', { name: new RegExp(tool.title) })).toBeNull();
       // …but its teaser card sits inside the coming-soon section
-      expect(within(section).getByText(tool.title)).toBeInTheDocument();
+      expect(
+        within(section).getByRole('heading', { name: new RegExp(tool.title) }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId(`coming-soon-${tool.id}-character`)).toHaveAttribute(
+        'data-character',
+      );
     }
     // one "Coming soon" sticker per paused tool (the section eyebrow says it too)
     expect(section.querySelectorAll('.sticker-sunshine').length).toBe(2);
+  });
+
+  it('keeps the cost and studio action as separate readable chips', () => {
+    renderHub();
+    const story = screen.getByTestId('create-story-blocks');
+    expect(within(story).getByText('Free — no stars')).toBeInTheDocument();
+    expect(within(story).getByText('Open studio →')).toBeInTheDocument();
   });
 
   it('places the coming-soon section after the live tool grid', () => {

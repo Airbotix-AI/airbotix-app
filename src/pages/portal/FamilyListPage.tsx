@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Check, Copy, Plus } from 'lucide-react';
+import { ArrowRight, BarChart3, Check, Copy, Plus, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -194,31 +194,74 @@ export function FamilyListPage() {
       ) : kids.data && kids.data.length > 0 ? (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {kids.data.map((kid, i) => {
-            const palette = ['coral', 'bubblegum', 'sunshine', 'sky', 'mint'] as const;
-            const color = palette[i % palette.length];
+            const palette = [
+              { header: 'bg-wash-coral', accent: 'bg-brand-coral' },
+              { header: 'bg-wash-sky', accent: 'bg-brand-sky' },
+              { header: 'bg-wash-mint', accent: 'bg-brand-mint' },
+              { header: 'bg-wash-sunshine', accent: 'bg-brand-sunshine' },
+              { header: 'bg-wash-bubblegum', accent: 'bg-brand-bubblegum' },
+            ] as const;
+            const theme = palette[i % palette.length];
             return (
-              <article key={kid.id} className={`stat-tile ${color} block !p-5 text-left sm:!p-6`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <KidAvatar avatarId={kid.avatar_id} nickname={kid.nickname} size="lg" />
-                    <div className="min-w-0">
-                      <h3 className="truncate text-[26px] font-bold leading-tight text-ink">
-                        {kid.nickname}
-                      </h3>
-                      <div className="mt-1 text-[13px] font-medium text-slate2">Age {kid.age}</div>
+              <article
+                key={kid.id}
+                aria-label={`${kid.nickname} profile`}
+                className="group overflow-hidden rounded-[28px] border border-hairline bg-canvas-pure text-left shadow-card-soft transition-transform duration-200 hover:-translate-y-0.5"
+              >
+                <header className={`relative overflow-hidden p-5 sm:p-6 ${theme.header}`}>
+                  <span
+                    className={`absolute inset-x-0 top-0 h-1.5 ${theme.accent}`}
+                    aria-hidden="true"
+                  />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <KidAvatar
+                        avatarId={kid.avatar_id}
+                        nickname={kid.nickname}
+                        size="lg"
+                        className="ring-4 ring-white shadow-md"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate2">
+                          Child {String(i + 1).padStart(2, '0')}
+                        </div>
+                        <h3 className="mt-1 truncate text-[27px] font-bold leading-tight text-ink">
+                          {kid.nickname}
+                        </h3>
+                        <div className="mt-1 text-[13px] font-semibold text-ink-soft">
+                          Age {kid.age}
+                        </div>
+                      </div>
                     </div>
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-[11px] font-bold text-ink shadow-sm">
+                      <span
+                        className={`h-2 w-2 rounded-full ${kid.is_active ? 'bg-brand-mint' : 'bg-brand-sunshine'}`}
+                        aria-hidden="true"
+                      />
+                      {kid.is_active ? 'Active' : 'Paused'}
+                    </span>
                   </div>
-                  <span className={`sticker-${kid.is_active ? 'mint' : 'sunshine'} shrink-0`}>
-                    {kid.is_active ? 'Active' : 'Paused'}
-                  </span>
+                </header>
+
+                <div className="p-5 sm:p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-slate2">
+                        Growth snapshot
+                      </div>
+                      <div className="mt-1 text-[15px] font-bold text-ink">
+                        Recent creative activity
+                      </div>
+                    </div>
+                    <BarChart3 size={20} className="shrink-0 text-brand-sky" aria-hidden="true" />
+                  </div>
+                  <div className="mt-3 rounded-2xl border border-hairline bg-canvas px-4 pb-4 pt-px">
+                    <KidGrowthTeaser kidId={kid.id} name={kid.nickname} />
+                  </div>
                 </div>
 
-                <div className="mt-5 rounded-2xl bg-surface px-4 pb-3 pt-px">
-                  <KidGrowthTeaser kidId={kid.id} name={kid.nickname} />
-                </div>
-
-                <div className="mt-5">
-                  <p className="mb-2 text-[12px] font-semibold text-slate2">
+                <div className="border-t border-hairline bg-white p-5 pt-4 sm:p-6 sm:pt-5">
+                  <p className="mb-3 text-[12px] font-semibold leading-relaxed text-slate2">
                     {kid.is_active
                       ? `Ready for ${kid.nickname} to start creating on this device.`
                       : `${kid.nickname} is paused. Growth and profile details are still available.`}
@@ -242,20 +285,22 @@ export function FamilyListPage() {
                         setOpeningKidId(null);
                       }
                     }}
-                    className="btn-pill-primary w-full"
+                    className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-ink px-5 py-3 text-[14px] font-bold text-canvas transition-all duration-200 hover:-translate-y-0.5 hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                     aria-label={`Open ${kid.nickname}'s kids page`}
                   >
-                    {openingKidId === kid.id ? 'Opening…' : `Open ${kid.nickname}'s kids page →`}
+                    <Sparkles size={17} aria-hidden="true" />
+                    {openingKidId === kid.id ? 'Opening…' : `Open ${kid.nickname}'s kids page`}
+                    <ArrowRight size={17} aria-hidden="true" />
                   </button>
-                  <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
                     <Link
                       to={`/portal/family/${kid.id}`}
-                      className="btn-pill-secondary min-w-0 !px-3 text-[13px]"
+                      className="inline-flex min-h-12 min-w-0 items-center justify-center rounded-2xl bg-wash-mint px-3 text-center text-[12px] font-bold text-ink transition-colors hover:bg-[#c9efdf]"
                       aria-label={`See ${kid.nickname}'s growth`}
                     >
-                      Growth report
+                      See growth
                     </Link>
-                    <div className="[&>button]:w-full [&>button]:!px-3 [&>button]:text-[13px]">
+                    <div className="[&>button]:min-h-12 [&>button]:w-full [&>button]:!rounded-2xl [&>button]:!border-0 [&>button]:!bg-wash-sky [&>button]:!px-3 [&>button]:!text-[12px] [&>button]:hover:!bg-[#d9ebff]">
                       <KidDeviceHandoff
                         kidId={kid.id}
                         nickname={kid.nickname}
@@ -265,7 +310,7 @@ export function FamilyListPage() {
                     </div>
                     <Link
                       to={`/portal/family/${kid.id}/settings`}
-                      className="btn-pill-secondary min-w-0 !px-3 text-[13px]"
+                      className="inline-flex min-h-12 min-w-0 items-center justify-center rounded-2xl bg-surface px-3 text-center text-[12px] font-bold text-ink transition-colors hover:bg-surface-soft"
                       aria-label={`Edit ${kid.nickname}'s profile`}
                     >
                       Profile &amp; PIN

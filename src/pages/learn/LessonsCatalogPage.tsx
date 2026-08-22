@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 
 import { useMe } from '@/auth/useAuth';
+import { KidCharacterSticker } from '@/components/KidCharacterSticker';
 import { api } from '@/lib/api';
 
 // A Lesson (课节) is the course-content unit inside a pack. Each Lesson carries the
@@ -57,20 +58,33 @@ export function LessonsCatalogPage() {
 
   return (
     <div>
-      <div className="mb-10">
-        <div className="eyebrow eyebrow-bubblegum">Lessons</div>
-        <h1 className="hero-display">
-          Pick an <span className="squiggle-word">adventure</span>.
-        </h1>
-        <p className="lead-text mt-4">
-          Step-by-step lessons, sorted by your age. Earn Stars by finishing.
-        </p>
+      <div className="mb-10 grid grid-cols-[minmax(0,1fr)_112px] items-center overflow-hidden rounded-hero bg-wash-sky px-6 py-6 shadow-card-soft sm:grid-cols-[minmax(0,1fr)_190px] sm:px-8">
+        <div className="relative z-10 min-w-0">
+          <div className="eyebrow eyebrow-bubblegum">Lessons</div>
+          <h1 className="hero-display">
+            Pick an <span className="squiggle-word">adventure</span>.
+          </h1>
+          <p className="lead-text mt-4">
+            Step-by-step lessons, sorted by your age. Earn Stars by finishing.
+          </p>
+        </div>
+        <KidCharacterSticker
+          character="tuantuan-thinking"
+          className="-my-8 -mr-5 w-36 justify-self-end -rotate-[2deg] sm:-my-12 sm:w-52"
+          priority
+          testId="lessons-character"
+        />
       </div>
 
       {packs.isLoading && <p className="lead-text">Loading…</p>}
 
       {!packs.isLoading && (packs.data?.length ?? 0) === 0 && (
         <div className="card-base text-center">
+          <KidCharacterSticker
+            character="tuantuan-thinking"
+            className="mx-auto mb-2 w-32"
+            testId="lessons-empty-character"
+          />
           <span className="sticker-sunshine">Coming soon</span>
           <p className="lead-text mt-4">
             New lessons are being added. Check back soon!

@@ -145,6 +145,10 @@ describe('DashboardKidsPanel', () => {
       'href',
       '/portal/family/new',
     );
+    expect(screen.getByTestId('dashboard-kids-empty-character')).toHaveAttribute(
+      'data-character',
+      'lumi-welcome',
+    );
   });
 
   it('keeps the Dashboard usable and retries after the kids request fails', async () => {
@@ -158,6 +162,10 @@ describe('DashboardKidsPanel', () => {
     expect(screen.getByRole('link', { name: 'Open My Family' })).toHaveAttribute(
       'href',
       '/portal/family',
+    );
+    expect(screen.getByTestId('dashboard-kids-error-character')).toHaveAttribute(
+      'data-character',
+      'tuantuan-thinking',
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));

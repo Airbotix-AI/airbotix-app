@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import { KidCharacterSticker } from '@/components/KidCharacterSticker';
 import {
   LIVE_CREATE_TOOLS,
   type CreateTool,
   type ParentStudioGuide,
 } from '@/pages/learn/create/createTools';
+import { STUDIO_CHARACTERS } from '@/pages/learn/create/studioCharacters';
 
 const GUIDE_ACTION = {
   open: 'See the parent guide',
@@ -158,14 +160,23 @@ function StudioCard({ studio }: { studio: CreateTool }) {
 
   return (
     <article
-      className="snap-start rounded-2xl border border-hairline bg-surface p-5"
+      className="snap-start overflow-hidden rounded-2xl border border-hairline bg-surface p-5"
       data-testid={`parent-studio-${studio.id}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="text-[28px]" aria-hidden="true">
-          {studio.emoji}
+        <div>
+          <div className="text-[28px]" aria-hidden="true">
+            {studio.emoji}
+          </div>
+          <span className={`sticker-${studio.color} mt-3 inline-block`}>
+            {studio.discoveryLabel}
+          </span>
         </div>
-        <span className={`sticker-${studio.color}`}>{studio.discoveryLabel}</span>
+        <KidCharacterSticker
+          character={STUDIO_CHARACTERS[studio.id]}
+          className="-my-4 -mr-3 w-24 rotate-[3deg] drop-shadow-sm"
+          testId={`parent-studio-${studio.id}-character`}
+        />
       </div>
       <h3 className="mt-3 text-[20px] font-bold text-ink">{studio.title}</h3>
       <p className="mt-1 text-[14px] leading-relaxed text-slate2">{studio.parentDesc}</p>
@@ -229,7 +240,7 @@ export function CreativeSpacesPanel() {
       </p>
 
       <p className="mt-4 text-[11px] font-bold uppercase tracking-[0.08em] text-slate2 sm:hidden">
-        Swipe to compare all four →
+        Swipe to compare studios →
       </p>
 
       <div className="-mx-4 mt-4 grid auto-cols-[minmax(17rem,88%)] grid-flow-col gap-3 overflow-x-auto px-4 pb-3 [scrollbar-width:none] sm:mx-0 sm:mt-6 sm:grid-flow-row sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0">

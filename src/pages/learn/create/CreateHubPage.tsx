@@ -1,15 +1,17 @@
 import { Link } from 'react-router-dom';
 
+import { KidCharacterSticker } from '@/components/KidCharacterSticker';
 import { useKidWallet } from './shared/useStudio';
 import { CREATE_TOOLS as STUDIOS } from './createTools';
+import { STUDIO_CHARACTERS } from './studioCharacters';
 
 export function CreateHubPage() {
   const wallet = useKidWallet();
 
   return (
     <div>
-      <div className="mb-10 flex items-start justify-between gap-4">
-        <div>
+      <div className="mb-10 grid grid-cols-[minmax(0,1fr)_104px] items-center gap-3 overflow-hidden rounded-hero bg-wash-mint px-6 py-6 shadow-card-soft sm:grid-cols-[minmax(0,1fr)_180px] sm:px-8">
+        <div className="relative z-10 min-w-0">
           <div className="eyebrow eyebrow-bubblegum">Create</div>
           <h1 className="hero-display">
             What do you want to <span className="squiggle-word">make</span>?
@@ -19,38 +21,61 @@ export function CreateHubPage() {
             🔒 Personal — only you can see what you make here. To make work for a class, open the
             class and tap “Create for this class”.
           </p>
+          {wallet.data && (
+            <div className="mt-5 inline-block rounded-2xl bg-canvas-pure/70 px-4 py-3">
+              <div className="text-[24px] font-bold tabular-nums text-brand-mint">
+                {wallet.data.stars_balance}★
+              </div>
+              <div className="text-[11px] uppercase tracking-[0.10em] text-slate2 font-bold">
+                left to spend
+              </div>
+            </div>
+          )}
         </div>
-        {wallet.data && (
-          <div className="text-right shrink-0">
-            <div className="text-[24px] font-bold tabular-nums text-brand-mint">
-              {wallet.data.stars_balance}★
-            </div>
-            <div className="text-[11px] uppercase tracking-[0.10em] text-slate2 font-bold">
-              left to spend
-            </div>
-          </div>
-        )}
+        <KidCharacterSticker
+          character="airo-building"
+          className="-my-7 -mr-4 w-32 justify-self-end rotate-[2deg] sm:-my-10 sm:w-48"
+          priority
+          testId="create-hub-character"
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
-        {STUDIOS.filter((s) => !s.comingSoon).map((s) => (
-          <Link key={s.to} to={s.to} className={`pack-card ${s.color} block`}>
-            <span className="pack-blob" />
-            <div className="relative">
-              <div className="text-[40px]">{s.emoji}</div>
-              <h2 className="mt-3 text-[26px] font-bold leading-tight">{s.title}</h2>
-              <p className="mt-2 text-[14px] opacity-90">{s.desc}</p>
-              <div className="mt-8 flex items-center justify-between">
-                <span className="rounded-full bg-canvas-pure/25 backdrop-blur px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.10em]">
-                  {s.cost === 0 ? 'Free — no stars' : `${s.cost}★ per make`}
-                </span>
-                <span className="rounded-full bg-canvas-pure/25 backdrop-blur px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em]">
-                  Open →
-                </span>
+        {STUDIOS.filter((s) => !s.comingSoon).map((s) => {
+          const character = STUDIO_CHARACTERS[s.id];
+          return (
+            <Link
+              key={s.to}
+              to={s.to}
+              className={`pack-card ${s.color} relative block overflow-hidden`}
+              data-testid={`create-${s.id}`}
+            >
+              <span className="pack-blob" />
+              <div className="relative z-10 pr-24 sm:pr-28">
+                <div className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-85">
+                  {s.discoveryLabel}
+                </div>
+                <h2 className="mt-3 text-[26px] font-bold leading-tight">
+                  {s.emoji} {s.title}
+                </h2>
+                <p className="mt-2 text-[14px] opacity-90">{s.desc}</p>
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <span className="rounded-full bg-canvas-pure/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.10em] backdrop-blur">
+                    {s.cost === 0 ? 'Free — no stars' : `${s.cost}★ per make`}
+                  </span>
+                  <span className="rounded-full bg-canvas-pure/25 px-4 py-2 text-[12px] font-bold uppercase tracking-[0.10em] backdrop-blur sm:ml-auto">
+                    Open studio →
+                  </span>
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+              <KidCharacterSticker
+                character={character}
+                className="absolute -bottom-4 -right-3 z-0 w-32 rotate-[3deg] sm:w-36"
+                testId={`create-${s.id}-character`}
+              />
+            </Link>
+          );
+        })}
       </div>
 
       {/* Paused studios: visible so kids know what's cooking, but NOT clickable —
@@ -61,19 +86,33 @@ export function CreateHubPage() {
           New studios are in the workshop 🔧
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {STUDIOS.filter((s) => s.comingSoon).map((s) => (
-            <div
-              key={s.to}
-              data-testid={`coming-soon-${s.title.toLowerCase().replace(/\s+/g, '-')}`}
-              className="card-base relative overflow-hidden opacity-70 saturate-50 select-none"
-              aria-disabled="true"
-            >
-              <div className="text-[32px]">{s.emoji}</div>
-              <h3 className="mt-2 text-[18px] font-bold leading-tight text-ink">{s.title}</h3>
-              <p className="mt-1 text-[13px] text-slate2">{s.desc}</p>
-              <span className="sticker-sunshine mt-4 inline-block">Coming soon</span>
-            </div>
-          ))}
+          {STUDIOS.filter((s) => s.comingSoon).map((s) => {
+            const character = STUDIO_CHARACTERS[s.id];
+            return (
+              <div
+                key={s.to}
+                data-testid={`coming-soon-${s.title.toLowerCase().replace(/\s+/g, '-')}`}
+                className="card-base relative min-h-52 select-none overflow-hidden opacity-75"
+                aria-disabled="true"
+              >
+                <div className="relative z-10 pr-20">
+                  <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate2">
+                    In the workshop
+                  </div>
+                  <h3 className="mt-3 text-[18px] font-bold leading-tight text-ink">
+                    {s.emoji} {s.title}
+                  </h3>
+                  <p className="mt-2 text-[13px] text-slate2">{s.desc}</p>
+                  <span className="sticker-sunshine mt-5 inline-block">Coming soon</span>
+                </div>
+                <KidCharacterSticker
+                  character={character}
+                  className="absolute -bottom-4 -right-4 z-0 w-28 rotate-[4deg] grayscale-[20%]"
+                  testId={`coming-soon-${s.id}-character`}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 
