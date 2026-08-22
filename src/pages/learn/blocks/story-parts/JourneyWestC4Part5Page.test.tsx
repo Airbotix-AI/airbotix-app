@@ -125,6 +125,9 @@ describe('JourneyWestC4Part5Page', () => {
     fireEvent.click(screen.getByRole('button', { name: /Jumping over the leaf pattern/i }));
     fireEvent.click(screen.getByRole('button', { name: /Go only displays the name/i }));
     await waitFor(() => expect(screen.getByTestId('jtw-c4p5-continue')).toBeEnabled());
+    expect(screen.getByTestId('jtw-c4p5-build-status')).toHaveTextContent(
+      'hop version saved and Go/Tap dual testing completed',
+    );
     expect(screen.getByTestId('jtw-c4p5-resolved')).toHaveTextContent('A gust of wind');
   });
 

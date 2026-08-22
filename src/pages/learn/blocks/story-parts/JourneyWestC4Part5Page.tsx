@@ -184,7 +184,7 @@ export function JourneyWestC4Part5Page() {
         </button>
         <p data-testid="jtw-c4p5-build-status">
           {buildDone
-            ? `✓ ${version}Version saved and Go/Tap dual testing completed`
+            ? `✓ ${version} version saved and Go/Tap dual testing completed`
             : 'Waiting for real selection, block editing, saving and double testing'}
         </p>
       </section>
