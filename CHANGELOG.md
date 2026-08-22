@@ -7663,5 +7663,6 @@ test → build` (was build-only, so the Vitest suite never ran in CI).
   smoother generating screen.
 # Unreleased
 
+- Journey to the West S2 now includes 48 versioned Mandarin narration tracks. All S2 Parts play the authored recording first, fall back to device Chinese speech if a recording cannot load, and stop both playback modes when muted or when leaving the Part.
 - Challenge consent signatures may now use any non-empty signature text; they no longer have to
   duplicate the parent or guardian's full name.

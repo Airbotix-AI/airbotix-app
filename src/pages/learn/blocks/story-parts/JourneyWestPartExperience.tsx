@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import { isMuted, setMuted, sfx } from '../sounds'
-import { speakStory, stopStorySpeech } from '../storyAudio'
+import { playRecordedStory, speakStory, stopStorySpeech } from '../storyAudio'
 import { JTW_S1_STORY_LINE_ID } from './journeyWestSeason1'
 import { JTW_S2_STORY_LINE_ID } from './journeyWestSeason2'
+import { journeyWestS2NarrationFor } from './journeyWestS2Narration'
 import { fetchStoryLineProgress } from './storyPartsApi'
 
 const ASSET_ROOT = '/story-blocks/journey-to-the-west'
@@ -105,7 +106,11 @@ export function JourneyWestPartExperience({ partId, children }: { partId: string
   const narrate = () => {
     const text = narrationFrom(contentRef.current)
     if (!text) return
-    setAudioStatus(speakStory(text) ? 'narrating' : 'idle')
+    const recordedNarration = journeyWestS2NarrationFor(partId)
+    const started = recordedNarration
+      ? playRecordedStory(recordedNarration.audioPath, recordedNarration.text)
+      : speakStory(text)
+    setAudioStatus(started ? 'narrating' : 'idle')
   }
 
   const playCue = () => {

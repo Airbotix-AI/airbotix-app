@@ -16,11 +16,13 @@ vi.mock('./storyPartsApi', async (importOriginal) => ({
 vi.mock('../storyAudio', async (importOriginal) => ({
   ...(await importOriginal<typeof storyAudio>()),
   speakStory: vi.fn(() => true),
+  playRecordedStory: vi.fn(() => true),
   stopStorySpeech: vi.fn(),
 }))
 
 const fetchProgress = vi.mocked(storyPartsApi.fetchStoryLineProgress)
 const speakStory = vi.mocked(storyAudio.speakStory)
+const playRecordedStory = vi.mocked(storyAudio.playRecordedStory)
 
 function renderExperience(partId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -88,5 +90,22 @@ describe('JourneyWestPartExperience', () => {
 
     expect(screen.queryByTestId('jtw-chapter-stage')).not.toBeInTheDocument()
     expect(screen.getByTestId('jtw-audio-controls')).toBeInTheDocument()
+  })
+
+  it('plays the authored S2 recording instead of reading visible controls', () => {
+    fetchProgress.mockResolvedValue({
+      story_line_id: 'journey-to-the-west-s2',
+      completed: [],
+      unlocked_part_ids: ['jtw-s2-c1-p1'],
+    })
+    renderExperience('jtw-s2-c1-p1')
+
+    fireEvent.click(screen.getByRole('button', { name: '🔊 朗读这一 Part' }))
+
+    expect(playRecordedStory).toHaveBeenCalledWith(
+      '/story-blocks/journey-to-the-west/audio/s2/jtw-s2-c1-p1-v01.mp3',
+      expect.stringContaining('清晨，玄奘在长安整理行囊'),
+    )
+    expect(speakStory).not.toHaveBeenCalled()
   })
 })

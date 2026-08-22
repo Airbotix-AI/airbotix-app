@@ -2,6 +2,7 @@ import type { StoryMission, StoryPage } from './curriculumGuides';
 
 const STORY_BACKGROUND_KEY = 'bsx-story-background';
 let fallbackStoryBackgroundEnabled = false;
+let currentStoryAudio: HTMLAudioElement | null = null;
 
 export function canNarrateStory(): boolean {
   if (typeof window === 'undefined') return false;
@@ -49,9 +50,34 @@ export function speakStory(text: string): boolean {
   return true;
 }
 
+export function playRecordedStory(audioPath: string, fallbackText: string): boolean {
+  stopStorySpeech();
+  if (typeof Audio === 'undefined') return speakStory(fallbackText);
+
+  const audio = new Audio(audioPath);
+  currentStoryAudio = audio;
+  let fallbackStarted = false;
+  const startFallback = () => {
+    if (currentStoryAudio !== audio || fallbackStarted) return;
+    fallbackStarted = true;
+    currentStoryAudio = null;
+    speakStory(fallbackText);
+  };
+  audio.addEventListener('error', startFallback, { once: true });
+  audio.addEventListener('ended', () => {
+    if (currentStoryAudio === audio) currentStoryAudio = null;
+  }, { once: true });
+  void audio.play().catch(startFallback);
+  return true;
+}
+
 export function stopStorySpeech(): void {
-  if (!canNarrateStory()) return;
-  window.speechSynthesis.cancel();
+  if (currentStoryAudio) {
+    currentStoryAudio.pause();
+    currentStoryAudio.currentTime = 0;
+    currentStoryAudio = null;
+  }
+  if (canNarrateStory()) window.speechSynthesis.cancel();
 }
 
 export function isStoryBackgroundEnabled(): boolean {
