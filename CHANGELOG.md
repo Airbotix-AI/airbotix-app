@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-23 (fixed: class timetable uses venue timezones)
+
+### Fixed
+
+- Class timetable dates and times now render in each Australian venue's timezone instead of the
+  browser or CI runner timezone, so Queensland afternoon classes cannot appear as overnight UTC
+  sessions.
+
 ## 2026-08-22 (added: privacy-minimal Parent and Kids app-open analytics)
 
 ### Added

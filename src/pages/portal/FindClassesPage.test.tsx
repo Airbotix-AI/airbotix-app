@@ -30,7 +30,7 @@ afterEach(() => {
 });
 
 describe('FindClassesPage', () => {
-  it('defaults to all cities and lists bookable classes from different cities', async () => {
+  it('defaults to all cities and renders bookable classes in their Australian venue timezones', async () => {
     api.mockImplementation((path: string) => {
       if (path === '/families/fam-1/my-classes') {
         return Promise.resolve({ enrollments: [], pending_orders: [], booking_requests: [] });
