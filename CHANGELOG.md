@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-22 (fixed: Story Blocks audio touch targets)
+
+### Fixed
+
+- Journey to the West narration, cue and mute controls now keep a 44px minimum touch target on
+  desktop and tablet layouts.
+
 ## 2026-08-22 (added: Journey to the West Season 2 formal visual pack)
 
 ### Added

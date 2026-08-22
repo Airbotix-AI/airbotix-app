@@ -9,6 +9,7 @@ import { journeyWestS2NarrationFor } from './journeyWestS2Narration'
 import { fetchStoryLineProgress } from './storyPartsApi'
 
 const ASSET_ROOT = '/story-blocks/journey-to-the-west'
+const AUDIO_CONTROL_CLASS = 'min-h-11'
 
 interface ChapterPresentation {
   label: string
@@ -136,15 +137,15 @@ export function JourneyWestPartExperience({ partId, children }: { partId: string
         aria-label="故事声音控制"
         data-testid="jtw-audio-controls"
       >
-        <button className="btn-pill-secondary" type="button" onClick={narrate} disabled={muted}>
+        <button className={`btn-pill-secondary ${AUDIO_CONTROL_CLASS}`} type="button" onClick={narrate} disabled={muted}>
           {audioStatus === 'narrating' ? '正在朗读 · 再听一次' : '🔊 朗读这一 Part'}
         </button>
         {presentation && (
-          <button className="btn-pill-secondary" type="button" onClick={playCue} disabled={muted}>
+          <button className={`btn-pill-secondary ${AUDIO_CONTROL_CLASS}`} type="button" onClick={playCue} disabled={muted}>
             {audioStatus === 'cue' ? `✓ ${presentation.soundLabel}` : `♪ ${presentation.soundLabel}`}
           </button>
         )}
-        <button className="btn-pill-ghost" type="button" onClick={toggleMute} aria-pressed={muted}>
+        <button className={`btn-pill-ghost ${AUDIO_CONTROL_CLASS}`} type="button" onClick={toggleMute} aria-pressed={muted}>
           {muted ? '开启声音' : '静音'}
         </button>
         <span className="text-xs text-ink-soft">声音关闭时，所有成功与任务证据仍会显示在画面上。</span>

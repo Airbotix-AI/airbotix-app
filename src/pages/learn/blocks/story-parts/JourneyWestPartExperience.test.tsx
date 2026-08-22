@@ -108,4 +108,16 @@ describe('JourneyWestPartExperience', () => {
     )
     expect(speakStory).not.toHaveBeenCalled()
   })
+
+  it('keeps child-facing audio controls at the 44px touch-target minimum', () => {
+    fetchProgress.mockResolvedValue({
+      story_line_id: 'journey-to-the-west-s2',
+      completed: [],
+      unlocked_part_ids: ['jtw-s2-c1-p1'],
+    })
+    renderExperience('jtw-s2-c1-p1')
+
+    expect(screen.getByRole('button', { name: '🔊 朗读这一 Part' })).toHaveClass('min-h-11')
+    expect(screen.getByRole('button', { name: '静音' })).toHaveClass('min-h-11')
+  })
 })
