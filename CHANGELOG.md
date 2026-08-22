@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-22 (changed: collectible Creator Passport stamp artwork)
+
+### Changed
+
+- Replaced the generic line icons in the five child capability stamps with distinct, scalable
+  illustrated badges for ideation, prompt direction, debugging, game testing and presenting.
+  Earned stamps now carry a bold verification tick while locked stamps retain a quieter preview.
+
 ## 2026-08-22 (changed: Creator Passport visual hierarchy)
 
 ### Changed

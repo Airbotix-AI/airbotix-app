@@ -2,6 +2,7 @@ import { Check, LockKeyhole } from 'lucide-react';
 
 import type { CreatorCapabilityCode, PassportEvidence } from './creatorPassport';
 import { CAPABILITY_COPY } from './creatorPassport';
+import { CreatorPassportStampArt } from './CreatorPassportStampArt';
 import { CAPABILITY_VISUALS } from './creatorPassportVisuals';
 
 export function CreatorPassportStamp({
@@ -14,7 +15,6 @@ export function CreatorPassportStamp({
   const copy = CAPABILITY_COPY[code];
   const visual = CAPABILITY_VISUALS[code];
   const verified = !!evidence;
-  const { Icon } = visual;
 
   const content = (
     <>
@@ -38,21 +38,9 @@ export function CreatorPassportStamp({
         </span>
       </div>
 
-      <div className="my-3 grid place-items-center sm:my-5">
-        <div
-          className={`grid h-20 w-20 place-items-center rounded-full border-2 border-dashed p-1.5 transition-transform duration-200 group-hover:scale-105 sm:h-28 sm:w-28 sm:p-2 xl:h-32 xl:w-32 ${
-            verified
-              ? `${visual.sealClass} ${visual.tiltClass}`
-              : 'border-stone2 bg-canvas-pure text-steel'
-          }`}
-        >
-          <div className="grid h-full w-full place-items-center rounded-full border-2 border-current/50">
-            <Icon
-              className="h-8 w-8 sm:h-11 sm:w-11 xl:h-12 xl:w-12"
-              strokeWidth={2.2}
-              aria-hidden="true"
-            />
-          </div>
+      <div className="my-2 grid place-items-center sm:my-4">
+        <div className={`h-24 w-24 sm:h-32 sm:w-32 xl:h-36 xl:w-36 ${visual.tiltClass}`}>
+          <CreatorPassportStampArt code={code} earned={verified} />
         </div>
       </div>
 

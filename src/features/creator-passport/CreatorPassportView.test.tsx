@@ -64,6 +64,17 @@ describe('CreatorPassportView', () => {
     ).toHaveAttribute('src', '/media/creator-passport/creator-passport-hero-v1.webp');
     expect(screen.getAllByText('Idea Builder')).toHaveLength(2);
     expect(screen.getAllByTestId('creator-passport-stamp')).toHaveLength(5);
+    expect(
+      screen
+        .getAllByTestId('creator-passport-stamp-art')
+        .map((art) => art.getAttribute('data-stamp-art')),
+    ).toEqual([
+      'idea_builder',
+      'prompt_director',
+      'bug_hunter',
+      'game_tester',
+      'project_presenter',
+    ]);
     expect(screen.getByRole('link', { name: /Idea Builder earned/i })).toHaveAttribute(
       'href',
       '#passport-evidence-evidence-1',
