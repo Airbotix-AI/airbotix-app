@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 
 import { IncidentBanner } from '@/components/IncidentBanner';
 import { PortalAnalyticsConsentBanner } from '@/components/PortalAnalyticsConsentBanner';
+import { useProductOpenTracking } from '@/lib/productOpenAnalytics';
 
 import { PortalMobileHeader } from './PortalMobileHeader';
 import { PortalMobileNav } from './PortalMobileNav';
@@ -10,6 +11,7 @@ import { usePortalPendingCount } from './usePortalPendingCount';
 
 export function PortalLayout() {
   const pendingCount = usePortalPendingCount();
+  useProductOpenTracking('user');
 
   return (
     <div

@@ -4,6 +4,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useKidToken } from '@/auth/authStore';
 import { useMe } from '@/auth/useAuth';
 import { sendWsEvent } from '@/lib/ws';
+import { useProductOpenTracking } from '@/lib/productOpenAnalytics';
 import { NudgeBanner } from '@/pages/learn/liveClass/NudgeBanner';
 import { reEmitFocus } from '@/pages/learn/liveClass/reportFocus';
 
@@ -52,6 +53,7 @@ export function isRestrictedForWalkIn(pathname: string): boolean {
 }
 
 export function LearnLayout() {
+  useProductOpenTracking('kid');
   const { pathname } = useLocation();
   const immersive = IMMERSIVE_ROUTES.some((p) => pathname.startsWith(p));
   // Immersive IMPLIES full-bleed. Listing a route as immersive but forgetting the

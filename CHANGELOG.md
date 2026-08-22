@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-22
+
+- Added privacy-minimal first-party app-open tracking for the authenticated Parent Portal and Kids Learn shells. The server derives identity and surface from the session; the client sends no route or profile data.
+
 ## 2026-08-22 (fixed: Story Blocks audio touch targets)
 
 ### Fixed
