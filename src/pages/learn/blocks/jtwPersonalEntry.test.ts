@@ -29,6 +29,12 @@ import {
 
 const [LEFT, RIGHT] = JTW_C2_P7_SIDES;
 
+it('accepts the backend starter canonical cave evidence line', () => {
+  expect(JTW_C2_P7_EVIDENCE_LINES[0]).toBe(
+    'Bridge, dry ground, stone seat, clear water.',
+  );
+});
+
 interface EntryOptions {
   start?: { gx: number; gy: number };
   route?: readonly Block[];

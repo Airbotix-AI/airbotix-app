@@ -50,7 +50,7 @@ export const JTW_C2_P7_WAIT_CHOICES = [1, 2] as const;
  * with the discovery they already made.
  */
 export const JTW_C2_P7_EVIDENCE_LINES = [
-  '桥、干地、石座、清水。',
+  'Bridge, dry ground, stone seat, clear water.',
   '进来吧，里面有干地和石座。',
   '跟着我的脚印，桥是稳的。',
 ] as const;

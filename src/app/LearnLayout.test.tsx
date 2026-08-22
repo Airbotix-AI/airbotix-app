@@ -10,6 +10,11 @@ import type { AuthPrincipal } from '@/auth/types';
 
 import { isRestrictedForWalkIn, LearnLayout } from './LearnLayout';
 
+const trackOpen = vi.fn();
+vi.mock('@/lib/productOpenAnalytics', () => ({
+  useProductOpenTracking: (principal: string) => trackOpen(principal),
+}));
+
 vi.mock('./LearnTopBar', () => ({ LearnTopBar: () => <nav data-testid="learn-nav" /> }));
 vi.mock('@/components/NudgeBanner', () => ({ NudgeBanner: () => null }));
 // Mutable per-test principal: default is an ordinary (claimed / family) kid.
@@ -62,6 +67,7 @@ describe('LearnLayout', () => {
     const { container, getByTestId } = mount('/learn/projects');
     expect(getByTestId('learn-nav')).toBeInTheDocument();
     expect(readingColumn(container)).toBeTruthy();
+    expect(trackOpen).toHaveBeenCalledWith('kid');
   });
 
   // The bug this locks: /learn/music was listed as immersive but not as fluid, so

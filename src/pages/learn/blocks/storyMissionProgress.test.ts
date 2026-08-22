@@ -1988,12 +1988,22 @@ describe('Journey to the West C1-P6 order-debug contract', () => {
   const prefix = [{ op: 'when_flag' }, { op: 'hide' }, { op: 'play_sound', n: 2 }];
   const show = { op: 'show' };
   const hop = { op: 'hop', n: 1 };
-  const say = { op: 'say', text: '你好，我刚刚来到这里。' };
+  const say = { op: 'say', text: 'Hello, I just came here.' };
   const end = { op: 'end' };
 
   it('accepts ONLY the repaired order Show → Hop → Say', () => {
     expect(
       storyMissionProgramMatches(p6Project([...prefix, show, hop, say, end]), 'jtw-s1-c1-p6'),
+    ).toBe(true);
+  });
+
+  it('keeps the previously saved Chinese greeting compatible', () => {
+    const legacySay = { op: 'say', text: '你好，我刚刚来到这里。' };
+    expect(
+      storyMissionProgramMatches(
+        p6Project([...prefix, show, hop, legacySay, end]),
+        'jtw-s1-c1-p6',
+      ),
     ).toBe(true);
   });
 

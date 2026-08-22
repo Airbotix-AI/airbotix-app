@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-08-23 (fixed: class timetable uses venue timezones)
+
+### Fixed
+
+- Class timetable dates and times now render in each Australian venue's timezone instead of the
+  browser or CI runner timezone, so Queensland afternoon classes cannot appear as overnight UTC
+  sessions.
+
+## 2026-08-22 (added: privacy-minimal Parent and Kids app-open analytics)
+
+- Kept the Journey West C1-P6 mission validator aligned with the backend starter's canonical
+  `Hello, I just came here.` dialogue so the pre-deploy journey can complete after a real repair.
+- Accepted the backend's canonical C2-P7 cave evidence line so a correctly built right-bank route
+  completes against the project the server actually seeds.
+
+### Added
+
+- Added privacy-minimal first-party app-open tracking for the authenticated Parent Portal and Kids Learn shells. The server derives identity and surface from the session; the client sends no route or profile data.
+
 ## 2026-08-22 (changed: all-city class timetable in the Parent Portal)
 
 ### Changed

@@ -6,6 +6,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { PortalLayout } from './PortalLayout';
 
+const trackOpen = vi.fn();
+vi.mock('@/lib/productOpenAnalytics', () => ({
+  useProductOpenTracking: (principal: string) => trackOpen(principal),
+}));
+
 vi.mock('@/components/IncidentBanner', () => ({
   IncidentBanner: () => <div>Incident banner</div>,
 }));
@@ -47,6 +52,7 @@ describe('PortalLayout', () => {
     expect(screen.getByTestId('desktop-navigation')).toHaveTextContent('4');
     expect(screen.getByRole('navigation', { name: 'Parent Portal mobile' })).toHaveTextContent('4');
     expect(screen.getByText('Portal dashboard')).toBeVisible();
+    expect(trackOpen).toHaveBeenCalledWith('user');
   });
 
   it('keeps the document fixed to the viewport and makes the main region the only scroller', () => {
@@ -67,18 +73,8 @@ describe('PortalLayout', () => {
     expect(layout).toHaveClass('fixed', 'inset-0', 'h-dvh', 'min-h-0', 'overflow-hidden');
     expect(layout).toHaveClass('portal-shell');
     expect(layout).toHaveAttribute('data-portal-shell', 'true');
-    expect(scrollRegion).toHaveClass(
-      'min-h-0',
-      'min-w-0',
-      'overflow-y-auto',
-      'xl:pb-0',
-    );
-    expect(contentFrame).toHaveClass(
-      'portal-content-frame',
-      'mx-auto',
-      'w-full',
-      'max-w-[1440px]',
-    );
+    expect(scrollRegion).toHaveClass('min-h-0', 'min-w-0', 'overflow-y-auto', 'xl:pb-0');
+    expect(contentFrame).toHaveClass('portal-content-frame', 'mx-auto', 'w-full', 'max-w-[1440px]');
     expect(within(scrollRegion).getByText('Mobile page title')).toBeInTheDocument();
     expect(within(scrollRegion).getByText('Course comparison')).toBeInTheDocument();
     expect(screen.getByTestId('desktop-navigation')).toBeInTheDocument();
